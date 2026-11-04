@@ -1601,3 +1601,1199 @@ requestAnimationFrame(tick);
 
 </body>
 </html>
+<style>
+/* ================================================================
+   [EDITOR CSS 01] PULSANTE
+   ================================================================ */
+
+#collisionOpen {
+  position: absolute;
+  right: 16px;
+  bottom: 170px;
+  z-index: 6;
+  padding: 10px;
+  font-size: 11px;
+}
+
+/* [EDITOR CSS 02] SCHERMATA EDITOR */
+
+#collisionEditor {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: #10232d;
+  color: white;
+  font: 13px Arial, sans-serif;
+  touch-action: none;
+}
+
+#collisionEditor[hidden],
+#collisionExport[hidden] {
+  display: none !important;
+}
+
+#collisionToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px;
+  background: #152f3c;
+}
+
+#collisionToolbar button {
+  padding: 7px;
+  min-height: 40px;
+  font-size: 11px;
+}
+
+#collisionToolbar button.active {
+  border: 2px solid #ffda77;
+  background: #526048;
+}
+
+#collisionHint {
+  padding: 8px 12px;
+  min-height: 44px;
+  line-height: 1.4;
+  background: #203c49;
+}
+
+/* [EDITOR CSS 03] MAPPA MODIFICABILE */
+
+#collisionView {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+#collisionCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  image-rendering: pixelated;
+}
+
+/* [EDITOR CSS 04] ESPORTAZIONE */
+
+#collisionExport {
+  position: absolute;
+  inset: 5%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: #10232dfc;
+  border: 2px solid #ffda77;
+  border-radius: 12px;
+}
+
+#collisionExport textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 80px;
+  resize: none;
+  background: #071820;
+  color: white;
+  font: 12px monospace;
+  touch-action: pan-y;
+}
+
+#collisionExport button {
+  padding: 10px;
+}
+</style>
+
+<script>
+/* ================================================================
+   [EDITOR 01] NUOVA MAPPA
+   Il file deve essere nella stessa cartella di index.html.
+   ================================================================ */
+
+CONFIG.map =
+  "file_00000000b7408209868184cc07238f4e.png";
+
+ready = false;
+loading.hidden = false;
+
+mapImage.src = CONFIG.map;
+
+/* ================================================================
+   [EDITOR 02] SALVATAGGIO SEPARATO PER QUESTA MAPPA
+
+   Non sovrascrive i dati locali della vecchia mappa.
+   ================================================================ */
+
+const EDITOR_STORAGE = "tarai-newmap-collisions-v1";
+
+try {
+
+  const saved = JSON.parse(
+    localStorage.getItem(EDITOR_STORAGE)
+  );
+
+  if (validCollisionData(saved)) {
+    colliderPolygons = saved;
+  }
+
+} catch (_) {}
+
+function saveColliders() {
+
+  try {
+
+    localStorage.setItem(
+      EDITOR_STORAGE,
+      JSON.stringify(colliderPolygons)
+    );
+
+  } catch (_) {
+
+    collisionHint.textContent =
+      "Salvataggio non disponibile: usa Copia collisioni.";
+
+  }
+
+}
+
+/* ================================================================
+   [EDITOR 03] INTERFACCIA
+   ================================================================ */
+
+game.insertAdjacentHTML(
+  "beforeend",
+  '<button id="collisionOpen" type="button">' +
+  'EDIT COLLISIONS</button>'
+);
+
+document.body.insertAdjacentHTML("beforeend", `
+<section
+  id="collisionEditor"
+  hidden
+  role="dialog"
+  aria-modal="true"
+  aria-label="Editor collisioni"
+>
+
+  <div id="collisionToolbar">
+
+    <button type="button" data-editor-tool="pan">
+      Sposta mappa
+    </button>
+
+    <button type="button" data-editor-tool="edit">
+      Modifica
+    </button>
+
+    <button type="button" data-editor-tool="draw">
+      Nuovo ostacolo
+    </button>
+
+    <button type="button" id="collisionFinish">
+      Chiudi forma
+    </button>
+
+    <button type="button" id="collisionUndo">
+      Annulla
+    </button>
+
+    <button type="button" id="collisionDelete">
+      Elimina
+    </button>
+
+    <button type="button" id="collisionPlus">+</button>
+
+    <button type="button" id="collisionMinus">−</button>
+
+    <button type="button" id="collisionFit">
+      Mappa intera
+    </button>
+
+    <button type="button" id="collisionCopy">
+      Copia collisioni
+    </button>
+
+    <button type="button" id="collisionClose">
+      Gioca
+    </button>
+
+  </div>
+
+  <div id="collisionHint"></div>
+
+  <div id="collisionView">
+    <canvas id="collisionCanvas"></canvas>
+  </div>
+
+  <div id="collisionExport" hidden>
+
+    <strong>Collisioni aggiornate</strong>
+
+    <div>
+      Copia questo blocco e aggiungilo dopo lo script
+      dell’editor, prima di &lt;/body&gt;.
+    </div>
+
+    <textarea
+      id="collisionData"
+      readonly
+      aria-label="Codice delle collisioni"
+    ></textarea>
+
+    <button id="collisionClipboard" type="button">
+      Copia
+    </button>
+
+    <button id="collisionExportClose" type="button">
+      Indietro
+    </button>
+
+  </div>
+
+</section>
+`);
+
+/* ================================================================
+   [EDITOR 04] STATO
+   ================================================================ */
+
+const collisionEditor =
+  document.getElementById("collisionEditor");
+
+const collisionCanvas =
+  document.getElementById("collisionCanvas");
+
+const collisionContext =
+  collisionCanvas.getContext("2d");
+
+const collisionView =
+  document.getElementById("collisionView");
+
+const collisionHint =
+  document.getElementById("collisionHint");
+
+let collisionTool = "pan";
+let collisionSelected = -1;
+let collisionDraft = [];
+let collisionHistory = [];
+
+let collisionScale = 1;
+
+let collisionOffset = {
+  x: 0,
+  y: 0
+};
+
+let collisionDrag = null;
+let collisionWasReady = false;
+
+/* ================================================================
+   [EDITOR 05] STORICO DELLE MODIFICHE
+   ================================================================ */
+
+function rememberColliders() {
+
+  collisionHistory.push(
+    JSON.stringify(colliderPolygons)
+  );
+
+  if (collisionHistory.length > 40) {
+    collisionHistory.shift();
+  }
+
+}
+
+/* ================================================================
+   [EDITOR 06] DISEGNO DEGLI OSTACOLI
+   ================================================================ */
+
+function collisionPath(polygon) {
+
+  const c = collisionContext;
+
+  c.beginPath();
+
+  polygon.forEach(function(point, index) {
+
+    if (index === 0) {
+      c.moveTo(point[0], point[1]);
+    } else {
+      c.lineTo(point[0], point[1]);
+    }
+
+  });
+
+}
+
+function paintColliders() {
+
+  if (collisionEditor.hidden) {
+    return;
+  }
+
+  const c = collisionContext;
+  const w = collisionCanvas.width;
+  const h = collisionCanvas.height;
+
+  c.setTransform(1, 0, 0, 1, 0, 0);
+
+  c.clearRect(0, 0, w, h);
+  c.fillStyle = "#10232d";
+  c.fillRect(0, 0, w, h);
+
+  c.translate(
+    collisionOffset.x,
+    collisionOffset.y
+  );
+
+  c.scale(collisionScale, collisionScale);
+
+  c.imageSmoothingEnabled = false;
+
+  if (mapImage.complete && mapImage.naturalWidth) {
+
+    c.drawImage(
+      mapImage,
+      0,
+      0,
+      CONFIG.referenceWidth,
+      CONFIG.referenceHeight
+    );
+
+  }
+
+  colliderPolygons.forEach(function(polygon, index) {
+
+    const selected = index === collisionSelected;
+
+    collisionPath(polygon);
+    c.closePath();
+
+    c.fillStyle = selected
+      ? "#ffd66066"
+      : "#ff244866";
+
+    c.fill();
+
+    c.strokeStyle = selected
+      ? "#ffdd77"
+      : "#ff425c";
+
+    c.lineWidth = 1.5 / collisionScale;
+
+    c.stroke();
+
+    if (selected) {
+
+      polygon.forEach(function(point) {
+
+        const size = 10 / collisionScale;
+
+        c.fillStyle = "white";
+
+        c.fillRect(
+          point[0] - size / 2,
+          point[1] - size / 2,
+          size,
+          size
+        );
+
+      });
+
+    }
+
+  });
+
+  if (collisionDraft.length) {
+
+    collisionPath(collisionDraft);
+
+    c.strokeStyle = "#70ffff";
+    c.lineWidth = 2 / collisionScale;
+
+    c.stroke();
+
+    collisionDraft.forEach(function(point) {
+
+      const size = 8 / collisionScale;
+
+      c.fillStyle = "#70ffff";
+
+      c.fillRect(
+        point[0] - size / 2,
+        point[1] - size / 2,
+        size,
+        size
+      );
+
+    });
+
+  }
+
+  // Il punto rappresenta i piedi di Riccardo.
+
+  c.beginPath();
+  c.arc(player.x, player.y, 7, 0, Math.PI * 2);
+  c.fillStyle = "white";
+  c.fill();
+
+  c.beginPath();
+  c.arc(player.x, player.y, 5, 0, Math.PI * 2);
+  c.fillStyle = "#ed243b";
+  c.fill();
+
+  const help = {
+
+    pan:
+      "Trascina la mappa. Usa + e − per ingrandire.",
+
+    edit:
+      "Tocca un ostacolo rosso. Trascina i punti bianchi " +
+      "o trascina il suo interno per spostarlo.",
+
+    draw:
+      "Tocca gli angoli intorno all’ostacolo, " +
+      "poi premi Chiudi forma."
+
+  };
+
+  collisionHint.textContent =
+    help[collisionTool] +
+    " Ostacoli: " +
+    colliderPolygons.length;
+
+}
+
+/* ================================================================
+   [EDITOR 07] DIMENSIONI E ZOOM
+   ================================================================ */
+
+function resizeCollisionEditor(fit = false) {
+
+  if (collisionEditor.hidden) {
+    return;
+  }
+
+  collisionCanvas.width = Math.max(
+    1,
+    Math.round(collisionView.clientWidth)
+  );
+
+  collisionCanvas.height = Math.max(
+    1,
+    Math.round(collisionView.clientHeight)
+  );
+
+  if (fit) {
+
+    collisionScale = Math.min(
+      collisionCanvas.width / CONFIG.referenceWidth,
+      collisionCanvas.height / CONFIG.referenceHeight
+    ) * 0.97;
+
+    collisionOffset.x = (
+      collisionCanvas.width -
+      CONFIG.referenceWidth * collisionScale
+    ) / 2;
+
+    collisionOffset.y = (
+      collisionCanvas.height -
+      CONFIG.referenceHeight * collisionScale
+    ) / 2;
+
+  }
+
+  paintColliders();
+
+}
+
+new ResizeObserver(function() {
+  resizeCollisionEditor();
+}).observe(collisionView);
+
+function collisionZoom(factor) {
+
+  const x = collisionCanvas.width / 2;
+  const y = collisionCanvas.height / 2;
+
+  const worldX = (
+    x - collisionOffset.x
+  ) / collisionScale;
+
+  const worldY = (
+    y - collisionOffset.y
+  ) / collisionScale;
+
+  collisionScale = clamp(
+    collisionScale * factor,
+    0.12,
+    5
+  );
+
+  collisionOffset.x = x - worldX * collisionScale;
+  collisionOffset.y = y - worldY * collisionScale;
+
+  paintColliders();
+
+}
+
+/* ================================================================
+   [EDITOR 08] APERTURA E CHIUSURA
+
+   Durante le modifiche il gioco viene fermato.
+   ================================================================ */
+
+document.getElementById("collisionOpen").onclick = function() {
+
+  if (!ready) {
+    return;
+  }
+
+  collisionWasReady = ready;
+
+  ready = false;
+
+  resetInput();
+
+  collisionEditor.hidden = false;
+
+  game.inert = true;
+
+  requestAnimationFrame(function() {
+    resizeCollisionEditor(true);
+  });
+
+};
+
+document.getElementById("collisionClose").onclick = function() {
+
+  if (collisionDraft.length) {
+
+    collisionHint.textContent =
+      "Chiudi la forma in corso oppure usa Annulla " +
+      "per togliere i suoi punti.";
+
+    return;
+
+  }
+
+  if (!canStand(player.x, player.y)) {
+
+    collisionHint.textContent =
+      "Il punto di Riccardo è dentro un ostacolo. " +
+      "Correggi quell’ostacolo prima di giocare.";
+
+    return;
+
+  }
+
+  saveColliders();
+
+  collisionEditor.hidden = true;
+
+  game.inert = false;
+
+  ready = collisionWasReady;
+
+  lastTime = 0;
+
+  resetInput();
+
+  document.getElementById("collisionOpen").focus();
+
+};
+
+window.addEventListener("keydown", function(event) {
+
+  if (
+    !collisionEditor.hidden &&
+    movementKeys.has(event.key.toLowerCase())
+  ) {
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+  }
+
+}, true);
+
+/* ================================================================
+   [EDITOR 09] SELEZIONE DEGLI STRUMENTI
+   ================================================================ */
+
+document.querySelectorAll(
+  "[data-editor-tool]"
+).forEach(function(button) {
+
+  button.onclick = function() {
+
+    collisionTool = button.dataset.editorTool;
+
+    document.querySelectorAll(
+      "[data-editor-tool]"
+    ).forEach(function(other) {
+
+      other.classList.toggle(
+        "active",
+        other === button
+      );
+
+    });
+
+    paintColliders();
+
+  };
+
+});
+
+document.querySelector(
+  '[data-editor-tool="pan"]'
+).classList.add("active");
+
+document.getElementById("collisionPlus").onclick = function() {
+  collisionZoom(1.3);
+};
+
+document.getElementById("collisionMinus").onclick = function() {
+  collisionZoom(1 / 1.3);
+};
+
+document.getElementById("collisionFit").onclick = function() {
+  resizeCollisionEditor(true);
+};
+
+/* ================================================================
+   [EDITOR 10] ANNULLAMENTO E CANCELLAZIONE
+   ================================================================ */
+
+document.getElementById("collisionUndo").onclick = function() {
+
+  if (collisionDraft.length) {
+
+    collisionDraft.pop();
+
+  } else if (collisionHistory.length) {
+
+    colliderPolygons = JSON.parse(
+      collisionHistory.pop()
+    );
+
+    collisionSelected = -1;
+
+    saveColliders();
+
+  }
+
+  paintColliders();
+
+};
+
+document.getElementById("collisionDelete").onclick = function() {
+
+  if (collisionSelected < 0) {
+    return;
+  }
+
+  rememberColliders();
+
+  colliderPolygons.splice(collisionSelected, 1);
+
+  collisionSelected = -1;
+
+  saveColliders();
+
+  paintColliders();
+
+};
+
+/* ================================================================
+   [EDITOR 11] CONTROLLO DELLE FORME
+
+   Impedisce di creare contorni incrociati o senza superficie.
+   ================================================================ */
+
+function collisionSelfIntersects(polygon) {
+
+  function orient(a, b, c) {
+
+    return (
+      (b[0] - a[0]) * (c[1] - a[1]) -
+      (b[1] - a[1]) * (c[0] - a[0])
+    );
+
+  }
+
+  for (let i = 0; i < polygon.length; i++) {
+
+    for (let j = i + 1; j < polygon.length; j++) {
+
+      if (
+        j === i + 1 ||
+        (i === 0 && j === polygon.length - 1)
+      ) {
+        continue;
+      }
+
+      const a = polygon[i];
+      const b = polygon[(i + 1) % polygon.length];
+
+      const c = polygon[j];
+      const d = polygon[(j + 1) % polygon.length];
+
+      const crossA = (
+        orient(a, b, c) * orient(a, b, d) <= 0
+      );
+
+      const crossB = (
+        orient(c, d, a) * orient(c, d, b) <= 0
+      );
+
+      const overlapX = (
+        Math.max(
+          Math.min(a[0], b[0]),
+          Math.min(c[0], d[0])
+        ) <=
+        Math.min(
+          Math.max(a[0], b[0]),
+          Math.max(c[0], d[0])
+        )
+      );
+
+      const overlapY = (
+        Math.max(
+          Math.min(a[1], b[1]),
+          Math.min(c[1], d[1])
+        ) <=
+        Math.min(
+          Math.max(a[1], b[1]),
+          Math.max(c[1], d[1])
+        )
+      );
+
+      if (crossA && crossB && overlapX && overlapY) {
+        return true;
+      }
+
+    }
+
+  }
+
+  return false;
+
+}
+
+function collisionValid(polygon) {
+
+  if (polygon.length < 3) {
+    return false;
+  }
+
+  const area = Math.abs(
+    polygon.reduce(function(total, point, index) {
+
+      const next = polygon[
+        (index + 1) % polygon.length
+      ];
+
+      return (
+        total +
+        point[0] * next[1] -
+        next[0] * point[1]
+      );
+
+    }, 0)
+  ) / 2;
+
+  return (
+    area > 3 &&
+    !collisionSelfIntersects(polygon)
+  );
+
+}
+
+/* ================================================================
+   [EDITOR 12] CHIUSURA DI UN NUOVO OSTACOLO
+   ================================================================ */
+
+document.getElementById("collisionFinish").onclick = function() {
+
+  if (!collisionValid(collisionDraft)) {
+
+    collisionHint.textContent =
+      "Servono almeno 3 punti. " +
+      "Il contorno non deve incrociarsi.";
+
+    return;
+
+  }
+
+  rememberColliders();
+
+  colliderPolygons.push(collisionDraft);
+
+  collisionSelected = colliderPolygons.length - 1;
+
+  collisionDraft = [];
+
+  saveColliders();
+
+  paintColliders();
+
+};
+
+/* ================================================================
+   [EDITOR 13] CONVERSIONE DELLE COORDINATE
+   ================================================================ */
+
+function collisionPointer(event) {
+
+  const rect = collisionCanvas.getBoundingClientRect();
+
+  return {
+
+    x:
+      (event.clientX - rect.left) *
+      collisionCanvas.width / rect.width,
+
+    y:
+      (event.clientY - rect.top) *
+      collisionCanvas.height / rect.height
+
+  };
+
+}
+
+function collisionWorld(point) {
+
+  return [
+
+    Math.round(clamp(
+      (point.x - collisionOffset.x) / collisionScale,
+      0,
+      CONFIG.referenceWidth
+    )),
+
+    Math.round(clamp(
+      (point.y - collisionOffset.y) / collisionScale,
+      0,
+      CONFIG.referenceHeight
+    ))
+
+  ];
+
+}
+
+/* ================================================================
+   [EDITOR 14] TOCCO: DISEGNO E SELEZIONE
+   ================================================================ */
+
+collisionCanvas.onpointerdown = function(event) {
+
+  if (collisionDrag) {
+    return;
+  }
+
+  event.preventDefault();
+
+  collisionCanvas.setPointerCapture(event.pointerId);
+
+  const point = collisionPointer(event);
+  const world = collisionWorld(point);
+
+  if (collisionTool === "draw") {
+
+    const previous = collisionDraft[
+      collisionDraft.length - 1
+    ];
+
+    if (
+      !previous ||
+      Math.hypot(
+        world[0] - previous[0],
+        world[1] - previous[1]
+      ) > 2
+    ) {
+      collisionDraft.push(world);
+    }
+
+    paintColliders();
+
+    return;
+
+  }
+
+  if (collisionTool === "pan") {
+
+    collisionDrag = {
+      id: event.pointerId,
+      kind: "pan",
+      point,
+      offset: {...collisionOffset}
+    };
+
+    return;
+
+  }
+
+  if (collisionSelected >= 0) {
+
+    const vertex = colliderPolygons[
+      collisionSelected
+    ].findIndex(function(value) {
+
+      return Math.hypot(
+        value[0] - world[0],
+        value[1] - world[1]
+      ) < 16 / collisionScale;
+
+    });
+
+    if (vertex >= 0) {
+
+      collisionDrag = {
+        id: event.pointerId,
+        kind: "vertex",
+        vertex,
+        before: JSON.stringify(colliderPolygons)
+      };
+
+      return;
+
+    }
+
+  }
+
+  collisionSelected = -1;
+
+  for (let i = colliderPolygons.length - 1; i >= 0; i--) {
+
+    if (
+      pointInPolygon(
+        world[0],
+        world[1],
+        colliderPolygons[i]
+      )
+    ) {
+
+      collisionSelected = i;
+
+      break;
+
+    }
+
+  }
+
+  if (collisionSelected >= 0) {
+
+    collisionDrag = {
+
+      id: event.pointerId,
+
+      kind: "shape",
+
+      point: world,
+
+      before: JSON.stringify(colliderPolygons),
+
+      original: colliderPolygons[
+        collisionSelected
+      ].map(value => [...value])
+
+    };
+
+  }
+
+  paintColliders();
+
+};
+
+/* ================================================================
+   [EDITOR 15] TRASCINAMENTO MAPPA, PUNTI E OSTACOLI
+   ================================================================ */
+
+collisionCanvas.onpointermove = function(event) {
+
+  const drag = collisionDrag;
+
+  if (!drag || drag.id !== event.pointerId) {
+    return;
+  }
+
+  const point = collisionPointer(event);
+  const world = collisionWorld(point);
+
+  if (drag.kind === "pan") {
+
+    collisionOffset.x =
+      drag.offset.x + point.x - drag.point.x;
+
+    collisionOffset.y =
+      drag.offset.y + point.y - drag.point.y;
+
+  } else if (drag.kind === "vertex") {
+
+    colliderPolygons[
+      collisionSelected
+    ][drag.vertex] = world;
+
+  } else {
+
+    const minX = Math.min(
+      ...drag.original.map(value => value[0])
+    );
+
+    const maxX = Math.max(
+      ...drag.original.map(value => value[0])
+    );
+
+    const minY = Math.min(
+      ...drag.original.map(value => value[1])
+    );
+
+    const maxY = Math.max(
+      ...drag.original.map(value => value[1])
+    );
+
+    const dx = clamp(
+      world[0] - drag.point[0],
+      -minX,
+      CONFIG.referenceWidth - maxX
+    );
+
+    const dy = clamp(
+      world[1] - drag.point[1],
+      -minY,
+      CONFIG.referenceHeight - maxY
+    );
+
+    colliderPolygons[collisionSelected] =
+      drag.original.map(function(value) {
+
+        return [
+          value[0] + dx,
+          value[1] + dy
+        ];
+
+      });
+
+  }
+
+  paintColliders();
+
+};
+
+/* ================================================================
+   [EDITOR 16] FINE DEL TRASCINAMENTO
+   ================================================================ */
+
+function endCollisionDrag(event) {
+
+  const drag = collisionDrag;
+
+  if (!drag || drag.id !== event.pointerId) {
+    return;
+  }
+
+  if (drag.before) {
+
+    const cancelled = event.type === "pointercancel";
+
+    const valid = collisionValid(
+      colliderPolygons[collisionSelected]
+    );
+
+    if (cancelled || !valid) {
+
+      colliderPolygons = JSON.parse(drag.before);
+
+    } else if (
+      drag.before !== JSON.stringify(colliderPolygons)
+    ) {
+
+      collisionHistory.push(drag.before);
+
+      if (collisionHistory.length > 40) {
+        collisionHistory.shift();
+      }
+
+      saveColliders();
+
+    }
+
+  }
+
+  collisionDrag = null;
+
+  paintColliders();
+
+}
+
+collisionCanvas.onpointerup = endCollisionDrag;
+
+collisionCanvas.onpointercancel = endCollisionDrag;
+
+collisionCanvas.onlostpointercapture = endCollisionDrag;
+
+/* ================================================================
+   [EDITOR 17] ESPORTAZIONE PER GITHUB
+
+   Genera un blocco pronto da incollare DOPO questo editor.
+   Non aggiorna GitHub automaticamente.
+   ================================================================ */
+
+document.getElementById("collisionCopy").onclick = function() {
+
+  document.getElementById("collisionData").value =
+    "<script>\n" +
+    "/* COLLISIONI AGGIORNATE DELLA NUOVA MAPPA */\n" +
+    "colliderPolygons = " +
+    JSON.stringify(colliderPolygons, null, 2) +
+    ";\n" +
+    "try {\n" +
+    '  localStorage.setItem("' +
+    EDITOR_STORAGE +
+    '", JSON.stringify(colliderPolygons));\n' +
+    "} catch (_) {}\n" +
+    "<" + "/script>";
+
+  document.getElementById("collisionExport").hidden = false;
+
+  document.getElementById("collisionClipboard").textContent =
+    "Copia";
+
+};
+
+document.getElementById("collisionClipboard").onclick =
+  async function() {
+
+    const field = document.getElementById("collisionData");
+
+    try {
+
+      await navigator.clipboard.writeText(field.value);
+
+      this.textContent = "Copiato!";
+
+    } catch (_) {
+
+      field.focus();
+      field.select();
+
+      this.textContent = "Seleziona e copia il testo";
+
+    }
+
+  };
+
+document.getElementById("collisionExportClose").onclick =
+  function() {
+
+    document.getElementById("collisionExport").hidden = true;
+
+  };
+
+  </script>
