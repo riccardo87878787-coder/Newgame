@@ -309,7 +309,7 @@ function canOccupy(subject,x,y){
   if(!staticFree(p.x,p.y,p.r))return false;
   if(subject!==player&&!intro&&Math.hypot(p.x-player.x,p.y-player.y)<p.r+player.radius+2)return false;
   for(const n of npcs)if(n!==subject)for(const q of feet(n))if(Math.hypot(p.x-q.x,p.y-q.y)<p.r+q.r)return false;
-  if(vehicles.some(v=>circleRect(p.x,p.y,p.r,vehicleBounds(v))))return false;
+  if(locationId==='city'&&vehicles.some(v=>circleRect(p.x,p.y,p.r,vehicleBounds(v))))return false;
  }
  return true;
 }
@@ -325,7 +325,7 @@ function drawNpc(n){
  else if(n.route){a=n.walkAssets[n.direction];paused=!n.moving||n.talking;}
  else a=n.animation;
  if(!a)a=n.animation||n.walkAssets[n.direction]||n.idleAssets[n.direction]||Object.values(n.idleAssets).find(Boolean);
- setAsset(n.actor,a,paused);place(n.actor,n.x,n.y);
+ setAsset(n.actor,a,paused);place(n.actor,n.x,n.y);if(n.id==='20_ragazzo_attesa')n.actor.node.style.zIndex=111100;
 }
 function updateNpcs(dt){
  for(const n of npcs){
@@ -421,8 +421,8 @@ function updateCamera(){
 }
 function resize(){const r=game.getBoundingClientRect();viewWidth=Math.max(1,r.width);viewHeight=Math.max(1,r.height);updateCamera();if(ready)updateInteractionUI();}
 new ResizeObserver(resize).observe(game);
-$("zoomIn").onclick=()=>{if(intro||dialogue||locked())return;zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom);updateCamera();};
-$("zoomOut").onclick=()=>{if(intro||dialogue||locked())return;zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom);updateCamera();};
+$("zoomIn").onclick=()=>{if(intro||dialogue||locked())return;zoom=clamp(zoom+.2*(locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:1),CONFIG.minZoom*(locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:1),CONFIG.maxZoom*(locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:1));updateCamera();};
+$("zoomOut").onclick=()=>{if(intro||dialogue||locked())return;zoom=clamp(zoom-.2*(locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:1),CONFIG.minZoom*(locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:1),CONFIG.maxZoom*(locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:1));updateCamera();};
 function drawPlayer(){
  if(intro&&!["exit","speech"].includes(film.phase)){player.actor.node.hidden=true;return;}
  const mode=player.moving?"walk":"idle";
@@ -597,7 +597,7 @@ function paintEditor(){
  items().forEach((item,i)=>{const p=polygon(item),sel=i===s.selected;polygonPath(c,p);c.fillStyle=sel?"#ffde7966":s.layer==="collision"?"#ff34545c":"#40bfff60";c.fill();c.lineWidth=1.5/s.scale;c.strokeStyle=sel?"#ffe08a":"#ffffff88";c.stroke();if(!sel)return;for(const [x,y]of p){c.fillStyle="white";c.fillRect(x-5/s.scale,y-5/s.scale,10/s.scale,10/s.scale);}if(s.layer==="depth"){const xs=p.map(v=>v[0]);c.beginPath();c.moveTo(Math.min(...xs)-15,item.baseY);c.lineTo(Math.max(...xs)+15,item.baseY);c.strokeStyle="#ffdf59";c.lineWidth=2/s.scale;c.stroke();c.fillStyle="#ffdf59";c.font=12/s.scale+"px Arial";c.fillText(item.name+" · BASE "+Math.round(item.baseY),Math.min(...xs),item.baseY-7/s.scale);}});
  if(s.draft.length){c.beginPath();s.draft.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle="#7dffff";c.lineWidth=2/s.scale;c.stroke();for(const [x,y]of s.draft){c.fillStyle="#7dffff";c.fillRect(x-4/s.scale,y-4/s.scale,8/s.scale,8/s.scale);}}
  for(const n of npcs){if(n.route){c.beginPath();c.moveTo(...n.route[0]);c.lineTo(...n.route[1]);c.strokeStyle="#ffe199";c.lineWidth=2/s.scale;c.stroke();}for(const p of feet(n)){c.beginPath();c.arc(p.x,p.y,p.r,0,Math.PI*2);c.fillStyle="#ffcc69";c.fill();}}
- for(const v of vehicles){const b=vehicleBounds(v);c.fillStyle="#b78cffaa";c.fillRect(b.left,b.top,b.right-b.left,b.bottom-b.top);}c.beginPath();c.arc(player.x,player.y,7,0,Math.PI*2);c.fillStyle="white";c.fill();c.beginPath();c.arc(player.x,player.y,5,0,Math.PI*2);c.fillStyle="#ed243b";c.fill();
+ for(const v of locationId==='city'?vehicles:[]){const b=vehicleBounds(v);c.fillStyle="#b78cffaa";c.fillRect(b.left,b.top,b.right-b.left,b.bottom-b.top);}c.beginPath();c.arc(player.x,player.y,7,0,Math.PI*2);c.fillStyle="white";c.fill();c.beginPath();c.arc(player.x,player.y,5,0,Math.PI*2);c.fillStyle="#ed243b";c.fill();
  document.querySelectorAll("[data-layer]").forEach(b=>b.classList.toggle("active",b.dataset.layer===s.layer));document.querySelectorAll("[data-tool]").forEach(b=>b.classList.toggle("active",b.dataset.tool===s.tool));$("editorBase").disabled=s.layer!=="depth"||s.selected<0;
  notice((s.base?"Tocca l’altezza della base.":s.tool==="pan"?"Trascina la mappa. Usa + e −.":s.tool==="draw"?"Tocca gli angoli, poi Chiudi forma.":"Seleziona e trascina una forma o i punti bianchi.")+(s.layer==="depth"?" Blu: ritagli. Giallo: base.":" Rosso: ostacoli. Arancione: NPC. Linee: percorsi.")+(storageFailed?" Esporta i dati: salvataggio non disponibile.":""));
 }
@@ -638,10 +638,10 @@ editorCanvas.onpointerup=finishDrag;editorCanvas.onpointercancel=finishDrag;edit
 $("editorExport").onclick=()=>{if(editor.draft.length){notice("Termina prima la forma.");return;}saveWorld();$("exportData").value=JSON.stringify({map:locationId==="office"?OFFICE.map:CONFIG.map,version:WORLD_VERSION,collisions:world.collisions,depth:world.depth},null,2);$("exportPanel").hidden=false;$("exportCopy").textContent="Copia";};
 $("exportCopy").onclick=async function(){try{await navigator.clipboard.writeText($("exportData").value);this.textContent="Copiato!";}catch(_){$("exportData").focus();$("exportData").select();this.textContent="Seleziona e copia il testo";}};$("exportClose").onclick=()=>$("exportPanel").hidden=true;
 /* 23 · UFFICIO: MAPPA, OSTACOLI INIZIALI E SETTE PERSONAGGI */
-const OFFICE_VIEW={zoom:.8,playerHeight:140,npcHeight:140,staffHeight:170,seatedHeight:115};
+const OFFICE_VIEW={zoom:CONFIG.zoom*CONFIG.spriteHeight/140,playerHeight:140,npcHeight:140,staffHeight:170,seatedHeight:115};
 const OFFICE={map:'Map/file_00000000d7888209a5dfb38018660692.png',start:{x:510,y:1280},collisions:[rect(0,0,1024,310),rect(0,0,35,1536),rect(989,0,35,1536),rect(35,1410,280,126),rect(710,1410,280,126),rect(315,1350,395,186),rect(45,400,934,180),rect(45,625,75,210),rect(130,685,290,145),rect(160,850,185,90),rect(75,965,345,145),rect(655,925,330,80),rect(700,1015,80,100),rect(865,1015,80,100),rect(50,1180,100,210),rect(170,1250,75,140),rect(855,1200,130,200)],depth:[zone('Bancone',580,rect(45,400,934,180)),zone('Sedie attesa',1110,rect(75,965,345,145)),zone('Scrivanie',1005,rect(655,925,330,80)),zone('Pianta ingresso',1390,rect(850,1170,135,230))]};
 const OFFICE_DATA=[
- ['18_impiegata_principale','Impiegata principale',375,465,'down',true],['19_impiegato_occhiali','Impiegato con occhiali',785,465,'down',true],['20_ragazzo_attesa','Ragazzo in attesa',235,1118,'down',true],['21_donna_cartellina','Donna con cartellina',595,825,'right',false],['22_signore_computer','Signore al computer',900,1100,'up',true],['23_giovane_colloquio','Giovane del colloquio',335,1210,'down',false],['24_cliente_sportello','Cliente allo sportello',785,640,'up',true]
+ ['18_impiegata_principale','Impiegata principale',375,465,'down',true],['19_impiegato_occhiali','Impiegato con occhiali',785,465,'down',true],['20_ragazzo_attesa','Ragazzo in attesa',235,1080,'down',true],['21_donna_cartellina','Donna con cartellina',595,825,'right',false],['22_signore_computer','Signore al computer',900,1100,'up',true],['23_giovane_colloquio','Giovane del colloquio',490,1180,'down',false],['24_cliente_sportello','Cliente allo sportello',785,640,'up',true]
 ];
 Object.assign(NPC_LINES,{'19_impiegato_occhiali':'번호표 뽑고 잠시만 기다려 주세요.','20_ragazzo_attesa':'경력은 필요한데, 경력 쌓을 기회는 안 주네요.','21_donna_cartellina':'이번에는 꼭 좋은 일자리를 찾았으면 좋겠어요.','22_signore_computer':'아이고, 비밀번호가 또 뭐였더라…','23_giovane_colloquio':'오늘 첫 면접인데… 넥타이 괜찮아 보여요?','24_cliente_sportello':'저 지금 상담 중이에요. 잠시만 기다려 주세요.'});
 let locationId='city',transitioning=false,menuOpen=false,autoMenu=false,ending=false,officeLoaded=false,sceneEpoch=0,officeSequence=null;
