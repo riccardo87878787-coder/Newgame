@@ -9,39 +9,38 @@
 <style>
 /* [CSS 01] SCHERMO VERTICALE */
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b161c;color:white;font-family:Arial,sans-serif}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b161c;color:#fff;font-family:Arial,sans-serif}
 body{display:flex;align-items:center;justify-content:center;touch-action:none;overscroll-behavior:none}
 #game{position:relative;width:min(100vw,56.25vh);height:min(100vh,177.7778vw);overflow:hidden;background:#162b35}
 @supports(height:100dvh){#game{width:min(100vw,56.25dvh);height:min(100dvh,177.7778vw)}}
 
-/* [CSS 02] MAPPA, PERSONAGGI E PROFONDITÀ */
+/* [CSS 02] LIVELLI DEL MONDO */
 #mapCanvas,#scene{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #mapCanvas{z-index:0;image-rendering:pixelated}
 #scene{z-index:1;overflow:hidden}
 #sceneWorld{position:absolute;left:0;top:0;width:1024px;height:1536px;transform-origin:0 0;isolation:isolate}
-.item{position:absolute;pointer-events:none;image-rendering:pixelated;max-width:none;user-select:none}
+.item{position:absolute;pointer-events:none;image-rendering:pixelated;user-select:none}
 #trainLayer{position:absolute;inset:0;z-index:1;clip-path:url(#trainClip)}
-#trainImage{left:0;top:46px;width:1024px;height:84px}
-#riccardo{left:0;top:0;width:1px;height:1px}
-#riccardo img{position:absolute;display:none;width:auto;max-width:none;image-rendering:pixelated}
-.bus{position:absolute;transform:translate(-50%,-97.8%)}
+#riccardo{width:1px;height:1px}
+#riccardo img{position:absolute;display:none;max-width:none;image-rendering:pixelated}
+.bus{transform:translate(-50%,-97.8%)}
 .bus img{display:block;width:100%;height:auto;image-rendering:pixelated}
-.bus img[hidden]{display:none}
 
 /* [CSS 03] INTERFACCIA */
-button{min-width:40px;min-height:40px;padding:7px;border:1px solid #9bbbc7aa;border-radius:8px;background:#102631ed;color:white;font:inherit;cursor:pointer;touch-action:none;user-select:none;-webkit-tap-highlight-color:transparent}
+button{min-width:40px;min-height:40px;padding:7px;border:1px solid #9bbbc7aa;border-radius:8px;background:#102631ed;color:#fff;font:inherit;cursor:pointer;touch-action:none;user-select:none;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:3px solid #f7d580}
 button.active,button.pressed{background:#61704c;border-color:#ffdf80}
 button:disabled{opacity:.45}
+[hidden]{display:none!important}
 #hud{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;z-index:4;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
 .panel{padding:9px 11px;border:1px solid #a0c4cc66;border-radius:8px;background:#102631e8;line-height:1.4}
 .eyebrow{color:#f6d78e;font-size:10px;letter-spacing:1px}
 #objective{font-size:12px}
-#status{max-width:230px;margin-top:4px;color:#b9d4dc;font-size:10px;overflow-wrap:anywhere}
+#status{max-width:225px;margin-top:4px;color:#b9d4dc;font-size:10px;overflow-wrap:anywhere}
 #resetButton{font-size:22px;pointer-events:auto}
 #controls{position:absolute;inset:0;z-index:4;pointer-events:none}
 
-/* [CSS 04] CROCE DIREZIONALE */
+/* [CSS 04] QUATTRO DIREZIONI */
 #dpad{position:absolute;left:16px;bottom:max(20px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px);gap:3px;pointer-events:auto}
 #dpad button{padding:0;font-size:24px}
 #dpad [data-dir="up"]{grid-area:1/2}
@@ -51,23 +50,21 @@ button:disabled{opacity:.45}
 #sideControls{position:absolute;right:12px;bottom:max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:7px;pointer-events:auto}
 #sideControls button{font-size:12px}
 #loading{position:absolute;inset:0;z-index:10;display:grid;place-content:center;padding:25px;background:#162b35;text-align:center}
-#loading p{font-size:13px}
-[hidden]{display:none!important}
 
 /* [CSS 05] EDITOR */
 #editor{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:#10232d;font-size:12px}
-#editorToolbar{display:flex;flex-wrap:wrap;gap:5px;padding:7px}
-#editorToolbar button{min-height:37px;font-size:11px;padding:6px}
+#toolbar{display:flex;flex-wrap:wrap;gap:5px;padding:7px}
+#toolbar button{min-height:37px;padding:6px;font-size:11px}
 #editorHint{padding:8px;min-height:48px;background:#203c49;line-height:1.4}
 #editorView{position:relative;flex:1;min-height:0;overflow:hidden}
 #editorCanvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
 #exportPanel{position:absolute;inset:5%;z-index:2;display:flex;flex-direction:column;gap:10px;padding:15px;border:2px solid #ffda77;border-radius:10px;background:#10232dfc}
-#exportData{flex:1;min-height:80px;width:100%;background:#071820;color:white;font:12px monospace;resize:none;touch-action:pan-y}
+#exportData{flex:1;min-height:80px;width:100%;background:#071820;color:#fff;font:12px monospace;resize:none;touch-action:pan-y}
 </style>
 </head>
 
 <body>
-<!-- [HTML 01] APERTURE DEI BINARI FRA PILASTRI ED EDIFICI -->
+<!-- [HTML 01] BINARI: MASCHERA DAVANTI AL TRENO -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
  <defs>
   <clipPath id="trainClip" clipPathUnits="userSpaceOnUse">
@@ -86,7 +83,9 @@ button:disabled{opacity:.45}
 
  <div id="scene" aria-hidden="true">
   <div id="sceneWorld">
-   <div id="trainLayer"><img id="trainImage" class="item" alt=""></div>
+   <div id="trainLayer">
+    <img id="trainImage" class="item" alt="">
+   </div>
    <div id="riccardo" class="item"></div>
   </div>
  </div>
@@ -121,9 +120,9 @@ button:disabled{opacity:.45}
  </div>
 </main>
 
-<!-- [HTML 03] EDITOR COLLISIONI E PROFONDITÀ -->
+<!-- [HTML 03] EDITOR -->
 <section id="editor" hidden role="dialog" aria-modal="true" aria-label="Map editor">
- <div id="editorToolbar">
+ <div id="toolbar">
   <button data-layer="collision">Collisioni</button>
   <button data-layer="depth">Profondità</button>
   <button data-tool="pan">Sposta mappa</button>
@@ -145,7 +144,7 @@ button:disabled{opacity:.45}
 
  <div id="exportPanel" hidden>
   <strong>Dati aggiornati</strong>
-  <div>Copia e mandami questi dati per integrarli su GitHub.</div>
+  <div>Salvati nel browser. Copiali per integrarli nel codice su GitHub.</div>
   <textarea id="exportData" readonly></textarea>
   <button id="exportCopy">Copia</button>
   <button id="exportClose">Indietro</button>
@@ -156,66 +155,73 @@ button:disabled{opacity:.45}
 "use strict";
 
 /* ================================================================
-   [CONFIG 01] MAPPA, RICCARDO E USCITA DALLA STAZIONE
-   spriteHeight: dimensione di tutte le pose di Riccardo.
-   speed: velocità di Riccardo.
-   entrance: punto iniziale e velocità dell'uscita automatica.
+   [CONFIG 01] MAPPA E PERSONAGGIO
+
+   spriteHeight = altezza VISIBILE di Riccardo.
+   speed = velocità di Riccardo.
+   radius = dimensione delle collisioni ai piedi.
    ================================================================ */
 
-const CONFIG = {
- map: "file_0000000011348209b4f72c4afa5f7456.png",
- width: 1024, height: 1536,
- speed: 135, radius: 5, spriteHeight: 54,
- zoom: 1.35, minZoom: .7, maxZoom: 2.8,
- collisions: true, depth: true,
- start: {x:512, y:448},
- entrance: {x:512, y:366, clipTop:325, speed:52}
+const CONFIG={
+ map:"file_0000000011348209b4f72c4afa5f7456.png",
+ width:1024,height:1536,
+ speed:135,radius:5,spriteHeight:54,
+ zoom:1.35,minZoom:.7,maxZoom:2.8,
+ collisions:true,depth:true,
+ start:{x:512,y:448},
+ entrance:{x:512,y:366,clipTop:325,speed:52}
 };
 
-const SPRITES = {
- idle: {
-  down:"Riccardo_fermo_giu.png",
-  up:"Riccardo_fermo_su.png",
-  right:"Riccardo_fermo_destra.png",
-  left:"Riccardo_fermo_sinistra.png"
+/* [CONFIG 02] NUOVI SPRITE: QUATTRO FERMI E QUATTRO CAMMINATE */
+
+const SPRITES={
+ idle:{
+  up:"Riccardogif/file_000000000780820990bd01ccc5bbea9b.png",
+  down:"Riccardogif/file_0000000049748209b268702de3e04090.png",
+  right:"Riccardogif/file_00000000a56c8209838cd9b3a6c43745.png",
+  left:"Riccardogif/file_00000000d3f0821194e2b548b3414ab4.png"
  },
- walk: {
-  down:"file_0000000005dc8230b315715b4e8d1917.gif",
-  up:"Riccardo_camminata_su-1.gif",
-  right:"Riccardo_camminata_destra.gif",
-  left:"Riccardo_camminata_sinistra.gif"
+ walk:{
+  right:"Riccardogif/Riccardo_camminata_destra_pixel.gif",
+  down:"Riccardogif/Riccardo_camminata_giu_pixel.gif",
+  left:"Riccardogif/Riccardo_camminata_sinistra_pixel.gif",
+  up:"Riccardogif/Riccardo_camminata_su_pixel.gif"
  }
 };
 
-/* [CONFIG 02] BUS: DIMENSIONI, POSIZIONE, VELOCITÀ E FREQUENZA */
+/* [CONFIG 03] BUS
+   groundY più basso = bus più in alto.
+   minDelay / maxDelay = intervallo casuale, in secondi.
+*/
 
-const TRAFFIC = {
- files: [
+const TRAFFIC={
+ files:[
   "Vetturegif/Bus_blu_ruote_animate.gif",
   "Vetturegif/Bus_rosso_8100_ruote_animate.gif",
   "Vetturegif/Bus_verde_4312_ruote_animate.gif"
  ],
- width: 210,
- groundY: 676,
- minSpeed: 75, maxSpeed: 105,
- minDelay: 3.5, maxDelay: 7,
- maxBuses: 3, gap: 40,
- acceleration: 95, braking: 240,
- crossing: {left:430, right:592, stopX:610, top:586, bottom:735}
+ width:210,groundY:654,
+ minSpeed:75,maxSpeed:105,
+ minDelay:2.5,maxDelay:8.5,
+ maxBuses:3,gap:40,
+ acceleration:95,braking:240,
+ crossing:{left:430,right:592,stopX:610,top:586,bottom:735}
 };
 
-/* [CONFIG 03] TRENO
-   La GIF contiene già arrivo, sosta e partenza.
-   Posizione e dimensioni sono in [CSS 02], #trainImage.
+/* [CONFIG 04] TRENO
+   La GIF anima già arrivo, sosta e partenza.
 */
 
-const TRAIN_FILE = "Vetturegif/Treno_arrivo_sosta_partenza.gif";
+const TRAIN={
+ file:"Vetturegif/Treno_arrivo_sosta_partenza.gif",
+ x:0,y:46,width:1024,height:84
+};
 
 /* ================================================================
-   [DATA 01] LE TUE ULTIME 44 COLLISIONI
+   [DATA 01] LE TUE 44 COLLISIONI DEFINITIVE
    ================================================================ */
 
-const DEFAULT_COLLISIONS = [
+const DEFAULT_COLLISIONS=[
  [[0,0],[1024,0],[1024,385],[0,385]],
  [[0,385],[98,385],[98,591],[0,591]],
  [[976,394],[1024,385],[1024,591],[991,566]],
@@ -265,17 +271,13 @@ const DEFAULT_COLLISIONS = [
 
 /* [DATA 02] LE TUE ULTIME 21 ZONE DI PROFONDITÀ */
 
-const rect = (x,y,w,h) => [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
-const zone = (name,baseY,polygon) => ({name,baseY,polygon});
+const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+const zone=(name,baseY,polygon)=>({name,baseY,polygon});
 
-const DEFAULT_DEPTH = [
+const DEFAULT_DEPTH=[
  zone("Lampione stazione sinistro",551,[
   [296,550],[296,414],[299,408],[326,405],
   [331,411],[328,418],[307,420],[307,550]
- ]),
- zone("Lampione stazione destro",551,[
-  [713,550],[713,416],[716,409],[742,406],
-  [747,412],[744,418],[724,421],[724,550]
  ]),
  zone("Albero stazione sinistro",489,[
   [143,358],[150,333],[176,319],[188,304],[216,308],[231,321],
@@ -286,8 +288,8 @@ const DEFAULT_DEPTH = [
  zone("Albero stazione destro",489,[
   [755,355],[764,331],[790,313],[816,307],[838,320],[860,329],
   [865,350],[881,366],[868,392],[850,408],[831,424],[828,456],
-  [851,463],[857,489],[784,489],[786,461],[809,455],[808,422],
-  [786,412],[766,393]
+  [851,463],[857,489],[784,489],[786,461],[809,455],
+  [808,422],[786,412],[766,393]
  ]),
  zone("Panchina sinistra",551,rect(236,519,52,32)),
  zone("Panchina destra",551,rect(747,519,50,32)),
@@ -300,20 +302,20 @@ const DEFAULT_DEPTH = [
  zone("Albero strada sinistro",725,[
   [17,584],[28,569],[42,574],[55,567],[78,574],[91,590],
   [104,609],[99,631],[80,647],[69,650],[65,706],[89,710],
-  [89,725],[37,725],[38,708],[53,706],[54,650],[34,641],
-  [18,623],[13,603]
+  [89,725],[37,725],[38,708],[53,706],[54,650],
+  [34,641],[18,623],[13,603]
  ]),
- zone("Albero strada destro",725,[
-  [911,588],[925,571],[944,571],[962,556],[978,574],[995,576],
-  [1011,595],[1014,616],[999,639],[978,650],[977,706],
-  [995,711],[996,725],[942,725],[943,709],[963,706],
-  [963,651],[942,646],[922,628]
+ zone("Albero strada destro",729,[
+  [902,592],[916,575],[931,567],[940,550],[972,547],[996,576],
+  [1002,599],[991,610],[968,621],[964,648],[963,702],
+  [980,694],[987,729],[933,729],[939,695],[953,697],
+  [954,655],[955,624],[932,615]
  ]),
  zone("Palo elettrico",1117,[
   [602,1116],[600,836],[585,829],[585,817],[576,817],[576,803],
   [592,803],[592,784],[573,782],[573,770],[603,770],[603,753],
-  [622,753],[623,771],[636,773],[636,786],[621,787],[621,805],
-  [630,805],[630,833],[620,837],[622,1116]
+  [622,753],[623,771],[636,773],[636,786],[621,787],
+  [621,805],[630,805],[630,833],[620,837],[622,1116]
  ]),
  zone("Fioriera MART",1091,rect(377,1023,37,68)),
  zone("Fioriera GIMBAP",1089,rect(526,1013,31,76)),
@@ -335,19 +337,29 @@ const DEFAULT_DEPTH = [
   [733,1458],[710,1464],[550,1464]
  ]),
  zone("Oggetto 20",769,[[216,731],[262,738],[259,769],[211,763]]),
- zone("Oggetto 20",734,[[618,629],[647,632],[651,734]]),
  zone("Oggetto 21",781,[
   [735,781],[748,761],[764,741],[790,726],
   [811,735],[829,744],[838,757]
+ ]),
+ zone("Oggetto 21",744,[
+  [612,622],[618,618],[625,618],[635,621],[638,626],[643,625],
+  [649,627],[650,638],[649,737],[651,742],[641,744],
+  [641,736],[642,669],[641,632],[633,632],
+  [625,635],[616,634],[612,627]
+ ]),
+ zone("Oggetto 21",553,[
+  [731,420],[724,426],[713,427],[705,419],[704,409],[707,406],
+  [736,407],[739,409],[739,418],[737,420],[737,505],
+  [739,508],[739,546],[739,549],[733,553],[726,549],
+  [726,543],[728,505],[731,505],[730,445]
  ])
 ];
 
-/* [DATA 03] VERSIONE E SALVATAGGIO LOCALE
-   Cambia DATA_VERSION quando inserisci nuovi dati definitivi.
-   Le modifiche nell'editor si salvano nel browser, non su GitHub.
+/* [DATA 03] VERSIONE E SALVATAGGIO NEL BROWSER
+   Cambiare DATA_VERSION quando si pubblicano nuovi dati definitivi.
 */
 
-const DATA_VERSION="seoul-traffic-2026-11-05-02";
+const DATA_VERSION="seoul-traffic-2026-11-05-03";
 const STORAGE_KEY="tarai-rpg-world-v3";
 const clone=v=>JSON.parse(JSON.stringify(v));
 const validPolygon=p=>Array.isArray(p)&&p.length>=3&&p.every(v=>
@@ -357,23 +369,30 @@ const validWorld=d=>d&&Array.isArray(d.collisions)&&
  d.collisions.every(validPolygon)&&Array.isArray(d.depth)&&
  d.depth.every(z=>z&&Number.isFinite(z.baseY)&&validPolygon(z.polygon));
 
-let world={collisions:clone(DEFAULT_COLLISIONS),depth:clone(DEFAULT_DEPTH)};
+let world={
+ collisions:clone(DEFAULT_COLLISIONS),
+ depth:clone(DEFAULT_DEPTH)
+};
 let storageFailed=false;
 
 try{
  const s=JSON.parse(localStorage.getItem(STORAGE_KEY));
- if(s?.version===DATA_VERSION&&validWorld(s.world))world=s.world;
+ if(s?.version===DATA_VERSION&&s.map===CONFIG.map&&validWorld(s.world)){
+  world=s.world;
+ }
 }catch(_){}
 
 function saveWorld(){
  try{
-  localStorage.setItem(STORAGE_KEY,JSON.stringify({version:DATA_VERSION,world}));
+  localStorage.setItem(STORAGE_KEY,JSON.stringify({
+   version:DATA_VERSION,map:CONFIG.map,world
+  }));
   storageFailed=false;
  }catch(_){storageFailed=true;}
 }
 
 /* ================================================================
-   [JS 01] ELEMENTI, STATO E CARICAMENTO DELLE RISORSE
+   [JS 01] ELEMENTI E STATO
    ================================================================ */
 
 const $=id=>document.getElementById(id);
@@ -381,23 +400,28 @@ const all=s=>document.querySelectorAll(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const random=(a,b)=>a+Math.random()*(b-a);
 
-const game=$("game"),mapCanvas=$("mapCanvas");
-const ctx=mapCanvas.getContext("2d");
+const game=$("game"),canvas=$("mapCanvas");
+const ctx=canvas.getContext("2d");
 const scene=$("sceneWorld"),actor=$("riccardo"),mapImage=new Image();
 const player={x:512,y:448,direction:"down",moving:false};
 const camera={x:0,y:0},assets={idle:{},walk:{}};
 const missing=new Set(),held=new Map();
 
 let ready=false,lastTime=0,viewWidth=1,viewHeight=1,density=1;
-let zoom=CONFIG.zoom,intro=false,activeAsset=null,nextBus=1;
-let buses=[],busResources=[],depthNodes=[];
+let zoom=CONFIG.zoom,intro=false,active=null;
+let nextBus=random(1.2,4),buses=[],busResources=[],depthNodes=[];
 
 const E={
  open:false,layer:"collision",tool:"pan",selected:-1,
  draft:[],history:[],drag:null,scale:1,x:0,y:0,base:false
 };
 
-function loadSprite(file){
+/* [JS 02] CARICAMENTO E ALLINEAMENTO AUTOMATICO DEGLI SPRITE
+   Legge il corpo visibile: PNG e GIF hanno margini diversi.
+   Le GIF restano elementi IMG per mantenere l'animazione.
+*/
+
+function loadImage(file){
  return new Promise(resolve=>{
   const image=new Image();
   image.onload=()=>{missing.delete(file);resolve(image);};
@@ -406,34 +430,95 @@ function loadSprite(file){
  });
 }
 
+function measureSprite(image){
+ const w=image.naturalWidth,h=image.naturalHeight;
+ let box={left:0,top:0,right:w,bottom:h};
+
+ try{
+  const c=document.createElement("canvas");
+  c.width=w;c.height=h;
+  const g=c.getContext("2d",{willReadFrequently:true});
+  g.drawImage(image,0,0);
+  const data=g.getImageData(0,0,w,h).data;
+  let left=w,top=h,right=-1,bottom=-1;
+
+  for(let y=0;y<h;y++){
+   for(let x=0;x<w;x++){
+    if(data[(y*w+x)*4+3]>=220){
+     left=Math.min(left,x);right=Math.max(right,x);
+     top=Math.min(top,y);bottom=Math.max(bottom,y);
+    }
+   }
+  }
+  if(right>=left)box={left,top,right:right+1,bottom:bottom+1};
+ }catch(_){}
+
+ return box;
+}
+
 async function loadActors(){
  await Promise.all(Object.entries(SPRITES).flatMap(([mode,dirs])=>
   Object.entries(dirs).map(async([dir,file])=>{
-   const image=await loadSprite(file);
+   const image=await loadImage(file);
    if(!image)return;
+   const box=measureSprite(image);
    image.alt="";image.draggable=false;
+   assets[mode][dir]={image,box};
    actor.appendChild(image);
-   assets[mode][dir]=image;
   })
  ));
 }
 
 async function loadBuses(){
  await Promise.all(TRAFFIC.files.map(async file=>{
-  const image=await loadSprite(file);
+  const image=await loadImage(file);
   if(!image)return;
   let still="";
+
   try{
    const c=document.createElement("canvas");
    c.width=image.naturalWidth;c.height=image.naturalHeight;
    c.getContext("2d").drawImage(image,0,0);
    still=c.toDataURL();
   }catch(_){}
+
   busResources.push({file,still});
  }));
 }
 
-/* [JS 02] PROFONDITÀ: RITAGLI ORDINATI PER ALTEZZA DELLA BASE */
+function drawActor(){
+ const a=assets[player.moving?"walk":"idle"][player.direction]||
+  assets.idle[player.direction]||assets.idle.down;
+
+ if(a!==active){
+  if(active)active.image.style.display="none";
+  active=a;
+  if(a)a.image.style.display="block";
+ }
+ if(!a)return;
+
+ const {image,box}=a;
+ const s=CONFIG.spriteHeight/(box.bottom-box.top);
+ const top=-box.bottom*s;
+ const cut=intro?
+  Math.max(0,CONFIG.entrance.clipTop-player.y-top):0;
+
+ Object.assign(image.style,{
+  width:image.naturalWidth*s+"px",
+  height:image.naturalHeight*s+"px",
+  left:-(box.left+box.right)/2*s+"px",
+  top:top+"px",
+  clipPath:`inset(${Math.max(box.top*s,cut)}px ${(image.naturalWidth-box.right)*s}px ${(image.naturalHeight-box.bottom)*s}px ${box.left*s}px)`
+ });
+
+ Object.assign(actor.style,{
+  left:player.x+"px",
+  top:player.y+"px",
+  zIndex:String(Math.round(player.y*100)+1)
+ });
+}
+
+/* [JS 03] PROFONDITÀ DEGLI OGGETTI */
 
 function path(c,p){
  c.beginPath();
@@ -449,11 +534,14 @@ function buildDepth(){
   const xs=z.polygon.map(p=>p[0]),ys=z.polygon.map(p=>p[1]);
   const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));
   const c=document.createElement("canvas");
-  c.width=Math.max(1,Math.ceil(Math.max(...xs))-x+1);
-  c.height=Math.max(1,Math.ceil(Math.max(...ys))-y+1);
+
+  c.width=Math.ceil(Math.max(...xs))-x+1;
+  c.height=Math.ceil(Math.max(...ys))-y+1;
   c.className="item";
+
   Object.assign(c.style,{
-   left:x+"px",top:y+"px",zIndex:String(Math.round(z.baseY*100))
+   left:x+"px",top:y+"px",
+   zIndex:String(Math.round(z.baseY*100))
   });
 
   const g=c.getContext("2d");
@@ -464,31 +552,7 @@ function buildDepth(){
  }
 }
 
-function drawActor(){
- const image=assets[player.moving?"walk":"idle"][player.direction]||
-  assets.idle[player.direction]||assets.idle.down;
-
- if(activeAsset!==image){
-  if(activeAsset)activeAsset.style.display="none";
-  activeAsset=image;
-  if(image)image.style.display="block";
- }
- if(!image)return;
-
- image.style.height=CONFIG.spriteHeight+"px";
- image.style.transform="translate(-50%,-97.4%)";
-
- const cut=intro?Math.max(
-  0,CONFIG.entrance.clipTop-(player.y-CONFIG.spriteHeight*.974)
- ):0;
-
- image.style.clipPath=cut?`inset(${cut}px 0 0 0)`:"none";
- actor.style.left=player.x+"px";
- actor.style.top=player.y+"px";
- actor.style.zIndex=String(Math.round(player.y*100)+1);
-}
-
-/* [JS 03] COLLISIONI: CERCHIO AI PIEDI CONTRO POLIGONI */
+/* [JS 04] COLLISIONI DEL CERCHIO AI PIEDI */
 
 function inside(x,y,p){
  let hit=false;
@@ -509,6 +573,7 @@ function segmentDistance(x,y,a,b){
 function canStand(x,y){
  const r=CONFIG.radius;
  if(x<r||y<r||x>CONFIG.width-r||y>CONFIG.height-r)return false;
+
  return!CONFIG.collisions||!world.collisions.some(p=>
   inside(x,y,p)||p.some((a,i)=>
    segmentDistance(x,y,a,p[(i+1)%p.length])<=r*r
@@ -524,7 +589,7 @@ function movePlayer(dx,dy){
  }
 }
 
-/* [JS 04] QUATTRO DIREZIONI: PREVALE L'ULTIMO COMANDO */
+/* [JS 05] COMANDI: SOLO QUATTRO DIREZIONI */
 
 const DIR={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const KEY={
@@ -539,7 +604,9 @@ function buttons(){
  );
 }
 function resetInput(){held.clear();player.moving=false;buttons();}
-function press(token,dir){held.delete(token);held.set(token,dir);buttons();}
+function press(token,dir){
+ held.delete(token);held.set(token,dir);buttons();
+}
 
 window.addEventListener("keydown",e=>{
  const k=e.key.toLowerCase();
@@ -566,9 +633,11 @@ all("#dpad button").forEach(b=>{
 });
 
 window.addEventListener("blur",resetInput);
-document.addEventListener("visibilitychange",()=>{resetInput();lastTime=0;});
+document.addEventListener("visibilitychange",()=>{
+ resetInput();lastTime=0;
+});
 
-/* [JS 05] CAMERA, ZOOM E DISEGNO DELLA MAPPA */
+/* [JS 06] CAMERA E ZOOM */
 
 function updateCamera(){
  const w=viewWidth/zoom,h=viewHeight/zoom;
@@ -582,14 +651,10 @@ function resize(){
  const r=game.getBoundingClientRect();
  viewWidth=Math.max(1,r.width);viewHeight=Math.max(1,r.height);
  density=Math.min(window.devicePixelRatio||1,2);
- mapCanvas.width=Math.round(viewWidth*density);
- mapCanvas.height=Math.round(viewHeight*density);
+ canvas.width=Math.round(viewWidth*density);
+ canvas.height=Math.round(viewHeight*density);
  updateCamera();if(ready)draw();
 }
-
-new ResizeObserver(resize).observe(game);
-$("zoomIn").onclick=()=>{zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom);};
-$("zoomOut").onclick=()=>{zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom);};
 
 function draw(){
  ctx.setTransform(density,0,0,density,0,0);
@@ -602,14 +667,24 @@ function draw(){
  drawActor();
 }
 
+new ResizeObserver(resize).observe(game);
+
+$("zoomIn").onclick=()=>{
+ zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom);
+};
+$("zoomOut").onclick=()=>{
+ zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom);
+};
+
 /* ================================================================
-   [TRAFFIC 01] CREAZIONE CASUALE DEI BUS
-   Le GIF animano le ruote; il codice sposta i veicoli.
+   [TRAFFIC 01] COLORI E INTERVALLI CASUALI
+   Sono possibili due bus consecutivi dello stesso colore.
    ================================================================ */
 
 function spawnBus(){
  if(!busResources.length||buses.length>=TRAFFIC.maxBuses)return false;
  const x=CONFIG.width+TRAFFIC.width/2+15;
+
  if(buses.some(b=>x-b.x<TRAFFIC.width+TRAFFIC.gap+30))return false;
 
  const r=busResources[Math.floor(Math.random()*busResources.length)];
@@ -617,9 +692,12 @@ function spawnBus(){
  const moving=new Image(),still=new Image();
 
  node.className="bus item";
- node.style.width=TRAFFIC.width+"px";
- node.style.top=TRAFFIC.groundY+"px";
- node.style.zIndex=String(Math.round(TRAFFIC.groundY*100)+1);
+ Object.assign(node.style,{
+  width:TRAFFIC.width+"px",
+  top:TRAFFIC.groundY+"px",
+  zIndex:String(Math.round(TRAFFIC.groundY*100)+1)
+ });
+
  moving.src=r.file;moving.alt="";
  still.src=r.still||r.file;still.alt="";still.hidden=true;
  node.append(moving,still);scene.appendChild(node);
@@ -631,7 +709,7 @@ function spawnBus(){
  return true;
 }
 
-/* [TRAFFIC 02] MOVIMENTO, DISTANZE E FERMATA ALLE STRISCE */
+/* [TRAFFIC 02] DISTANZE E PRECEDENZA A RICCARDO SULLE STRISCE */
 
 function updateTraffic(dt){
  nextBus-=dt;
@@ -680,9 +758,7 @@ function updateTraffic(dt){
  });
 }
 
-/* ================================================================
-   [INTRO 01] USCITA DI RICCARDO DALLA STAZIONE
-   ================================================================ */
+/* [INTRO 01] USCITA DALLA STAZIONE E RESET */
 
 function returnToStation(){
  resetInput();intro=true;
@@ -712,7 +788,7 @@ function updatePlayer(dt){
 
 $("resetButton").onclick=returnToStation;
 
-/* [JS 06] MESSAGGI E CICLO PRINCIPALE */
+/* [JS 07] CICLO PRINCIPALE E MESSAGGI */
 
 function updateStatus(){
  let text=intro?"Arriving in Seoul…":"Map test · no battles";
@@ -726,6 +802,7 @@ function updateStatus(){
 function tick(now){
  const dt=lastTime?Math.min((now-lastTime)/1000,.04):0;
  lastTime=now;
+
  if(ready&&!E.open&&!document.hidden){
   updatePlayer(dt);updateTraffic(dt);
   updateCamera();draw();updateStatus();
@@ -734,7 +811,7 @@ function tick(now){
 }
 
 /* ================================================================
-   [EDITOR 01] FORME, STORICO E DISEGNO
+   [EDITOR 01] STATO, STORICO E DISEGNO
    ================================================================ */
 
 const ec=$("editorCanvas"),eg=ec.getContext("2d");
@@ -767,8 +844,7 @@ function paintEditor(){
   path(eg,p);
   eg.fillStyle=selected?"#ffde7966":
    E.layer==="collision"?"#ff34545c":"#40bfff60";
-  eg.fill();
-  eg.strokeStyle=selected?"#ffe08a":"#ffffff88";
+  eg.fill();eg.strokeStyle=selected?"#ffe08a":"#ffffff88";
   eg.lineWidth=1.5/E.scale;eg.stroke();
   if(!selected)return;
 
@@ -776,6 +852,7 @@ function paintEditor(){
    eg.fillStyle="white";
    eg.fillRect(v[0]-5/E.scale,v[1]-5/E.scale,10/E.scale,10/E.scale);
   }
+
   if(E.layer==="depth"){
    const xs=p.map(v=>v[0]);
    eg.beginPath();
@@ -783,7 +860,10 @@ function paintEditor(){
    eg.lineTo(Math.max(...xs)+15,o.baseY);
    eg.strokeStyle="#ffdf59";eg.lineWidth=2/E.scale;eg.stroke();
    eg.fillStyle="#ffdf59";eg.font=12/E.scale+"px Arial";
-   eg.fillText(o.name||"Oggetto",Math.min(...xs),o.baseY-7/E.scale);
+   eg.fillText(
+    (o.name||"Oggetto")+" · "+o.baseY,
+    Math.min(...xs),o.baseY-7/E.scale
+   );
   }
  });
 
@@ -819,12 +899,13 @@ function paintEditor(){
  );
 }
 
-/* [EDITOR 02] APERTURA, VISTA E STRUMENTI */
+/* [EDITOR 02] APERTURA, ZOOM E STRUMENTI */
 
 function resizeEditor(fit=false){
  if(!E.open)return;
  ec.width=Math.max(1,$("editorView").clientWidth);
  ec.height=Math.max(1,$("editorView").clientHeight);
+
  if(fit){
   E.scale=Math.min(ec.width/CONFIG.width,ec.height/CONFIG.height)*.97;
   E.x=(ec.width-CONFIG.width*E.scale)/2;
@@ -851,7 +932,9 @@ $("editorOpen").onclick=()=>{
 };
 
 $("editorClose").onclick=()=>{
- if(E.draft.length){notice("Termina la forma o usa Annulla.");return;}
+ if(E.draft.length){
+  notice("Termina la forma o usa Annulla.");return;
+ }
  if(!canStand(player.x,player.y)){
   notice("Riccardo è dentro un ostacolo: correggi la forma.");return;
  }
@@ -861,8 +944,9 @@ $("editorClose").onclick=()=>{
 };
 
 all("[data-layer]").forEach(b=>b.onclick=()=>{
- if(E.draft.length){notice("Termina prima la forma in corso.");return;}
- E.layer=b.dataset.layer;E.selected=-1;E.base=false;paintEditor();
+ if(E.draft.length){notice("Termina prima la forma.");return;}
+ E.layer=b.dataset.layer;E.selected=-1;E.base=false;
+ paintEditor();
 });
 
 all("[data-tool]").forEach(b=>b.onclick=()=>{
@@ -876,7 +960,7 @@ $("editorBase").onclick=()=>{
  if(E.layer==="depth"&&E.selected>=0){E.base=true;paintEditor();}
 };
 
-/* [EDITOR 03] VALIDAZIONE, NUOVE FORME E ANNULLAMENTO */
+/* [EDITOR 03] VALIDAZIONE, CREAZIONE, ANNULLA ED ELIMINA */
 
 function shapeValid(p){
  if(!validPolygon(p))return false;
@@ -910,10 +994,15 @@ $("editorFinish").onclick=()=>{
   notice("Servono almeno tre punti e un contorno non incrociato.");return;
  }
  remember();
+
  items().push(E.layer==="collision"?clone(E.draft):
-  zone("Oggetto "+(world.depth.length+1),
-   Math.max(...E.draft.map(p=>p[1])),clone(E.draft))
+  zone(
+   "Oggetto "+(world.depth.length+1),
+   Math.max(...E.draft.map(p=>p[1])),
+   clone(E.draft)
+  )
  );
+
  E.selected=items().length-1;E.draft=[];E.tool="edit";
  saveWorld();paintEditor();
 };
@@ -933,7 +1022,7 @@ $("editorDelete").onclick=()=>{
  E.selected=-1;E.base=false;saveWorld();paintEditor();
 };
 
-/* [EDITOR 04] TOCCO, SELEZIONE E TRASCINAMENTO */
+/* [EDITOR 04] TOCCO E TRASCINAMENTO */
 
 function editorPoint(e){
  const r=ec.getBoundingClientRect();
@@ -975,7 +1064,10 @@ ec.onpointerdown=e=>{
    Math.hypot(v[0]-w[0],v[1]-w[1])<16/E.scale
   );
   if(vertex>=0){
-   E.drag={id:e.pointerId,kind:"vertex",vertex,before:JSON.stringify(world)};
+   E.drag={
+    id:e.pointerId,kind:"vertex",vertex,
+    before:JSON.stringify(world)
+   };
    return;
   }
  }
@@ -984,6 +1076,7 @@ ec.onpointerdown=e=>{
  for(let i=items().length-1;i>=0;i--){
   if(inside(w[0],w[1],polygon(items()[i]))){E.selected=i;break;}
  }
+
  if(E.selected>=0){
   E.drag={
    id:e.pointerId,kind:"shape",point:w,
@@ -1006,9 +1099,14 @@ ec.onpointermove=e=>{
   polygon(items()[E.selected])[d.vertex]=w;
  }else{
   const xs=d.original.map(p=>p[0]),ys=d.original.map(p=>p[1]);
-  const dx=clamp(w[0]-d.point[0],-Math.min(...xs),CONFIG.width-Math.max(...xs));
-  const dy=clamp(w[1]-d.point[1],-Math.min(...ys),CONFIG.height-Math.max(...ys));
+  const dx=clamp(
+   w[0]-d.point[0],-Math.min(...xs),CONFIG.width-Math.max(...xs)
+  );
+  const dy=clamp(
+   w[1]-d.point[1],-Math.min(...ys),CONFIG.height-Math.max(...ys)
+  );
   setPolygon(E.selected,d.original.map(p=>[p[0]+dx,p[1]+dy]));
+
   if(E.layer==="depth"){
    items()[E.selected].baseY=clamp(d.baseY+dy,0,CONFIG.height);
   }
@@ -1024,7 +1122,9 @@ function endDrag(e){
  if(d.before){
   invalid=!shapeValid(polygon(items()[E.selected]));
   if(e.type==="pointercancel"||invalid)world=JSON.parse(d.before);
-  else if(d.before!==JSON.stringify(world)){remember(d.before);saveWorld();}
+  else if(d.before!==JSON.stringify(world)){
+   remember(d.before);saveWorld();
+  }
  }
  E.drag=null;paintEditor();
  if(invalid)notice("Contorno non valido: modifica annullata.");
@@ -1034,15 +1134,16 @@ ec.onpointerup=endDrag;
 ec.onpointercancel=endDrag;
 ec.onlostpointercapture=endDrag;
 
-/* [EDITOR 05] ESPORTAZIONE DI COLLISIONI E PROFONDITÀ */
+/* [EDITOR 05] ESPORTAZIONE E COPIA */
 
 $("editorExport").onclick=()=>{
- if(E.draft.length){notice("Termina prima la forma in corso.");return;}
+ if(E.draft.length){notice("Termina prima la forma.");return;}
  saveWorld();
  $("exportData").value=JSON.stringify({
   map:CONFIG.map,version:DATA_VERSION,...world
  },null,2);
- $("exportPanel").hidden=false;$("exportCopy").textContent="Copia";
+ $("exportPanel").hidden=false;
+ $("exportCopy").textContent="Copia";
 };
 
 $("exportCopy").onclick=async function(){
@@ -1064,10 +1165,15 @@ $("exportClose").onclick=()=>{$("exportPanel").hidden=true;};
 const actorsReady=loadActors();
 loadBuses();
 
+Object.assign($("trainImage").style,{
+ left:TRAIN.x+"px",top:TRAIN.y+"px",
+ width:TRAIN.width+"px",height:TRAIN.height+"px"
+});
+
 $("trainImage").onerror=()=>{
- missing.add(TRAIN_FILE);$("trainImage").hidden=true;
+ missing.add(TRAIN.file);$("trainImage").hidden=true;
 };
-$("trainImage").src=TRAIN_FILE;
+$("trainImage").src=TRAIN.file;
 
 mapImage.onload=async()=>{
  await actorsReady;
