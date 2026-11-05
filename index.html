@@ -47,6 +47,14 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #reaction{position:absolute;z-index:8;width:48px;height:46px;pointer-events:none;transform:translate(-50%,-100%)}
 #reaction img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
 @media(prefers-reduced-motion:reduce){.appear{animation:none}}
+/* 22 · MENU MODULARE E TRANSIZIONI */
+.marker img{width:32px;height:32px;margin:8px auto}.marker{width:44px;height:44px;min-width:44px;min-height:44px}#reaction{width:32px;height:32px}
+#fade{position:absolute;inset:0;background:#000;z-index:30;opacity:0;pointer-events:none;transition:opacity .75s}#fade.black{opacity:1}
+#menuOpen{position:absolute;right:12px;top:70px;z-index:6;font-weight:800}
+#rpgMenu{position:absolute;inset:0;z-index:15;background:#252727 url('Menu/file_000000005b24820982b541d5471f75b7.png') center/100% 100%;color:#282825;font-family:Arial,'Noto Sans KR',sans-serif;font-weight:800}
+#partySlots{position:absolute;left:2%;top:4%;width:65%;height:92%;display:grid;grid-template-rows:repeat(4,minmax(0,1fr))}.party-slot{min-height:0;position:relative;padding:2% 0}.member-card{position:absolute;inset:3% 0;background:#f5e8cf;border:1px solid #bc9853;border-radius:8px;overflow:hidden}.member-card>img{width:100%;height:100%;object-fit:fill}.member-data{position:absolute;left:45%;right:4%;top:9%;bottom:8%;display:flex;flex-direction:column;justify-content:space-evenly;font-size:clamp(10px,2.7vw,15px)}.member-data strong{font-size:1.3em}.stat-row{white-space:nowrap}.meter{height:5px;background:#d6cbb8;border-radius:5px;overflow:hidden}.meter span{display:block;height:100%;background:#326368}.meter.ep span{background:#b28233}
+#menuNav{position:absolute;left:69%;right:2%;top:7%;bottom:20%;display:flex;flex-direction:column;justify-content:space-evenly}#menuNav button{background:none;border:0;color:#f5ead5;font-weight:800;font-size:clamp(13px,3.8vw,21px);padding:5px 0}#wallet{position:absolute;left:69%;right:2%;bottom:6%;text-align:center;color:#f5ead5;font-size:clamp(13px,3.5vw,20px);font-variant-numeric:tabular-nums}#menuClose{position:absolute;right:3%;bottom:1%;background:none;color:#f5ead5;border:0;font-weight:800}
+#languagePage{position:absolute;inset:2%;background:#252727;border:1px solid #bf9953;padding:10% 5%;color:#f5ead5}#languagePage h2{text-align:center;font-size:28px}#languageChoices{background:#f5e8cf;border-radius:10px;padding:25px 12px;margin-top:30px;display:grid;gap:20px}#languageChoices button,#languageBack{background:#f5e8cf;color:#242725;border:1px solid #977747;font-size:22px;font-weight:800;min-height:65px}#languageChoices button[aria-pressed='true']{outline:3px solid #b48b43}#languageBack{display:block;margin:30px auto 0;padding:8px 30px}#rpgMenu.auto button{pointer-events:none}.auto-focus{box-shadow:0 0 0 3px #caa55b!important}#speech.thought{border-image-source:url('icons/file_000000006f608209b1c6d6380111193e.png');border-bottom-width:40px;border-image-width:14px 20px 40px}#speech.narration{border-image:none;background:#fff5df;border:2px solid #8b9297;border-radius:8px;padding:18px}
 </style>
 </head>
 <body>
@@ -65,6 +73,8 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
   <button id="speech" hidden aria-label="Continua conversazione"><span id="speechText"></span></button>
   <div id="reaction" hidden><img id="reactionImage" src="icons/Balloon_interrogativo-1.png" alt="?"></div>
   <div id="joystick" hidden><div id="stick"></div></div>
+  <button id="menuOpen" hidden>메뉴</button>
+  <section id="rpgMenu" hidden aria-label="Game menu"><div id="partySlots"></div><nav id="menuNav"></nav><div id="wallet"></div><button id="menuClose"></button><div id="languagePage" hidden><h2 id="languageTitle"></h2><div id="languageChoices"><button data-language="ko">한국어</button><button data-language="en">English</button></div><button id="languageBack"></button></div></section><div id="fade"></div>
   <div id="loading"><strong id="loadingTitle">Loading Seoul…</strong><p id="loadingText">Please wait.</p><button id="retryLoad" hidden>Retry</button></div>
 </main>
 <section id="editor" hidden role="dialog" aria-modal="true" aria-label="Editor mappa">
@@ -314,7 +324,7 @@ function drawNpc(n){
  if(n.talking&&!dialogue?.target?.dog)a=n.idleAssets[n.direction];
  else if(n.route){a=n.walkAssets[n.direction];paused=!n.moving||n.talking;}
  else a=n.animation;
- if(!a)a=n.animation||n.walkAssets[n.direction]||n.idleAssets[n.direction];
+ if(!a)a=n.animation||n.walkAssets[n.direction]||n.idleAssets[n.direction]||Object.values(n.idleAssets).find(Boolean);
  setAsset(n.actor,a,paused);place(n.actor,n.x,n.y);
 }
 function updateNpcs(dt){
@@ -394,10 +404,10 @@ const joystick={pointer:null,x:0,y:0,direction:null};
 function press(token,direction){held.delete(token);held.set(token,direction);}
 function currentDirection(){return [...held.values()].at(-1)||null;}
 function resetInput(){held.clear();joystick.pointer=null;joystick.direction=null;$("joystick").hidden=true;$("stick").style.transform="";player.moving=false;}
-window.addEventListener("keydown",e=>{const d=KEY_DIRECTION[e.key.toLowerCase()];if(!d||!ready||intro||dialogue||editor.open)return;e.preventDefault();if(!e.repeat)press("key:"+e.key.toLowerCase(),d);});
+window.addEventListener("keydown",e=>{const d=KEY_DIRECTION[e.key.toLowerCase()];if(!d||!ready||intro||dialogue||editor.open||locked())return;e.preventDefault();if(!e.repeat)press("key:"+e.key.toLowerCase(),d);});
 window.addEventListener("keyup",e=>held.delete("key:"+e.key.toLowerCase()));
 function updateJoystick(e){const dx=e.clientX-joystick.x,dy=e.clientY-joystick.y,length=Math.hypot(dx,dy);let d=null;if(length>=10)d=Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up");const v=d?VECTORS[d]:{x:0,y:0},amount=Math.min(length,34);$("stick").style.transform=`translate(${v.x*amount}px,${v.y*amount}px)`;if(d!==joystick.direction){held.delete("touch");if(d)press("touch",d);joystick.direction=d;}}
-game.addEventListener("pointerdown",e=>{if(e.target.closest("button")||!ready||intro||dialogue||editor.open||joystick.pointer!==null||(e.pointerType==="mouse"&&e.button!==0))return;e.preventDefault();joystick.pointer=e.pointerId;joystick.x=e.clientX;joystick.y=e.clientY;const r=game.getBoundingClientRect();$("joystick").style.left=e.clientX-r.left+"px";$("joystick").style.top=e.clientY-r.top+"px";$("joystick").hidden=false;game.setPointerCapture(e.pointerId);updateJoystick(e);});
+game.addEventListener("pointerdown",e=>{if(e.target.closest("button")||!ready||intro||dialogue||editor.open||locked()||joystick.pointer!==null||(e.pointerType==="mouse"&&e.button!==0))return;e.preventDefault();joystick.pointer=e.pointerId;joystick.x=e.clientX;joystick.y=e.clientY;const r=game.getBoundingClientRect();$("joystick").style.left=e.clientX-r.left+"px";$("joystick").style.top=e.clientY-r.top+"px";$("joystick").hidden=false;game.setPointerCapture(e.pointerId);updateJoystick(e);});
 game.addEventListener("pointermove",e=>{if(e.pointerId===joystick.pointer)updateJoystick(e);});
 function endJoystick(e){if(e.pointerId!==joystick.pointer)return;held.delete("touch");joystick.pointer=null;joystick.direction=null;$("joystick").hidden=true;$("stick").style.transform="";}
 for(const name of ["pointerup","pointercancel","lostpointercapture"])game.addEventListener(name,endJoystick);
@@ -411,8 +421,8 @@ function updateCamera(){
 }
 function resize(){const r=game.getBoundingClientRect();viewWidth=Math.max(1,r.width);viewHeight=Math.max(1,r.height);updateCamera();if(ready)updateInteractionUI();}
 new ResizeObserver(resize).observe(game);
-$("zoomIn").onclick=()=>{if(intro||dialogue)return;zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom);updateCamera();};
-$("zoomOut").onclick=()=>{if(intro||dialogue)return;zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom);updateCamera();};
+$("zoomIn").onclick=()=>{if(intro||dialogue||locked())return;zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom);updateCamera();};
+$("zoomOut").onclick=()=>{if(intro||dialogue||locked())return;zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom);updateCamera();};
 function drawPlayer(){
  if(intro&&!["exit","speech"].includes(film.phase)){player.actor.node.hidden=true;return;}
  const mode=player.moving?"walk":"idle";
@@ -475,7 +485,7 @@ function interact(t){
   openSpeech(["I can’t make sense of any of this…"],{type:"sign",target:t});
  }else{
   const n=t.owner,p=targetPoint(t);n.previousDirection=n.direction;n.talking=true;n.moving=false;
-  if(!t.dog)n.direction=facing(player.x-n.x,player.y-n.y);
+  if(!t.dog&&!n.fixedFacing)n.direction=facing(player.x-n.x,player.y-n.y);
   player.direction=facing(p.x-player.x,p.y-player.y);
   openSpeech([t.dog?"멍멍!":NPC_LINES[n.id]],{type:"npc",target:t});drawNpc(n);
  }
@@ -499,7 +509,7 @@ function advanceSpeech(){
 // niente levetta, doppio avanzamento o attivazione di pulsanti sottostanti.
 let dialogueGesture=null,suppressDialogClickUntil=0;
 window.addEventListener("pointerdown",e=>{
- if(!dialogue||editor.open)return;
+ if(!dialogue||editor.open||locked())return;
  e.preventDefault();e.stopImmediatePropagation();
  if(dialogueGesture!==null||e.isPrimary===false)return;
  dialogueGesture=e.pointerId;resetInput();
@@ -528,13 +538,13 @@ window.addEventListener("keydown",e=>{
 function updateInteractionUI(){
  if(!ready||editor.open){clearMarkers();$("speech").hidden=true;$("reaction").hidden=true;return;}
  const visible=new Set();
- if(!intro&&!dialogue){
+ if(!intro&&!dialogue&&!locked()){
   for(const t of allTargets()){
    if(!nearTarget(t))continue;let button=markerNodes.get(t.key);
    if(!button){
     button=document.createElement("button");button.className="marker"+(t.type==="sign"?" object":"");
     const skin=document.createElement("img");skin.src=t.type==="sign"?UI_ASSETS.exclamation:UI_ASSETS.dots;skin.alt="";skin.draggable=false;button.appendChild(skin);button.hidden=true;
-    button.setAttribute("aria-label",t.type==="sign"?"Esamina la mappa":t.dog?"Parla con il cane":"Parla con "+t.owner.name);
+    button.setAttribute("aria-label",t.type==="door"?"Enter / Exit":t.type==="sign"?"Esamina la mappa":t.dog?"Parla con il cane":"Parla con "+t.owner.name);
     button.addEventListener("click",e=>{e.stopPropagation();interact(t);});$("interactions").appendChild(button);markerNodes.set(t.key,button);
    }
    const p=screenPosition(targetHead(t));const show=p.x>=0&&p.x<=viewWidth&&p.y>=0&&p.y<=viewHeight;setVisible(button,show,button.firstElementChild);if(show)visible.add(t.key);
@@ -567,10 +577,10 @@ function tick(now){
   if(intro)updateIntro(dt);
   else{
    const x=player.x,y=player.y;player.moving=false;
-   if(!dialogue){const d=currentDirection();if(d){player.direction=d;const v=VECTORS[d];moveEntity(player,v.x*CONFIG.speed*dt,v.y*CONFIG.speed*dt);}}
+   if(!dialogue&&!locked()){const d=currentDirection();if(d){player.direction=d;const v=VECTORS[d];moveEntity(player,v.x*CONFIG.speed*dt,v.y*CONFIG.speed*dt);}}
    player.moving=Math.hypot(player.x-x,player.y-y)>.0001;
   }
-  updateNpcs(dt);updateTraffic(dt);drawPlayer();updateCamera();updateInteractionUI();updateStatus();
+  updateOfficeSequence(dt);if(!locked()){updateNpcs(dt);if(locationId==="city")updateTraffic(dt);}drawPlayer();updateCamera();updateInteractionUI();updateStatus();
  }
  requestAnimationFrame(tick);
 }
@@ -625,8 +635,89 @@ editorCanvas.onpointerdown=e=>{
 editorCanvas.onpointermove=e=>{const s=editor,d=s.drag;if(!d||d.id!==e.pointerId)return;const p=screenPoint(e),wp=worldPoint(p);if(d.kind==="pan"){s.x=d.x+p.x-d.point.x;s.y=d.y+p.y-d.point.y;}else if(d.kind==="vertex")polygon(items()[s.selected])[d.vertex]=wp;else{const xs=d.original.map(p=>p[0]),ys=d.original.map(p=>p[1]),dx=clamp(wp[0]-d.point[0],-Math.min(...xs),1024-Math.max(...xs)),dy=clamp(wp[1]-d.point[1],-Math.min(...ys),1536-Math.max(...ys));setPolygon(s.selected,d.original.map(p=>[p[0]+dx,p[1]+dy]));if(s.layer==="depth")world.depth[s.selected].baseY=clamp(d.base+dy,0,1536);}paintEditor();};
 function finishDrag(e){const s=editor,d=s.drag;if(!d||d.id!==e.pointerId)return;let invalid=false;if(d.before){invalid=!shapeValid(polygon(items()[s.selected]));if(e.type==="pointercancel"||invalid)world=JSON.parse(d.before);else if(d.before!==JSON.stringify(world)){remember(d.before);saveWorld();}}s.drag=null;paintEditor();if(invalid)notice("Contorno non valido: modifica annullata.");}
 editorCanvas.onpointerup=finishDrag;editorCanvas.onpointercancel=finishDrag;editorCanvas.onlostpointercapture=finishDrag;
-$("editorExport").onclick=()=>{if(editor.draft.length){notice("Termina prima la forma.");return;}saveWorld();$("exportData").value=JSON.stringify({map:CONFIG.map,version:WORLD_VERSION,collisions:world.collisions,depth:world.depth},null,2);$("exportPanel").hidden=false;$("exportCopy").textContent="Copia";};
+$("editorExport").onclick=()=>{if(editor.draft.length){notice("Termina prima la forma.");return;}saveWorld();$("exportData").value=JSON.stringify({map:locationId==="office"?OFFICE.map:CONFIG.map,version:WORLD_VERSION,collisions:world.collisions,depth:world.depth},null,2);$("exportPanel").hidden=false;$("exportCopy").textContent="Copia";};
 $("exportCopy").onclick=async function(){try{await navigator.clipboard.writeText($("exportData").value);this.textContent="Copiato!";}catch(_){$("exportData").focus();$("exportData").select();this.textContent="Seleziona e copia il testo";}};$("exportClose").onclick=()=>$("exportPanel").hidden=true;
+/* 23 · UFFICIO: MAPPA, OSTACOLI INIZIALI E SETTE PERSONAGGI */
+const OFFICE={map:'Map/file_00000000d7888209a5dfb38018660692.png',start:{x:510,y:1280},collisions:[rect(0,0,1024,310),rect(0,0,35,1536),rect(989,0,35,1536),rect(35,1410,280,126),rect(710,1410,280,126),rect(315,1350,395,186),rect(45,400,934,180),rect(45,625,75,210),rect(130,685,290,145),rect(160,850,185,90),rect(75,965,345,145),rect(655,925,330,80),rect(700,1015,80,100),rect(865,1015,80,100),rect(50,1180,100,210),rect(170,1250,75,140),rect(855,1200,130,200)],depth:[zone('Bancone',580,rect(45,400,934,180)),zone('Sedie attesa',1110,rect(75,965,345,145)),zone('Scrivanie',1005,rect(655,925,330,80)),zone('Pianta ingresso',1390,rect(850,1170,135,230))]};
+const OFFICE_DATA=[
+ ['18_impiegata_principale','Impiegata principale',375,465,'down',true],['19_impiegato_occhiali','Impiegato con occhiali',785,465,'down',true],['20_ragazzo_attesa','Ragazzo in attesa',235,1118,'down',true],['21_donna_cartellina','Donna con cartellina',595,825,'right',false],['22_signore_computer','Signore al computer',900,1100,'up',true],['23_giovane_colloquio','Giovane del colloquio',335,1210,'down',false],['24_cliente_sportello','Cliente allo sportello',785,640,'up',true]
+];
+Object.assign(NPC_LINES,{'19_impiegato_occhiali':'번호표 뽑고 잠시만 기다려 주세요.','20_ragazzo_attesa':'경력은 필요한데, 경력 쌓을 기회는 안 주네요.','21_donna_cartellina':'이번에는 꼭 좋은 일자리를 찾았으면 좋겠어요.','22_signore_computer':'아이고, 비밀번호가 또 뭐였더라…','23_giovane_colloquio':'오늘 첫 면접인데… 넥타이 괜찮아 보여요?','24_cliente_sportello':'저 지금 상담 중이에요. 잠시만 기다려 주세요.'});
+let locationId='city',transitioning=false,menuOpen=false,autoMenu=false,ending=false,officeLoaded=false,sceneEpoch=0,officeSequence=null;
+const cityNpcs=[],officeNpcs=[];let cityWorld=null,officeWorld={collisions:copy(OFFICE.collisions),depth:copy(OFFICE.depth)};
+const cityMap=new Image(),officeMap=new Image();let officeMapPromise=null;
+function locked(){return transitioning||menuOpen||autoMenu||ending||!!officeSequence;}
+function loadOfficeMap(){return officeMapPromise||(officeMapPromise=new Promise((resolve,reject)=>{officeMap.onload=resolve;officeMap.onerror=()=>{officeMapPromise=null;reject(Error('Unable to load '+OFFICE.map));};officeMap.src=OFFICE.map;}));}
+async function loadOfficeNpcs(){if(officeLoaded)return;const jobs=[];for(const [id,name,x,y,direction,fixedFacing]of OFFICE_DATA){const n={...npc(id,name,x,y,direction),fixedFacing,height:id.startsWith('18_')||id.startsWith('19_')?105:72,actor:null,animation:null,idleAssets:{},walkAssets:{},moving:false,talking:false};n.actor=createActor(n.height);officeNpcs.push(n);for(const d of fixedFacing?[direction]:Object.keys(IT))jobs.push(loadAsset(n.idle[d],true).then(a=>n.idleAssets[d]=a));}await Promise.all(jobs);officeLoaded=true;for(const n of officeNpcs)n.actor.node.hidden=true;}
+function showLocation(id){
+ for(const n of npcs)n.actor.node.hidden=true;
+ if(locationId==='city'&&id!=='city')cityWorld=world;if(locationId==='office')officeWorld=world;
+ locationId=id;npcs.splice(0,npcs.length,...(id==='city'?cityNpcs:officeNpcs));world=id==='city'?cityWorld:officeWorld;
+ mapImage.src=id==='city'?CONFIG.map:OFFICE.map;clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();
+ for(const v of vehicles)v.actor.node.hidden=id!=='city';$('trainWindow').hidden=id!=='city';
+ if(mapImage.complete)rebuildDepth();else mapImage.onload=()=>rebuildDepth();for(const n of npcs)drawNpc(n);$('objective').textContent=id==='office'?'Speak to the receptionist':'Find the Job Center';
+}
+const originalDepth=rebuildDepth;rebuildDepth=function(){if(locationId==='city')originalDepth();else{depthNodes.forEach(n=>n.remove());depthNodes=[];for(const z of world.depth)makeDepth(z.polygon,z.baseY);}};
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function changeLocation(id){
+ if(locked())return;resetInput();transitioning=true;const epoch=sceneEpoch;$('fade').classList.add('black');
+ try{await Promise.all([wait(780),id==='office'?loadOfficeMap():Promise.resolve(),id==='office'?loadOfficeNpcs():Promise.resolve()]);if(epoch!==sceneEpoch)return;
+ showLocation(id);const start=id==='office'?OFFICE.start:{x:755,y:1490};Object.assign(player,start,{direction:id==='office'?'up':'down'});zoom=CONFIG.zoom;drawPlayer();updateCamera();await wait(100);
+ }catch(error){$('status').textContent=error.message;}finally{if(epoch===sceneEpoch){$('fade').classList.remove('black');await wait(780);transitioning=false;}}
+}
+const originalTargets=allTargets;allTargets=function(){if(locationId==='city')return [...originalTargets(),{key:'job-door',type:'door'}];return [...npcs.map(owner=>({key:owner.id,type:'npc',owner,dog:false})),{key:'office-exit',type:'door'}];};
+const originalPoint=targetPoint;targetPoint=function(t){if(t.type==='door')return locationId==='city'?{x:755,y:1488}:{x:510,y:1315};return originalPoint(t);};
+const originalHead=targetHead;targetHead=function(t){if(t.type==='door'){const p=targetPoint(t);return{x:p.x,y:p.y-50};}return originalHead(t);};
+const originalNear=nearTarget;nearTarget=function(t){if(t.type==='door'){const p=targetPoint(t);return Math.hypot(player.x-p.x,player.y-p.y)<65;}if(locationId==='office'&&t.owner?.fixedFacing){const n=t.owner;if(n.y<580)return Math.abs(player.x-n.x)<65&&player.y>=585&&player.y<660;return Math.hypot(player.x-n.x,player.y-n.y)<65;}return originalNear(t);};
+const originalInteract=interact;interact=function(t){if(locked()||intro||dialogue||!nearTarget(t))return;if(t.type==='door'){changeLocation(locationId==='city'?'office':'city');return;}if(t.owner?.id==='18_impiegata_principale'){startOfficeStory(t);return;}originalInteract(t);};
+const originalUI=updateInteractionUI;updateInteractionUI=function(){originalUI();for(const t of allTargets())if(t.type==='door'){const b=markerNodes.get(t.key);if(b){b.firstElementChild.src=UI_ASSETS.exclamation;b.setAttribute('aria-label',locationId==='city'?'Enter Job Center':'Exit Job Center');}}$('menuOpen').hidden=!ready||intro||dialogue||locked();};
+/* 24 · DIALOGO PRINCIPALE, PENSIERO E CONSEGNA */
+UI_ASSETS.thought='icons/file_000000006f608209b1c6d6380111193e.png';
+const OFFICE_STORY=[
+ {speaker:'npc',text:'리카르도 씨 맞으시죠? 보내 주신 이력서와 경력 사항은 미리 검토해 두었습니다.'},
+ {speaker:'npc',text:'마침 리카르도 씨의 경력과 희망 조건에 상당히 부합하는 구인 공고가 있어서 소개해 드리려고 합니다.'},
+ {speaker:'npc',text:'여기서 그리 멀지 않은 식당인데요, 주방에서 조리를 담당해 주실 경력직 요리사를 채용하고 있습니다.'},
+ {speaker:'npc',text:'세부적인 근무 조건은 면접 시 협의하시면 되고요. 괜찮으시면 담당자에게 연락해서 면접 일정을 잡아 드릴까요?'},
+ {speaker:'question'}, {speaker:'player',text:'저… 한국말… 잘… 말해요 못해요…'},
+ {speaker:'npc',text:'네? 한국어를 못하신다고요? 아니, 여긴 비디오 게임이잖아요!'},
+ {speaker:'npc',text:'이런 건 금방 해결할 수 있어요. 휴대폰 좀 줘 보세요.'},
+ {speaker:'thought',text:'I didn’t understand a word… but I think she wants my phone.'},
+ {speaker:'narration',text:'Riccardo hands his phone to the woman behind the counter.'}
+];
+function startOfficeStory(target){resetInput();target.owner.talking=true;player.direction='up';officeSequence={index:0,target,pause:0};showOfficePage();}
+function showOfficePage(){const q=officeSequence;if(!q)return;const page=OFFICE_STORY[q.index];if(!page){officeSequence=null;dialogue=null;runAutomaticMenu();return;}if(page.speaker==='question'){dialogue=null;$('speech').hidden=true;reactionTime=1.5;q.pause=1.5;return;}openSpeech([page.text],{type:page.speaker==='npc'?'npc':'story',target:q.target});dialogue.officeStory=true;$('speech').classList.toggle('thought',page.speaker==='thought');$('speech').classList.toggle('narration',page.speaker==='narration');}
+function updateOfficeSequence(dt){if(officeSequence?.pause>0){officeSequence.pause-=dt;if(officeSequence.pause<=0){reactionTime=0;officeSequence.index++;showOfficePage();}}}
+const originalAdvance=advanceSpeech;advanceSpeech=function(){if(dialogue?.officeStory){dialogue=null;$('speech').hidden=true;$('speech').classList.remove('thought','narration');officeSequence.index++;showOfficePage();updateInteractionUI();return;}originalAdvance();};
+const originalSpeech=openSpeech;openSpeech=function(lines,options={}){$('speech').classList.remove('thought','narration');originalSpeech(lines,options);};
+/* 25 · DATI PERSONAGGI INDIPENDENTI DALLE QUATTRO POSIZIONI */
+const LIMITS={level:99,hp:9999,ep:5000,won:999999999};
+const partyMembers={riccardo:{name:{ko:'리카르도',en:'Riccardo'},level:1,hp:250,maxHp:250,ep:100,maxEp:100,card:'Menu/file_000000002b388209a33ce587676f6016.png'}};
+const partySlots=['riccardo',null,null,null];let won=50000,language='ko';
+function updateMember(id,patch){const member=partyMembers[id];if(!member)return;Object.assign(member,patch);member.level=clamp(Math.trunc(member.level)||1,1,LIMITS.level);member.maxHp=clamp(Math.trunc(member.maxHp)||1,1,LIMITS.hp);member.maxEp=clamp(Math.trunc(member.maxEp)||0,0,LIMITS.ep);member.hp=clamp(Math.trunc(member.hp)||0,0,member.maxHp);member.ep=clamp(Math.trunc(member.ep)||0,0,member.maxEp);renderMenu();}
+function assignMember(slot,id){if(slot<0||slot>3||id!==null&&!partyMembers[id])return;const old=partySlots.indexOf(id);if(id&&old>=0)partySlots[old]=null;partySlots[slot]=id;renderMenu();}
+function changeWon(amount){won=clamp(won+Math.trunc(amount||0),0,LIMITS.won);renderMenu();}
+window.TaraiParty={members:partyMembers,slots:partySlots,updateMember,assignMember,changeWon,getWon:()=>won};
+const MENU_TEXT={ko:['아이템','스킬','장비','상태','대형','저장','설정','언어'],en:['Item','Skills','Equip','Status','Form','Save','Options','Language']};
+function renderMenu(){
+ $('partySlots').replaceChildren();for(const id of partySlots){const slot=document.createElement('div');slot.className='party-slot';$('partySlots').appendChild(slot);if(!id)continue;const m=partyMembers[id],card=document.createElement('div');card.className='member-card';const img=document.createElement('img');img.src=m.card;img.alt='';card.appendChild(img);const data=document.createElement('div');data.className='member-data';const name=document.createElement('strong');name.textContent=m.name[language];data.appendChild(name);for(const value of [(language==='ko'?'레벨 ':'Lv ')+m.level,'HP '+m.hp+'/'+m.maxHp,'EP '+m.ep+'/'+m.maxEp]){const row=document.createElement('div');row.className='stat-row';row.textContent=value;data.appendChild(row);if(value.startsWith('HP')||value.startsWith('EP')){const meter=document.createElement('div'),fill=document.createElement('span'),ep=value.startsWith('EP');meter.className='meter'+(ep?' ep':'');fill.style.width=(ep?(m.maxEp?m.ep/m.maxEp:0):m.hp/m.maxHp)*100+'%';meter.appendChild(fill);data.appendChild(meter);}}card.appendChild(data);slot.appendChild(card);}
+ $('menuNav').replaceChildren();MENU_TEXT[language].forEach((text,index)=>{const b=document.createElement('button');b.textContent=text;b.dataset.menuIndex=index;b.onclick=()=>{if(autoMenu)return;if(index===7)openLanguage();else if(index===5){try{localStorage.setItem('tarai-party-v1',JSON.stringify({members:partyMembers,slots:partySlots,won,language}));b.textContent=language==='ko'?'저장 완료':'Saved';}catch(_){b.textContent=language==='ko'?'저장 실패':'Save failed';}}};$('menuNav').appendChild(b);});
+ $('wallet').textContent=new Intl.NumberFormat(language==='ko'?'ko-KR':'en-US').format(won)+' ₩';$('menuClose').textContent=language==='ko'?'닫기':'Close';$('languageTitle').textContent=language==='ko'?'언어':'Language';$('languageBack').textContent=language==='ko'?'뒤로':'Back';$('menuOpen').textContent=language==='ko'?'메뉴':'Menu';document.querySelectorAll('[data-language]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.language===language)));
+}
+function openMenu(){if(ending||transitioning||intro||dialogue)return;resetInput();menuOpen=true;renderMenu();$('rpgMenu').hidden=false;$('languagePage').hidden=true;clearMarkers();}
+function closeMenu(){if(autoMenu)return;menuOpen=false;$('rpgMenu').hidden=true;resetInput();}
+function openLanguage(){$('languagePage').hidden=false;renderMenu();}
+$('menuOpen').onclick=openMenu;$('menuClose').onclick=closeMenu;$('languageBack').onclick=()=>{if(!autoMenu)$('languagePage').hidden=true;};
+document.querySelectorAll('[data-language]').forEach(b=>b.onclick=()=>{if(!autoMenu){language=b.dataset.language;renderMenu();}});
+async function runAutomaticMenu(){const epoch=sceneEpoch;openMenu();autoMenu=true;$('rpgMenu').classList.add('auto');const step=async ms=>{await wait(ms);return epoch===sceneEpoch;};if(!await step(900))return;$('menuNav').lastElementChild.classList.add('auto-focus');if(!await step(850))return;openLanguage();if(!await step(950))return;document.querySelector('[data-language="en"]').classList.add('auto-focus');if(!await step(650))return;language='en';renderMenu();if(!await step(1000))return;document.querySelector('[data-language="en"]').classList.remove('auto-focus');autoMenu=false;closeMenu();ending=true;officeNpcs.forEach(n=>n.talking=false);$('status').textContent='To be continued · ↺ Restart';resetInput();clearMarkers();}
+/* 26 · RESET COMPLETO E SALVATAGGI DISTINTI PER MAPPA */
+const originalSave=saveWorld;saveWorld=function(){if(locationId==='city')originalSave();else{officeWorld=world;try{localStorage.setItem('tarai-office-world-v1',JSON.stringify(world));storageFailed=false;}catch(_){storageFailed=true;}}};
+try{const saved=JSON.parse(localStorage.getItem('tarai-office-world-v1'));if(validWorld(saved))officeWorld=saved;}catch(_){}
+const originalLoadCharacters=loadCharacters;loadCharacters=async function(){await originalLoadCharacters();cityNpcs.push(...npcs);cityWorld=world;};
+const originalBegin=beginIntro;beginIntro=function(){sceneEpoch++;officeSequence=null;dialogue=null;ending=false;transitioning=false;autoMenu=false;menuOpen=false;language='ko';won=50000;Object.assign(partyMembers.riccardo,{level:1,hp:250,maxHp:250,ep:100,maxEp:100});$('rpgMenu').hidden=true;$('rpgMenu').classList.remove('auto');$('fade').classList.remove('black');$('speech').classList.remove('thought','narration');if(locationId==='office')showLocation('city');for(const n of [...cityNpcs,...officeNpcs])n.talking=false;renderMenu();originalBegin();};
+const originalStatus=updateStatus;updateStatus=function(){if(ending){$('status').textContent='To be continued · ↺ Restart';return;}if(locationId==='office'){$('status').textContent=missing.size?'Missing image: '+[...missing][0]:'Job Center';return;}originalStatus();};
+// Il reset rimane l'unico controllo disponibile alla fine della prova.
+for(const id of ['editorOpen','zoomIn','zoomOut']){const fn=$(id).onclick;$(id).onclick=()=>{if(!locked())fn();};}
+
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
 async function startGame(retry=false){
