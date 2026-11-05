@@ -8,147 +8,129 @@
 
 <style>
 /* ==================== 01 · SCHERMO E LIVELLI ==================== */
-* { box-sizing:border-box; }
-html,body {
-  margin:0; width:100%; height:100%; overflow:hidden;
-  background:#0b161c; color:white; font-family:Arial,sans-serif;
+*{box-sizing:border-box}
+html,body{
+  margin:0;width:100%;height:100%;overflow:hidden;
+  background:#0b161c;color:white;font-family:Arial,sans-serif
 }
-body {
-  display:grid; place-items:center; touch-action:none;
-  overscroll-behavior:none;
+body{
+  display:grid;place-items:center;
+  touch-action:none;overscroll-behavior:none
 }
-#game {
-  position:relative; width:min(100vw,56.25vh);
-  height:min(100vh,177.7778vw); overflow:hidden;
-  background:#162b35; touch-action:none; user-select:none;
+#game{
+  position:relative;width:min(100vw,56.25vh);
+  height:min(100vh,177.7778vw);overflow:hidden;
+  background:#162b35;touch-action:none;user-select:none
 }
-@supports(height:100dvh) {
-  #game {
-    width:min(100vw,56.25dvh);
-    height:min(100dvh,177.7778vw);
-  }
+@supports(height:100dvh){
+  #game{width:min(100vw,56.25dvh);height:min(100dvh,177.7778vw)}
 }
-#scene {
-  position:absolute; left:0; top:0; width:1024px; height:1536px;
-  transform-origin:0 0; pointer-events:none;
+#scene{
+  position:absolute;left:0;top:0;width:1024px;height:1536px;
+  transform-origin:0 0;pointer-events:none
 }
-#map {
-  position:absolute; inset:0; width:1024px; height:1536px;
-  z-index:0; image-rendering:pixelated;
+#map{
+  position:absolute;inset:0;width:1024px;height:1536px;
+  z-index:0;image-rendering:pixelated
 }
-.sprite {
-  position:absolute; overflow:hidden; pointer-events:none;
-  transform:translate(-50%,-100%);
+.actor,.depth-piece{
+  position:absolute;pointer-events:none;image-rendering:pixelated
 }
-.sprite img {
-  position:absolute; max-width:none; max-height:none;
-  image-rendering:pixelated; pointer-events:none;
+.actor img{
+  position:absolute;max-width:none;max-height:none;
+  image-rendering:pixelated
 }
-.depth-piece {
-  position:absolute; pointer-events:none; image-rendering:pixelated;
+#trainWindow{
+  position:absolute;overflow:hidden;z-index:13000;pointer-events:none
 }
-#trainWindow {
-  position:absolute; overflow:hidden; pointer-events:none;
-  z-index:13000;
-}
-#trainWindow img {
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:fill; image-rendering:pixelated;
-}
+#trainWindow img{width:100%;height:100%;image-rendering:pixelated}
 
 /* ==================== 02 · INTERFACCIA ==================== */
-button {
-  min-width:42px; min-height:42px; padding:8px;
-  border:1px solid #9bbbc799; border-radius:9px;
-  background:#102631ed; color:white; font:inherit;
-  cursor:pointer; touch-action:none;
-  -webkit-tap-highlight-color:transparent;
+button{
+  min-width:42px;min-height:42px;padding:8px;
+  border:1px solid #9bbbc799;border-radius:9px;
+  background:#102631ed;color:white;font:inherit;cursor:pointer;
+  touch-action:none;-webkit-tap-highlight-color:transparent
 }
-button:focus-visible { outline:3px solid #ffda77; }
-button.active { background:#596c49; border-color:#ffda77; }
-button:disabled { opacity:.4; }
-#hud {
-  position:absolute; z-index:5; top:max(12px,env(safe-area-inset-top));
-  left:12px; right:12px; display:flex; justify-content:space-between;
-  align-items:flex-start; gap:8px; pointer-events:none;
+button:focus-visible{outline:3px solid #ffda77}
+button.active{background:#596c49;border-color:#ffda77}
+button:disabled{opacity:.4}
+#hud{
+  position:absolute;z-index:5;top:max(12px,env(safe-area-inset-top));
+  left:12px;right:12px;display:flex;justify-content:space-between;
+  align-items:flex-start;gap:8px;pointer-events:none
 }
-.panel {
-  padding:9px 11px; border:1px solid #a0c4cc66;
-  border-radius:9px; background:#102631e8; line-height:1.4;
+.panel{
+  padding:9px 11px;border:1px solid #a0c4cc66;
+  border-radius:9px;background:#102631e8;line-height:1.4
 }
-.eyebrow { color:#f6d78e; font-size:10px; letter-spacing:1px; }
-#objective { font-size:12px; }
-#status {
-  max-width:220px; margin-top:4px; color:#b9d4dc;
-  font-size:10px; overflow-wrap:anywhere;
+.eyebrow{color:#f6d78e;font-size:10px;letter-spacing:1px}
+#objective{font-size:12px}
+#status{
+  max-width:220px;margin-top:4px;color:#b9d4dc;
+  font-size:10px;overflow-wrap:anywhere
 }
-#resetButton { pointer-events:auto; font-size:22px; }
-#sideControls {
-  position:absolute; z-index:5; right:12px;
+#resetButton{pointer-events:auto;font-size:22px}
+#sideControls{
+  position:absolute;z-index:5;right:12px;
   bottom:max(20px,env(safe-area-inset-bottom));
-  display:flex; flex-direction:column; gap:7px;
+  display:flex;flex-direction:column;gap:7px
 }
-#sideControls button { font-size:12px; }
+#sideControls button{font-size:12px}
 
 /* ==================== 03 · LEVETTA A COMPARSA ==================== */
-#joystick {
-  position:absolute; z-index:6; width:112px; height:112px;
-  border:2px solid #e5f1f580; border-radius:50%;
-  background:#132f3b70; box-shadow:0 2px 12px #0004;
-  transform:translate(-50%,-50%); pointer-events:none;
+#joystick{
+  position:absolute;z-index:6;width:112px;height:112px;
+  border:2px solid #e5f1f580;border-radius:50%;background:#132f3b70;
+  transform:translate(-50%,-50%);pointer-events:none
 }
-#stick {
-  position:absolute; left:33px; top:33px; width:42px; height:42px;
-  border:2px solid #ffffff99; border-radius:50%;
-  background:#dfedf0bb;
+#stick{
+  position:absolute;left:33px;top:33px;width:42px;height:42px;
+  border:2px solid #ffffff99;border-radius:50%;background:#dfedf0bb
 }
 
-/* ==================== 04 · CARICAMENTO ==================== */
-#loading {
-  position:absolute; inset:0; z-index:20;
-  display:grid; place-content:center; padding:25px;
-  background:#162b35; text-align:center;
+/* ==================== 04 · CARICAMENTO E EDITOR ==================== */
+#loading{
+  position:absolute;inset:0;z-index:20;display:grid;
+  place-content:center;padding:25px;background:#162b35;text-align:center
 }
-#loading p { max-width:280px; font-size:13px; line-height:1.5; }
-[hidden] { display:none !important; }
-
-/* ==================== 05 · EDITOR ==================== */
-#editor {
-  position:fixed; inset:0; z-index:100;
-  display:flex; flex-direction:column;
-  background:#10232d; font-size:12px;
+#loading p{max-width:280px;font-size:13px;line-height:1.5}
+[hidden]{display:none!important}
+#editor{
+  position:fixed;inset:0;z-index:100;display:flex;
+  flex-direction:column;background:#10232d;font-size:12px
 }
-#toolbar {
-  display:flex; flex-wrap:wrap; gap:5px; padding:7px;
+#toolbar{display:flex;flex-wrap:wrap;gap:5px;padding:7px}
+#toolbar button{min-height:36px;padding:6px;font-size:11px}
+#editorHint{
+  padding:8px;min-height:45px;background:#203c49;line-height:1.4
 }
-#toolbar button { min-height:36px; padding:6px; font-size:11px; }
-#editorHint {
-  padding:8px; min-height:45px; background:#203c49; line-height:1.4;
+#editorView{position:relative;flex:1;min-height:0;overflow:hidden}
+#editorCanvas{
+  display:block;width:100%;height:100%;
+  touch-action:none;image-rendering:pixelated
 }
-#editorView { position:relative; flex:1; min-height:0; overflow:hidden; }
-#editorCanvas {
-  display:block; width:100%; height:100%;
-  touch-action:none; image-rendering:pixelated;
+#exportPanel{
+  position:absolute;inset:5%;z-index:2;display:flex;
+  flex-direction:column;gap:10px;padding:15px;
+  border:2px solid #ffda77;border-radius:10px;background:#10232dfc
 }
-#exportPanel {
-  position:absolute; inset:5%; z-index:2;
-  display:flex; flex-direction:column; gap:10px; padding:15px;
-  border:2px solid #ffda77; border-radius:10px; background:#10232dfc;
-}
-#exportData {
-  flex:1; min-height:80px; width:100%; resize:none;
-  background:#071820; color:white; font:12px monospace;
-  touch-action:pan-y; user-select:text;
+#exportData{
+  flex:1;min-height:80px;width:100%;resize:none;
+  background:#071820;color:white;font:12px monospace;
+  touch-action:pan-y;user-select:text
 }
 </style>
 </head>
 
 <body>
-<!-- ==================== 06 · HTML DEL GIOCO ==================== -->
+<!-- ==================== 05 · HTML ==================== -->
 <main id="game">
   <div id="scene" aria-hidden="true">
     <img id="map" alt="" draggable="false">
-    <div id="trainWindow"><img id="train" alt="" draggable="false"></div>
+    <div id="trainWindow">
+      <img id="train" alt="" draggable="false">
+    </div>
   </div>
 
   <div id="hud">
@@ -175,7 +157,6 @@ button:disabled { opacity:.4; }
   </div>
 </main>
 
-<!-- ==================== 07 · HTML DELL’EDITOR ==================== -->
 <section id="editor" hidden role="dialog" aria-modal="true" aria-label="Editor mappa">
   <div id="toolbar">
     <button data-layer="collision">Collisioni</button>
@@ -193,11 +174,16 @@ button:disabled { opacity:.4; }
     <button id="editorExport">Copia dati</button>
     <button id="editorClose">Gioca</button>
   </div>
+
   <div id="editorHint"></div>
   <div id="editorView"><canvas id="editorCanvas"></canvas></div>
+
   <div id="exportPanel" hidden>
-    <strong>Collisioni e profondità aggiornate</strong>
-    <div>Copia questi dati per aggiornare il codice. Il salvataggio nel browser non modifica GitHub.</div>
+    <strong>Collisioni e profondità</strong>
+    <div>
+      Il salvataggio nel browser non modifica GitHub.
+      Copia questi dati per aggiornare il codice.
+    </div>
     <textarea id="exportData" readonly></textarea>
     <button id="exportCopy">Copia</button>
     <button id="exportClose">Indietro</button>
@@ -207,50 +193,54 @@ button:disabled { opacity:.4; }
 <script>
 "use strict";
 
-/* ==================== 08 · CONFIGURAZIONE ==================== */
-const CONFIG = {
+/* ==================== 06 · CONFIGURAZIONE ==================== */
+const CONFIG={
   map:"file_0000000011348209b4f72c4afa5f7456.png",
-  width:1024, height:1536,
+  width:1024,height:1536,
   start:{x:512,y:448},
   entrance:{x:512,y:366},
-  speed:135, radius:5, spriteHeight:54,
-  zoom:1.35, minZoom:.7, maxZoom:2.8,
+  speed:135,radius:5,spriteHeight:54,
+  zoom:1.35,minZoom:.7,maxZoom:2.8,
 
-  // Bus: dimensione invariata, leggermente più in alto.
+  // Dimensione bus invariata; posizione leggermente più alta.
   bus:{
-    width:210, groundY:648,
-    speedMin:90, speedMax:115,
-    waitMin:3, waitMax:8,
-    hitHeight:15
+    width:210,groundY:648,
+    speedMin:90,speedMax:115,
+    waitMin:3,waitMax:8,hitHeight:15
   },
 
-  // Auto: corsia inferiore, sotto quella dei bus.
+  // Corsia inferiore: le auto vengono disegnate davanti ai bus.
   car:{
-    width:115, groundY:700,
-    speedMin:115, speedMax:145,
-    waitMin:2.5, waitMax:7,
-    hitHeight:13
+    width:115,groundY:700,
+    speedMin:115,speedMax:145,
+    waitMin:2.5,waitMax:7,hitHeight:13
   },
 
-  // La GIF contiene già arrivo, sosta e partenza.
-  // Questi valori regolano soltanto la sua posizione sulla mappa.
+  // Arrivo, sosta e partenza sono già contenuti nella GIF.
   train:{
     file:"Vetturegif/Treno_arrivo_sosta_partenza.gif",
-    x:0, y:51, width:1024, height:82
+    x:0,y:51,width:1024,height:82
   }
 };
 
-const VERSION = "seoul-npc-cars-2026-11-05-04";
-const STORAGE_KEY = "tarai-rpg-world-v3";
+// Invariata per conservare le modifiche già salvate nell'editor.
+const WORLD_VERSION="seoul-npc-cars-2026-11-05-04";
+const STORAGE_KEY="tarai-rpg-world-v3";
 
-const $ = id => document.getElementById(id);
-const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
-const random = (a,b) => a+Math.random()*(b-a);
-const copy = value => JSON.parse(JSON.stringify(value));
-const rectangle = (x,y,w,h) => [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const random=(a,b)=>a+Math.random()*(b-a);
+const copy=v=>JSON.parse(JSON.stringify(v));
+const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
 
-/* ==================== 09 · SPRITE DI RICCARDO ==================== */
-const PLAYER_FILES = {
+const VECTORS={
+  up:{x:0,y:-1},down:{x:0,y:1},
+  left:{x:-1,y:0},right:{x:1,y:0}
+};
+const IT={up:"su",down:"giu",left:"sinistra",right:"destra"};
+
+/* ==================== 07 · RICCARDO, NPC E VETTURE ==================== */
+const PLAYER_FILES={
   idle:{
     up:"Riccardogif/file_000000000780820990bd01ccc5bbea9b.png",
     down:"Riccardogif/file_0000000049748209b268702de3e04090.png",
@@ -265,36 +255,60 @@ const PLAYER_FILES = {
   }
 };
 
-/* ==================== 10 · NPC E VETTURE ==================== */
-function npc(id,name,x,y,direction) {
-  const prefix="Npc/"+id;
+function npc(id,name,x,y,direction,options={}){
+  const base="Npc/"+id,idle={};
+
+  for(const d of Object.keys(IT)){
+    idle[d]=base+"_fermo_"+IT[d]+".png";
+  }
+
   return {
-    id,name,x,y,direction,
-    gif:prefix+"_idle_v2.gif",
-    idle:{
-      right:prefix+"_fermo_destra.png",
-      down:prefix+"_fermo_giu.png",
-      left:prefix+"_fermo_sinistra.png",
-      up:prefix+"_fermo_su.png"
-    }
+    id,name,x,y,direction,idle,
+    gif:base+(options.old?"_idle_v2.gif":"_idle.gif"),
+    height:options.child?42:54,
+    radius:options.child?7:9,
+    ...options
   };
 }
 
-const NPC_DATA = [
-  npc("01_amico_piazzale","Amico del piazzale",430,450,"right"),
-  npc("02_amica_piazzale","Amica del piazzale",478,450,"left"),
-  npc("03_uomo_panchina","Uomo della panchina",210,577,"right"),
-  npc("04_donna_panchina","Donna della panchina",260,577,"left"),
-  npc("05_signora_fermata","Signora alla fermata",915,550,"down")
+const NPC_DATA=[
+  // Cinque NPC già presenti.
+  npc("01_amico_piazzale","Amico del piazzale",430,450,"right",{old:true}),
+  npc("02_amica_piazzale","Amica del piazzale",478,450,"left",{old:true}),
+  npc("03_uomo_panchina","Uomo della panchina",210,577,"right",{old:true}),
+  npc("04_donna_panchina","Donna della panchina",260,577,"left",{old:true}),
+  npc("05_signora_fermata","Signora alla fermata",915,550,"down",{old:true}),
+
+  // Tre NPC mobili.
+  npc("06_persona_cane","Persona con cane",360,510,"right",{
+    route:[[350,510],[660,510]],speed:27,dog:true
+  }),
+  npc("07_impiegato_borsa","Impiegato",485,800,"down",{
+    route:[[485,790],[485,1040]],speed:29
+  }),
+  npc("08_ragazza_cuffie","Ragazza con cuffie",650,1510,"right",{
+    route:[[610,1510],[920,1510]],speed:26
+  }),
+
+  // Nove nuovi NPC sul posto.
+  npc("09_negoziante_mart","Negoziante MART",315,1100,"down"),
+  npc("10_cliente_gimbap","Cliente GIMBAP",695,1108,"left"),
+  npc("11_bimba_smartphone","Bimba con smartphone",590,460,"down",{child:true}),
+  npc("12_anziano_giornale","Anziano con giornale",785,576,"down"),
+  npc("13_rider","Rider in attesa",805,1108,"down"),
+  npc("14_universitario","Universitario",135,575,"right"),
+  npc("15_universitaria","Universitaria",175,575,"left"),
+  npc("16_signora_spesa","Signora con la spesa",875,1108,"right"),
+  npc("17_amica_spesa","Amica con la spesa",920,1108,"left")
 ];
 
-const BUS_FILES = [
+const BUS_FILES=[
   "Vetturegif/Bus_blu_ruote_animate.gif",
   "Vetturegif/Bus_rosso_8100_ruote_animate.gif",
   "Vetturegif/Bus_verde_4312_ruote_animate.gif"
 ];
 
-const CAR_FILES = [
+const CAR_FILES=[
   "Vetturegif/01_utilitaria_rossa_ruote_animate.gif",
   "Vetturegif/02_berlina_argento_ruote_animate.gif",
   "Vetturegif/03_suv_blu_ruote_animate.gif",
@@ -302,8 +316,8 @@ const CAR_FILES = [
   "Vetturegif/05_furgoncino_bianco_ruote_animate.gif"
 ];
 
-/* ==================== 11 · COLLISIONI AGGIORNATE ==================== */
-const DEFAULT_COLLISIONS = [
+/* ==================== 08 · COLLISIONI DEFINITIVE ==================== */
+const DEFAULT_COLLISIONS=[
   [[0,0],[1024,0],[1024,385],[0,385]],
   [[0,385],[98,385],[98,591],[0,591]],
   [[976,394],[1024,385],[1024,591],[991,566]],
@@ -330,14 +344,11 @@ const DEFAULT_COLLISIONS = [
   [[382,874],[448,874],[435,955],[385,950]],
   [[525,1056],[551,1056],[551,1083],[525,1083]],
   [[600,1097],[626,1097],[626,1115],[600,1115]],
-
-  // Ultima correzione: [774,1463] e [738,1461].
   [
     [550,1192],[595,1192],[595,1179],[1024,1179],
     [1024,1464],[805,1464],[774,1463],[738,1461],
     [710,1464],[550,1464]
   ],
-
   [[548,1435],[685,1435],[685,1470],[548,1470]],
   [[835,1435],[1024,1435],[1024,1470],[835,1470]],
   [[174,1430],[327,1430],[327,1480],[174,1480]],
@@ -357,10 +368,10 @@ const DEFAULT_COLLISIONS = [
   [[630,729],[664,741],[652,706]]
 ];
 
-/* ==================== 12 · PROFONDITÀ AGGIORNATA ==================== */
-const zone = (name,baseY,polygon) => ({name,baseY,polygon});
+/* ==================== 09 · PROFONDITÀ ==================== */
+const zone=(name,baseY,polygon)=>({name,baseY,polygon});
 
-const DEFAULT_DEPTH = [
+const DEFAULT_DEPTH=[
   zone("Lampione stazione sinistro",551,[
     [296,550],[296,414],[299,408],[326,405],
     [331,411],[328,418],[307,420],[307,550]
@@ -378,20 +389,19 @@ const DEFAULT_DEPTH = [
     [831,424],[828,456],[851,463],[857,489],[784,489],
     [786,461],[809,455],[808,422],[786,412],[766,393]
   ]),
-  zone("Panchina sinistra",551,rectangle(236,519,52,32)),
-  zone("Panchina destra",551,rectangle(747,519,50,32)),
-  zone("Fioriera sinistra",557,rectangle(164,514,70,43)),
-  zone("Fioriera destra",557,rectangle(797,513,72,44)),
-
+  zone("Panchina sinistra",551,rect(236,519,52,32)),
+  zone("Panchina destra",551,rect(747,519,50,32)),
+  zone("Fioriera sinistra",557,rect(164,514,70,43)),
+  zone("Fioriera destra",557,rect(797,513,72,44)),
   zone("Lampione attraversamento sinistro",743,[
     [372,742],[372,635],[376,626],[393,620],[409,619],
     [414,625],[411,632],[384,637],[384,742]
   ]),
   zone("Albero strada sinistro",725,[
-    [17,584],[28,569],[42,574],[55,567],[78,574],[91,590],
-    [104,609],[99,631],[80,647],[69,650],[65,706],
-    [89,710],[89,725],[37,725],[38,708],[53,706],
-    [54,650],[34,641],[18,623],[13,603]
+    [17,584],[28,569],[42,574],[55,567],[78,574],
+    [91,590],[104,609],[99,631],[80,647],[69,650],
+    [65,706],[89,710],[89,725],[37,725],[38,708],
+    [53,706],[54,650],[34,641],[18,623],[13,603]
   ]),
   zone("Albero strada destro",729,[
     [902,592],[916,575],[931,567],[940,550],[972,547],
@@ -406,9 +416,8 @@ const DEFAULT_DEPTH = [
     [636,786],[621,787],[621,805],[630,805],[630,833],
     [620,837],[622,1116]
   ]),
-  zone("Fioriera MART",1091,rectangle(377,1023,37,68)),
-  zone("Fioriera GIMBAP",1089,rectangle(526,1013,31,76)),
-
+  zone("Fioriera MART",1091,rect(377,1023,37,68)),
+  zone("Fioriera GIMBAP",1089,rect(526,1013,31,76)),
   zone("Edificio MART",1086,[
     [0,743],[192,743],[192,766],[371,766],
     [386,790],[386,1086],[0,1086]
@@ -447,16 +456,16 @@ const DEFAULT_DEPTH = [
   ])
 ];
 
-/* ==================== 13 · SALVATAGGIO ==================== */
-function validPolygon(p) {
-  return Array.isArray(p) && p.length>=3 && p.every(v =>
-    Array.isArray(v) && v.length===2 && v.every(Number.isFinite)
+/* ==================== 10 · SALVATAGGIO E STATO ==================== */
+function validPolygon(p){
+  return Array.isArray(p)&&p.length>=3&&p.every(v=>
+    Array.isArray(v)&&v.length===2&&v.every(Number.isFinite)
   );
 }
-function validWorld(w) {
-  return w && Array.isArray(w.collisions) &&
-    w.collisions.every(validPolygon) && Array.isArray(w.depth) &&
-    w.depth.every(z => z && Number.isFinite(z.baseY) && validPolygon(z.polygon));
+function validWorld(w){
+  return w&&Array.isArray(w.collisions)&&
+    w.collisions.every(validPolygon)&&Array.isArray(w.depth)&&
+    w.depth.every(z=>z&&Number.isFinite(z.baseY)&&validPolygon(z.polygon));
 }
 
 let world={
@@ -465,396 +474,511 @@ let world={
 };
 let storageFailed=false;
 
-try {
-  const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
-  if(saved?.version===VERSION && validWorld(saved.world)) world=saved.world;
-} catch(_) {}
+try{
+  const s=JSON.parse(localStorage.getItem(STORAGE_KEY));
+  if(s?.version===WORLD_VERSION&&validWorld(s.world))world=s.world;
+}catch(_){}
 
-function saveWorld() {
-  try {
-    localStorage.setItem(STORAGE_KEY,JSON.stringify({version:VERSION,world}));
+function saveWorld(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      version:WORLD_VERSION,world
+    }));
     storageFailed=false;
-  } catch(_) { storageFailed=true; }
+  }catch(_){storageFailed=true}
 }
 
-/* ==================== 14 · STATO E ASSET ==================== */
-const game=$("game"), scene=$("scene"), mapImage=$("map");
-const player={
-  x:CONFIG.entrance.x, y:CONFIG.entrance.y,
-  direction:"down", moving:false, radius:CONFIG.radius,
-  actor:null
-};
+const game=$("game"),scene=$("scene"),mapImage=$("map");
 const camera={x:0,y:0};
-const actors=[], npcs=[], vehicles=[], missing=new Set();
-const cache=new Map(), heldInputs=new Map();
 
-let ready=false, lastTime=0, zoom=CONFIG.zoom;
-let viewWidth=1, viewHeight=1, intro=true;
-let depthNodes=[], nextBus=random(2,5), nextCar=random(1,4);
+const player={
+  x:512,y:366,direction:"down",moving:false,radius:5,actor:null
+};
+const npcs=[],vehicles=[],missing=new Set();
+const cache=new Map(),held=new Map();
+const playerAssets={idle:{},walk:{}};
+const vehicleAssets={bus:[],car:[]};
 
-/*
-  Analizza il bordo trasparente e ritaglia visivamente l'immagine.
-  Il file originale resta intero: le GIF continuano ad animarsi.
-*/
-function loadAsset(file) {
-  if(cache.has(file)) return cache.get(file);
+let ready=false,lastTime=0,zoom=CONFIG.zoom;
+let viewWidth=1,viewHeight=1,intro=true,depthNodes=[];
+let nextBus=random(2,5),nextCar=random(1,4);
 
-  const promise=new Promise(resolve => {
+/* ==================== 11 · IMMAGINI E ALLINEAMENTO ==================== */
+function loadAsset(file,fixed=false,child=false){
+  const key=file+"|"+fixed+"|"+child;
+  if(cache.has(key))return cache.get(key);
+
+  const promise=new Promise(resolve=>{
     const image=new Image();
-    image.onload=() => {
-      let bounds={x:0,y:0,w:image.naturalWidth,h:image.naturalHeight};
 
-      try {
+    image.onload=()=>{
+      const w=image.naturalWidth,h=image.naturalHeight;
+      let b={x:0,y:0,w,h},freeze=null;
+
+      try{
         const c=document.createElement("canvas");
-        c.width=image.naturalWidth; c.height=image.naturalHeight;
+        c.width=w;c.height=h;
+
         const ctx=c.getContext("2d",{willReadFrequently:true});
         ctx.drawImage(image,0,0);
-        const data=ctx.getImageData(0,0,c.width,c.height).data;
-        let left=c.width,top=c.height,right=-1,bottom=-1;
+        freeze=c.toDataURL("image/png");
 
-        for(let y=0;y<c.height;y++) {
-          for(let x=0;x<c.width;x++) {
-            if(data[(y*c.width+x)*4+3]<100) continue;
-            left=Math.min(left,x); right=Math.max(right,x);
-            top=Math.min(top,y); bottom=Math.max(bottom,y);
+        if(!fixed){
+          const data=ctx.getImageData(0,0,w,h).data;
+          let l=w,t=h,r=-1,d=-1;
+
+          for(let y=0;y<h;y++){
+            for(let x=0;x<w;x++){
+              if(data[(y*w+x)*4+3]<100)continue;
+              l=Math.min(l,x);r=Math.max(r,x);
+              t=Math.min(t,y);d=Math.max(d,y);
+            }
           }
+          if(r>=l)b={x:l,y:t,w:r-l+1,h:d-t+1};
         }
-        if(right>=left && bottom>=top) {
-          bounds={x:left,y:top,w:right-left+1,h:bottom-top+1};
-        }
-      } catch(_) {}
+      }catch(_){}
 
       missing.delete(file);
-      resolve({file,image,bounds});
+      resolve({
+        key,file,image,b,fixed,
+        body:child?236:280,
+        foot:fixed?h*292/304:b.y+b.h,
+        freeze
+      });
     };
-    image.onerror=() => { missing.add(file); resolve(null); };
+
+    image.onerror=()=>{
+      missing.add(file);
+      resolve(null);
+    };
     image.src=file;
   });
 
-  cache.set(file,promise);
+  cache.set(key,promise);
   return promise;
 }
 
-function createActor(height=54,width=null) {
+function createActor(height=54,width=null){
   const node=document.createElement("div");
-  node.className="sprite";
+  node.className="actor";
   node.hidden=true;
   scene.appendChild(node);
 
-  const actor={
-    node,height,width,assets:new Map(),active:null,
-    visibleWidth:width||30,visibleHeight:height
+  return {
+    node,height,width,images:new Map(),
+    active:null,paused:false,visibleHeight:height
   };
-  actors.push(actor);
-  return actor;
 }
 
-function setActorAsset(actor,asset) {
-  if(!asset || actor.active===asset) return;
+function setAsset(actor,asset,paused=false){
+  if(!asset)return;
+  if(actor.active===asset&&actor.paused===paused)return;
 
-  let image=actor.assets.get(asset.file);
-  if(!image) {
-    image=asset.image.cloneNode();
-    image.alt=""; image.draggable=false;
-    image.hidden=true;
-    actor.assets.set(asset.file,image);
+  const key=asset.key+(paused&&asset.freeze?"|pause":"");
+  let image=actor.images.get(key);
+
+  if(!image){
+    image=document.createElement("img");
+    image.src=paused&&asset.freeze?asset.freeze:asset.file;
+    image.alt="";
+    image.draggable=false;
+    actor.images.set(key,image);
     actor.node.appendChild(image);
   }
 
-  for(const other of actor.assets.values()) other.hidden=true;
+  for(const im of actor.images.values())im.hidden=im!==image;
 
-  const b=asset.bounds;
-  const scale=actor.width ? actor.width/b.w : actor.height/b.h;
+  const b=asset.b;
+  const scale=actor.width
+    ? actor.width/b.w
+    : actor.height/(asset.fixed?asset.body:b.h);
 
-  actor.visibleWidth=b.w*scale;
-  actor.visibleHeight=b.h*scale;
-  actor.node.style.width=actor.visibleWidth+"px";
-  actor.node.style.height=actor.visibleHeight+"px";
+  const originX=asset.fixed
+    ? asset.image.naturalWidth/2
+    : b.x+b.w/2;
+
   image.style.width=asset.image.naturalWidth*scale+"px";
   image.style.height=asset.image.naturalHeight*scale+"px";
-  image.style.left=-b.x*scale+"px";
-  image.style.top=-b.y*scale+"px";
-  image.hidden=false;
+  image.style.left=-originX*scale+"px";
+  image.style.top=-asset.foot*scale+"px";
+
+  actor.visibleHeight=(asset.foot-b.y)*scale;
   actor.active=asset;
+  actor.paused=paused;
   actor.node.hidden=false;
 }
 
-function placeActor(actor,x,y,offset=10) {
+function place(actor,x,y,priority=10){
   actor.node.style.left=x+"px";
   actor.node.style.top=y+"px";
-  actor.node.style.zIndex=Math.round(y*100+offset);
+  actor.node.style.zIndex=Math.round(y*100+priority);
 }
 
-/* ==================== 15 · CARICAMENTO PERSONAGGI ==================== */
-const playerAssets={idle:{},walk:{}};
 player.actor=createActor(CONFIG.spriteHeight);
 
-async function loadCharacters() {
+async function loadCharacters(){
   const jobs=[];
 
-  for(const mode of ["idle","walk"]) {
-    for(const direction of ["up","down","left","right"]) {
-      jobs.push(loadAsset(PLAYER_FILES[mode][direction]).then(asset => {
-        playerAssets[mode][direction]=asset;
+  for(const mode of ["idle","walk"]){
+    for(const d of Object.keys(IT)){
+      jobs.push(loadAsset(PLAYER_FILES[mode][d]).then(a=>{
+        playerAssets[mode][d]=a;
       }));
     }
   }
 
-  for(const data of NPC_DATA) {
-    const person={
-      ...data,radius:9,actor:createActor(54),
-      animation:null,idleAssets:{}
+  for(const data of NPC_DATA){
+    const n={
+      ...data,actor:createActor(data.height),
+      animation:null,idleAssets:{},walkAssets:{},
+      target:1,wait:random(.2,1.5),blocked:0,moving:false
     };
-    npcs.push(person);
+    npcs.push(n);
 
-    jobs.push(loadAsset(data.gif).then(asset => {
-      person.animation=asset;
-      setActorAsset(person.actor,asset);
-      placeActor(person.actor,person.x,person.y);
-    }));
+    const fixed=!data.old;
 
-    // Caricati ma non mostrati: serviranno per i dialoghi.
-    for(const direction of ["up","down","left","right"]) {
-      jobs.push(loadAsset(data.idle[direction]).then(asset => {
-        person.idleAssets[direction]=asset;
+    // PNG pronti per i dialoghi futuri, attualmente nascosti.
+    for(const d of Object.keys(IT)){
+      jobs.push(loadAsset(data.idle[d],fixed,!!data.child).then(a=>{
+        n.idleAssets[d]=a;
+      }));
+    }
+
+    if(data.route){
+      const dirs=data.route[0][1]===data.route[1][1]
+        ? ["left","right"] : ["up","down"];
+
+      for(const d of dirs){
+        jobs.push(loadAsset(
+          "Npc/"+data.id+"_camminata_"+IT[d]+".gif",true
+        ).then(a=>{n.walkAssets[d]=a}));
+      }
+    }else{
+      jobs.push(loadAsset(data.gif,fixed,!!data.child).then(a=>{
+        n.animation=a;
       }));
     }
   }
 
   await Promise.all(jobs);
+  for(const n of npcs)drawNpc(n);
 }
 
-const vehicleAssets={bus:[],car:[]};
-
-async function loadVehicles() {
-  const results=await Promise.all([
-    Promise.all(BUS_FILES.map(loadAsset)),
-    Promise.all(CAR_FILES.map(loadAsset))
+async function loadVehicles(){
+  const a=await Promise.all([
+    Promise.all(BUS_FILES.map(f=>loadAsset(f))),
+    Promise.all(CAR_FILES.map(f=>loadAsset(f)))
   ]);
-  vehicleAssets.bus=results[0].filter(Boolean);
-  vehicleAssets.car=results[1].filter(Boolean);
+
+  vehicleAssets.bus=a[0].filter(Boolean);
+  vehicleAssets.car=a[1].filter(Boolean);
 }
 
-/* ==================== 16 · PROFONDITÀ DEGLI OGGETTI ==================== */
-function polygonPath(ctx,p) {
-  ctx.beginPath();
-  p.forEach(([x,y],i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
-  ctx.closePath();
-}
-
-function makeDepthPiece(polygon,baseY) {
-  const xs=polygon.map(p=>p[0]), ys=polygon.map(p=>p[1]);
-  const x=Math.floor(Math.min(...xs)), y=Math.floor(Math.min(...ys));
-  const w=Math.ceil(Math.max(...xs))-x;
-  const h=Math.ceil(Math.max(...ys))-y;
-  if(w<1 || h<1) return;
-
-  const c=document.createElement("canvas");
-  c.className="depth-piece";
-  c.width=w; c.height=h;
-  c.style.left=x+"px"; c.style.top=y+"px";
-  c.style.zIndex=Math.round(baseY*100+30);
-
-  const ctx=c.getContext("2d");
-  ctx.imageSmoothingEnabled=false;
-  ctx.translate(-x,-y);
-  polygonPath(ctx,polygon);
-  ctx.clip();
-  ctx.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
-  scene.appendChild(c);
-  depthNodes.push(c);
-}
-
-function rebuildDepth() {
-  depthNodes.forEach(n=>n.remove());
-  depthNodes=[];
-  for(const z of world.depth) makeDepthPiece(z.polygon,z.baseY);
-
-  // Elementi della pensilina davanti al treno.
-  makeDepthPiece(rectangle(0,0,1024,55),145);
-  makeDepthPiece(rectangle(328,55,20,90),145);
-  makeDepthPiece(rectangle(660,55,28,90),145);
-  makeDepthPiece(rectangle(1003,55,21,90),145);
-}
-
-/* ==================== 17 · TRENO ==================== */
-function setupTrain() {
-  const t=CONFIG.train, window=$("trainWindow");
-  Object.assign(window.style,{
-    left:t.x+"px",top:t.y+"px",width:t.width+"px",height:t.height+"px"
-  });
-  $("train").onerror=() => { missing.add(t.file); window.hidden=true; };
-  $("train").onload=() => { missing.delete(t.file); window.hidden=false; };
-  $("train").src=t.file;
-}
-
-/* ==================== 18 · COLLISIONI STATICHE ==================== */
-function pointInPolygon(x,y,p) {
+/* ==================== 12 · COLLISIONI STATICHE E MOBILI ==================== */
+function pointInPolygon(x,y,p){
   let inside=false;
-  for(let i=0,j=p.length-1;i<p.length;j=i++) {
-    const [xi,yi]=p[i], [xj,yj]=p[j];
-    if((yi>y)!==(yj>y) && x<(xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside;
+
+  for(let i=0,j=p.length-1;i<p.length;j=i++){
+    const [xi,yi]=p[i],[xj,yj]=p[j];
+    if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi){
+      inside=!inside;
+    }
   }
   return inside;
 }
 
-function segmentDistanceSquared(x,y,a,b) {
-  const dx=b[0]-a[0], dy=b[1]-a[1], length=dx*dx+dy*dy;
-  const t=length ? clamp(((x-a[0])*dx+(y-a[1])*dy)/length,0,1) : 0;
+function segmentDistance(x,y,a,b){
+  const dx=b[0]-a[0],dy=b[1]-a[1];
+  const l=dx*dx+dy*dy;
+  const t=l?clamp(((x-a[0])*dx+(y-a[1])*dy)/l,0,1):0;
   return (x-a[0]-t*dx)**2+(y-a[1]-t*dy)**2;
 }
 
-function hitsPolygon(x,y,r,p) {
-  return pointInPolygon(x,y,p) || p.some((a,i) =>
-    segmentDistanceSquared(x,y,a,p[(i+1)%p.length])<=r*r
+function hitsPolygon(x,y,r,p){
+  return pointInPolygon(x,y,p)||p.some((a,i)=>
+    segmentDistance(x,y,a,p[(i+1)%p.length])<=r*r
   );
 }
 
-function circleRectangle(x,y,r,b) {
-  const nx=clamp(x,b.left,b.right), ny=clamp(y,b.top,b.bottom);
-  return (x-nx)**2+(y-ny)**2<=r*r;
+function circleRect(x,y,r,b){
+  return (x-clamp(x,b.left,b.right))**2+
+    (y-clamp(y,b.top,b.bottom))**2<=r*r;
 }
 
-function vehicleBounds(v,x=v.x) {
+function vehicleBounds(v,x=v.x){
   return {
-    left:x-v.width/2+5,
-    right:x+v.width/2-5,
-    top:v.y-v.hitHeight,
-    bottom:v.y+2
+    left:x-v.width/2+5,right:x+v.width/2-5,
+    top:v.y-v.hitHeight,bottom:v.y+2
   };
 }
 
-function staticFree(x,y) {
-  const r=CONFIG.radius;
-  return x>=r && y>=r && x<=CONFIG.width-r && y<=CONFIG.height-r &&
+function feet(n,x=n.x,y=n.y){
+  const p=[{x,y,r:n.radius}];
+
+  // Anche il cagnolino ha una piccola collisione.
+  if(n.dog){
+    p.push({
+      x:x+(n.direction==="left"?-23:23),
+      y,r:6
+    });
+  }
+  return p;
+}
+
+function staticFree(x,y,r=CONFIG.radius){
+  return x>=r&&y>=r&&x<=CONFIG.width-r&&y<=CONFIG.height-r&&
     !world.collisions.some(p=>hitsPolygon(x,y,r,p));
 }
 
-function canStand(x,y) {
-  if(!staticFree(x,y)) return false;
+function canOccupy(subject,x,y){
+  for(const p of feet(subject,x,y)){
+    if(!staticFree(p.x,p.y,p.r))return false;
 
-  if(npcs.some(n=>Math.hypot(x-n.x,y-n.y)<CONFIG.radius+n.radius)) {
-    return false;
+    if(subject!==player&&!intro&&
+      Math.hypot(p.x-player.x,p.y-player.y)<p.r+player.radius+2){
+      return false;
+    }
+
+    for(const n of npcs){
+      if(n===subject)continue;
+
+      for(const q of feet(n)){
+        if(Math.hypot(p.x-q.x,p.y-q.y)<p.r+q.r)return false;
+      }
+    }
+
+    if(vehicles.some(v=>
+      circleRect(p.x,p.y,p.r,vehicleBounds(v))
+    ))return false;
   }
-  return !vehicles.some(v=>circleRectangle(x,y,CONFIG.radius,vehicleBounds(v)));
-}
-
-function movePlayer(dx,dy) {
-  const steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/2));
-  for(let i=0;i<steps;i++) {
-    if(canStand(player.x+dx/steps,player.y)) player.x+=dx/steps;
-    if(canStand(player.x,player.y+dy/steps)) player.y+=dy/steps;
-  }
-}
-
-/* ==================== 19 · TRAFFICO CASUALE ==================== */
-function spawnVehicle(type) {
-  const list=vehicleAssets[type], settings=CONFIG[type];
-  if(!list.length) return false;
-
-  const width=type==="car"
-    ? settings.width*random(.94,1.08)
-    : settings.width;
-
-  // Lascia spazio libero all'ingresso della corsia.
-  const occupied=vehicles.some(v =>
-    v.type===type && v.x+v.width/2>CONFIG.width-70
-  );
-  if(occupied) return false;
-
-  const asset=list[Math.floor(Math.random()*list.length)];
-  const actor=createActor(1,width);
-  setActorAsset(actor,asset);
-
-  const vehicle={
-    type,actor,width,x:CONFIG.width+width/2+15,
-    y:settings.groundY,
-    speed:random(settings.speedMin,settings.speedMax),
-    hitHeight:settings.hitHeight
-  };
-  vehicles.push(vehicle);
-  placeActor(actor,vehicle.x,vehicle.y);
   return true;
 }
 
-function rectanglesOverlap(a,b,gap=0) {
-  return a.left<b.right+gap && a.right>b.left-gap &&
-    a.top<b.bottom && a.bottom>b.top;
+function moveEntity(subject,dx,dy){
+  const steps=Math.max(
+    1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/2)
+  );
+  let moved=false;
+
+  for(let i=0;i<steps;i++){
+    const x=subject.x+dx/steps,y=subject.y+dy/steps;
+    if(!canOccupy(subject,x,y))break;
+    subject.x=x;subject.y=y;moved=true;
+  }
+  return moved;
 }
 
-function updateTraffic(dt) {
-  nextBus-=dt; nextCar-=dt;
+/* ==================== 13 · NPC: PERCORSI E SOSTE ==================== */
+function drawNpc(n){
+  // Nelle soste congela un fotogramma della GIF.
+  // Gli sprite direzionali restano riservati ai dialoghi futuri.
+  const a=n.route?n.walkAssets[n.direction]:n.animation;
+  setAsset(n.actor,a,!!n.route&&!n.moving);
+  place(n.actor,n.x,n.y);
+}
 
-  if(nextBus<=0) {
+function updateNpcs(dt){
+  for(const n of npcs){
+    if(!n.route){
+      drawNpc(n);
+      continue;
+    }
+
+    n.moving=false;
+
+    if(n.wait>0){
+      n.wait-=dt;
+      drawNpc(n);
+      continue;
+    }
+
+    const target=n.route[n.target];
+    const dx=target[0]-n.x,dy=target[1]-n.y;
+    const distance=Math.hypot(dx,dy);
+
+    if(distance<.1){
+      n.target=1-n.target;
+      n.wait=random(1,3);
+      n.blocked=0;
+      drawNpc(n);
+      continue;
+    }
+
+    n.direction=Math.abs(dx)>Math.abs(dy)
+      ? (dx>0?"right":"left")
+      : (dy>0?"down":"up");
+
+    const step=Math.min(distance,n.speed*dt);
+    const v=VECTORS[n.direction];
+
+    n.moving=moveEntity(n,v.x*step,v.y*step);
+    n.blocked=n.moving?0:n.blocked+dt;
+
+    // Se il passaggio resta bloccato, torna indietro.
+    if(n.blocked>1.5){
+      n.target=1-n.target;
+      n.wait=random(.5,1.2);
+      n.blocked=0;
+    }
+    drawNpc(n);
+  }
+}
+
+/* ==================== 14 · TRAFFICO CASUALE ==================== */
+function spawnVehicle(type){
+  const list=vehicleAssets[type],s=CONFIG[type];
+  if(!list.length)return false;
+
+  if(vehicles.some(v=>
+    v.type===type&&v.x+v.width/2>CONFIG.width-70
+  ))return false;
+
+  const width=type==="car"
+    ? s.width*random(.94,1.08) : s.width;
+
+  const actor=createActor(1,width);
+  setAsset(actor,list[Math.floor(Math.random()*list.length)]);
+
+  const v={
+    type,actor,width,
+    x:CONFIG.width+width/2+15,
+    y:s.groundY,
+    speed:random(s.speedMin,s.speedMax),
+    hitHeight:s.hitHeight
+  };
+
+  vehicles.push(v);
+  place(actor,v.x,v.y);
+  return true;
+}
+
+function overlap(a,b,gap=0){
+  return a.left<b.right+gap&&a.right>b.left-gap&&
+    a.top<b.bottom&&a.bottom>b.top;
+}
+
+function updateTraffic(dt){
+  nextBus-=dt;nextCar-=dt;
+
+  if(nextBus<=0){
     nextBus=spawnVehicle("bus")
-      ? random(CONFIG.bus.waitMin,CONFIG.bus.waitMax)
-      : .5;
+      ? random(CONFIG.bus.waitMin,CONFIG.bus.waitMax) : .5;
   }
-  if(nextCar<=0) {
+  if(nextCar<=0){
     nextCar=spawnVehicle("car")
-      ? random(CONFIG.car.waitMin,CONFIG.car.waitMax)
-      : .5;
+      ? random(CONFIG.car.waitMin,CONFIG.car.waitMax) : .5;
   }
 
-  // Chi è più avanti viene aggiornato per primo.
-  const ordered=[...vehicles].sort((a,b)=>a.x-b.x);
-
-  for(const v of ordered) {
+  for(const v of [...vehicles].sort((a,b)=>a.x-b.x)){
     const distance=v.speed*dt;
     const steps=Math.max(1,Math.ceil(distance/2));
 
-    for(let i=0;i<steps;i++) {
+    for(let i=0;i<steps;i++){
       const nx=v.x-distance/steps;
-      const bounds=vehicleBounds(v,nx);
+      const b=vehicleBounds(v,nx);
 
-      const hitsPlayer=!intro &&
-        circleRectangle(player.x,player.y,CONFIG.radius+2,bounds);
+      const blocked=
+        (!intro&&circleRect(player.x,player.y,player.radius+2,b))||
+        npcs.some(n=>feet(n).some(p=>circleRect(p.x,p.y,p.r,b)))||
+        vehicles.some(o=>
+          o!==v&&o.type===v.type&&overlap(b,vehicleBounds(o),18)
+        );
 
-      const hitsNpc=npcs.some(n=>
-        circleRectangle(n.x,n.y,n.radius,bounds)
-      );
-
-      const hitsVehicle=vehicles.some(other =>
-        other!==v && other.type===v.type &&
-        rectanglesOverlap(bounds,vehicleBounds(other),18)
-      );
-
-      // Si fermano prima di Riccardo o di un altro veicolo.
-      if(hitsPlayer || hitsNpc || hitsVehicle) break;
+      if(blocked)break;
       v.x=nx;
     }
 
-    placeActor(v.actor,v.x,v.y);
+    place(v.actor,v.x,v.y);
 
-    if(v.x+v.width/2<-25) {
+    if(v.x+v.width/2<-25){
       v.actor.node.remove();
-      const actorIndex=actors.indexOf(v.actor);
-      if(actorIndex>=0) actors.splice(actorIndex,1);
       vehicles.splice(vehicles.indexOf(v),1);
     }
   }
 }
 
-/* ==================== 20 · MOVIMENTO IN QUATTRO DIREZIONI ==================== */
-const VECTORS={
-  up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}
-};
+/* ==================== 15 · PROFONDITÀ E TRENO ==================== */
+function polygonPath(ctx,p){
+  ctx.beginPath();
+  p.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+  ctx.closePath();
+}
+
+function makeDepth(p,baseY){
+  const xs=p.map(v=>v[0]),ys=p.map(v=>v[1]);
+  const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));
+  const w=Math.ceil(Math.max(...xs))-x;
+  const h=Math.ceil(Math.max(...ys))-y;
+  if(w<1||h<1)return;
+
+  const c=document.createElement("canvas");
+  c.className="depth-piece";
+  c.width=w;c.height=h;
+
+  Object.assign(c.style,{
+    left:x+"px",top:y+"px",
+    zIndex:Math.round(baseY*100+30)
+  });
+
+  const ctx=c.getContext("2d");
+  ctx.imageSmoothingEnabled=false;
+  ctx.translate(-x,-y);
+  polygonPath(ctx,p);
+  ctx.clip();
+  ctx.drawImage(mapImage,0,0,1024,1536);
+
+  scene.appendChild(c);
+  depthNodes.push(c);
+}
+
+function rebuildDepth(){
+  depthNodes.forEach(n=>n.remove());
+  depthNodes=[];
+
+  for(const z of world.depth)makeDepth(z.polygon,z.baseY);
+
+  // Copertura e pilastri davanti al treno.
+  makeDepth(rect(0,0,1024,55),145);
+  makeDepth(rect(328,55,20,90),145);
+  makeDepth(rect(660,55,28,90),145);
+  makeDepth(rect(1003,55,21,90),145);
+}
+
+function setupTrain(){
+  const t=CONFIG.train;
+
+  Object.assign($("trainWindow").style,{
+    left:t.x+"px",top:t.y+"px",
+    width:t.width+"px",height:t.height+"px"
+  });
+
+  $("train").onerror=()=>{
+    missing.add(t.file);
+    $("trainWindow").hidden=true;
+  };
+  $("train").onload=()=>{
+    missing.delete(t.file);
+    $("trainWindow").hidden=false;
+  };
+  $("train").src=t.file;
+}
+
+/* ==================== 16 · LEVETTA E TASTIERA ==================== */
 const KEY_DIRECTION={
   arrowup:"up",w:"up",arrowdown:"down",s:"down",
   arrowleft:"left",a:"left",arrowright:"right",d:"right"
 };
 const joystick={pointer:null,x:0,y:0,direction:null};
 
-function press(token,direction) {
-  heldInputs.delete(token);
-  heldInputs.set(token,direction);
+function press(token,direction){
+  held.delete(token);
+  held.set(token,direction);
 }
-function currentDirection() {
-  const values=[...heldInputs.values()];
-  return values.at(-1)||null;
+function currentDirection(){
+  return [...held.values()].at(-1)||null;
 }
-function resetInput() {
-  heldInputs.clear();
+function resetInput(){
+  held.clear();
   joystick.pointer=null;
   joystick.direction=null;
   $("joystick").hidden=true;
@@ -862,153 +986,181 @@ function resetInput() {
   player.moving=false;
 }
 
-window.addEventListener("keydown",event=>{
-  const direction=KEY_DIRECTION[event.key.toLowerCase()];
-  if(!direction || !ready || intro || editor.open) return;
-  event.preventDefault();
-  if(!event.repeat) press("key:"+event.key.toLowerCase(),direction);
+window.addEventListener("keydown",e=>{
+  const d=KEY_DIRECTION[e.key.toLowerCase()];
+  if(!d||!ready||intro||editor.open)return;
+
+  e.preventDefault();
+  if(!e.repeat)press("key:"+e.key.toLowerCase(),d);
 });
-window.addEventListener("keyup",event=>{
-  heldInputs.delete("key:"+event.key.toLowerCase());
+window.addEventListener("keyup",e=>{
+  held.delete("key:"+e.key.toLowerCase());
 });
 
-function updateJoystick(event) {
-  const dx=event.clientX-joystick.x, dy=event.clientY-joystick.y;
-  const distance=Math.hypot(dx,dy), limit=34;
-  let direction=null;
+function updateJoystick(e){
+  const dx=e.clientX-joystick.x,dy=e.clientY-joystick.y;
+  const length=Math.hypot(dx,dy);
+  let d=null;
 
-  if(distance>=10) {
-    direction=Math.abs(dx)>Math.abs(dy)
+  if(length>=10){
+    d=Math.abs(dx)>Math.abs(dy)
       ? (dx>0?"right":"left")
       : (dy>0?"down":"up");
   }
 
-  const vector=direction ? VECTORS[direction] : {x:0,y:0};
-  const amount=Math.min(distance,limit);
-  $("stick").style.transform=
-    `translate(${vector.x*amount}px,${vector.y*amount}px)`;
+  const v=d?VECTORS[d]:{x:0,y:0};
+  const amount=Math.min(length,34);
 
-  if(direction!==joystick.direction) {
-    heldInputs.delete("touch");
-    if(direction) press("touch",direction);
-    joystick.direction=direction;
+  $("stick").style.transform=
+    `translate(${v.x*amount}px,${v.y*amount}px)`;
+
+  if(d!==joystick.direction){
+    held.delete("touch");
+    if(d)press("touch",d);
+    joystick.direction=d;
   }
 }
 
-game.addEventListener("pointerdown",event=>{
-  if(event.target.closest("button") || !ready || intro || editor.open) return;
-  if(joystick.pointer!==null) return;
-  if(event.pointerType==="mouse" && event.button!==0) return;
+game.addEventListener("pointerdown",e=>{
+  if(
+    e.target.closest("button")||!ready||intro||editor.open||
+    joystick.pointer!==null||
+    (e.pointerType==="mouse"&&e.button!==0)
+  )return;
 
-  event.preventDefault();
-  joystick.pointer=event.pointerId;
-  joystick.x=event.clientX; joystick.y=event.clientY;
+  e.preventDefault();
+  joystick.pointer=e.pointerId;
+  joystick.x=e.clientX;
+  joystick.y=e.clientY;
 
-  const bounds=game.getBoundingClientRect();
-  $("joystick").style.left=event.clientX-bounds.left+"px";
-  $("joystick").style.top=event.clientY-bounds.top+"px";
+  const r=game.getBoundingClientRect();
+  $("joystick").style.left=e.clientX-r.left+"px";
+  $("joystick").style.top=e.clientY-r.top+"px";
   $("joystick").hidden=false;
-  game.setPointerCapture(event.pointerId);
-  updateJoystick(event);
-});
-game.addEventListener("pointermove",event=>{
-  if(event.pointerId===joystick.pointer) updateJoystick(event);
+
+  game.setPointerCapture(e.pointerId);
+  updateJoystick(e);
 });
 
-function endJoystick(event) {
-  if(event.pointerId!==joystick.pointer) return;
-  heldInputs.delete("touch");
-  joystick.pointer=null; joystick.direction=null;
+game.addEventListener("pointermove",e=>{
+  if(e.pointerId===joystick.pointer)updateJoystick(e);
+});
+
+function endJoystick(e){
+  if(e.pointerId!==joystick.pointer)return;
+  held.delete("touch");
+  joystick.pointer=null;
+  joystick.direction=null;
   $("joystick").hidden=true;
   $("stick").style.transform="";
 }
-for(const name of ["pointerup","pointercancel","lostpointercapture"]) {
+
+for(const name of ["pointerup","pointercancel","lostpointercapture"]){
   game.addEventListener(name,endJoystick);
 }
+
 window.addEventListener("blur",resetInput);
 document.addEventListener("visibilitychange",()=>{
-  resetInput(); lastTime=0;
+  resetInput();
+  lastTime=0;
 });
 
-/* ==================== 21 · CAMERA E DISEGNO ==================== */
-function updateCamera() {
-  const w=viewWidth/zoom, h=viewHeight/zoom;
-  camera.x=CONFIG.width>w
-    ? clamp(player.x-w/2,0,CONFIG.width-w) : (CONFIG.width-w)/2;
-  camera.y=CONFIG.height>h
-    ? clamp(player.y-h/2,0,CONFIG.height-h) : (CONFIG.height-h)/2;
+/* ==================== 17 · CAMERA E CICLO PRINCIPALE ==================== */
+function updateCamera(){
+  const w=viewWidth/zoom,h=viewHeight/zoom;
+
+  camera.x=1024>w
+    ? clamp(player.x-w/2,0,1024-w) : (1024-w)/2;
+  camera.y=1536>h
+    ? clamp(player.y-h/2,0,1536-h) : (1536-h)/2;
 
   scene.style.transform=
     `translate(${-camera.x*zoom}px,${-camera.y*zoom}px) scale(${zoom})`;
 }
 
-function resize() {
+function resize(){
   const r=game.getBoundingClientRect();
-  viewWidth=Math.max(1,r.width); viewHeight=Math.max(1,r.height);
+  viewWidth=Math.max(1,r.width);
+  viewHeight=Math.max(1,r.height);
   updateCamera();
 }
+
 new ResizeObserver(resize).observe(game);
 
 $("zoomIn").onclick=()=>{
-  zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom); updateCamera();
+  zoom=clamp(zoom+.2,.7,2.8);
+  updateCamera();
 };
 $("zoomOut").onclick=()=>{
-  zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom); updateCamera();
+  zoom=clamp(zoom-.2,.7,2.8);
+  updateCamera();
 };
 
-function drawPlayer() {
+function drawPlayer(){
   const mode=player.moving?"walk":"idle";
-  const asset=playerAssets[mode][player.direction] ||
-    playerAssets.idle[player.direction] || playerAssets.idle.down;
 
-  setActorAsset(player.actor,asset);
-  placeActor(player.actor,player.x,player.y,20);
+  setAsset(player.actor,
+    playerAssets[mode][player.direction]||
+    playerAssets.idle[player.direction]||
+    playerAssets.idle.down
+  );
 
-  // Durante l'uscita, la testa emerge dall'apertura nera.
-  const top=player.y-player.actor.visibleHeight;
-  const cut=intro ? Math.max(0,325-top) : 0;
-  player.actor.node.style.clipPath=cut ? `inset(${cut}px 0 0 0)` : "";
+  place(player.actor,player.x,player.y,20);
+
+  player.actor.node.style.clipPath=intro
+    ? `polygon(-150px ${325-player.y}px,150px ${325-player.y}px,150px 100px,-150px 100px)`
+    : "";
 }
 
-function returnToStation() {
+function returnToStation(){
   resetInput();
-  player.x=CONFIG.entrance.x; player.y=CONFIG.entrance.y;
-  player.direction="down"; player.moving=true; intro=true;
+  player.x=512;
+  player.y=366;
+  player.direction="down";
+  intro=true;
   updateCamera();
 }
 $("resetButton").onclick=returnToStation;
 
-function updateStatus() {
-  let text="Map test · no battles";
-  if(missing.size) text="Missing image: "+[...missing][0];
-  else if(intro) text="Arriving in Seoul…";
-  else if(player.x>685 && player.x<840 && player.y>1465 && player.y<1510) {
-    text="Job Center entrance · interior coming next";
+function updateStatus(){
+  let t="Map test · no battles";
+
+  if(missing.size)t="Missing image: "+[...missing][0];
+  else if(intro)t="Arriving in Seoul…";
+  else if(
+    player.x>685&&player.x<840&&
+    player.y>1465&&player.y<1510
+  ){
+    t="Job Center entrance · interior coming next";
   }
-  if($("status").textContent!==text) $("status").textContent=text;
+
+  if($("status").textContent!==t)$("status").textContent=t;
 }
 
-function tick(now) {
-  const dt=lastTime ? Math.min((now-lastTime)/1000,.04) : 0;
+function tick(now){
+  const dt=lastTime?Math.min((now-lastTime)/1000,.04):0;
   lastTime=now;
 
-  if(ready && !editor.open && !document.hidden) {
-    const oldX=player.x,oldY=player.y;
+  if(ready&&!editor.open&&!document.hidden){
+    const x=player.x,y=player.y;
 
-    if(intro) {
+    if(intro){
       player.direction="down";
-      player.y=Math.min(CONFIG.start.y,player.y+75*dt);
-      if(player.y>=CONFIG.start.y) intro=false;
-    } else {
-      const direction=currentDirection();
-      if(direction) {
-        player.direction=direction;
-        const v=VECTORS[direction];
-        movePlayer(v.x*CONFIG.speed*dt,v.y*CONFIG.speed*dt);
+      player.y=Math.min(448,player.y+75*dt);
+      if(player.y>=448)intro=false;
+    }else{
+      const d=currentDirection();
+
+      if(d){
+        player.direction=d;
+        const v=VECTORS[d];
+        moveEntity(player,v.x*135*dt,v.y*135*dt);
       }
     }
 
-    player.moving=Math.hypot(player.x-oldX,player.y-oldY)>.0001;
+    player.moving=Math.hypot(player.x-x,player.y-y)>.0001;
+
+    updateNpcs(dt);
     updateTraffic(dt);
     drawPlayer();
     updateCamera();
@@ -1017,88 +1169,128 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
-/* ==================== 22 · EDITOR: STATO E VISTA ==================== */
+/* ==================== 18 · EDITOR: STATO E DISEGNO ==================== */
 const editorCanvas=$("editorCanvas");
 const editorCtx=editorCanvas.getContext("2d");
+
 const editor={
   open:false,layer:"collision",tool:"pan",selected:-1,
   draft:[],history:[],drag:null,base:false,scale:1,x:0,y:0
 };
 
-const editorItems=()=>editor.layer==="collision" ? world.collisions : world.depth;
-const itemPolygon=item=>editor.layer==="collision" ? item : item.polygon;
+const items=()=>editor.layer==="collision"
+  ? world.collisions : world.depth;
 
-function setPolygon(index,p) {
-  if(editor.layer==="collision") world.collisions[index]=p;
-  else world.depth[index].polygon=p;
-}
-function remember(snapshot=JSON.stringify(world)) {
-  editor.history.push(snapshot);
-  if(editor.history.length>40) editor.history.shift();
-}
-function notice(text) { $("editorHint").textContent=text; }
+const polygon=item=>editor.layer==="collision"
+  ? item : item.polygon;
 
-function paintEditor() {
-  if(!editor.open || !ready) return;
+function setPolygon(i,p){
+  if(editor.layer==="collision")world.collisions[i]=p;
+  else world.depth[i].polygon=p;
+}
+function remember(s=JSON.stringify(world)){
+  editor.history.push(s);
+  if(editor.history.length>40)editor.history.shift();
+}
+function notice(t){
+  $("editorHint").textContent=t;
+}
+
+function paintEditor(){
+  if(!editor.open||!ready)return;
 
   const c=editorCtx,s=editor;
+
   c.setTransform(1,0,0,1,0,0);
   c.fillStyle="#10232d";
   c.fillRect(0,0,editorCanvas.width,editorCanvas.height);
-  c.translate(s.x,s.y); c.scale(s.scale,s.scale);
+  c.translate(s.x,s.y);
+  c.scale(s.scale,s.scale);
   c.imageSmoothingEnabled=false;
-  c.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
+  c.drawImage(mapImage,0,0,1024,1536);
 
-  editorItems().forEach((item,index)=>{
-    const p=itemPolygon(item), selected=index===s.selected;
+  items().forEach((item,i)=>{
+    const p=polygon(item),sel=i===s.selected;
+
     polygonPath(c,p);
-    c.fillStyle=selected ? "#ffde7966" :
-      s.layer==="collision" ? "#ff34545c" : "#40bfff60";
+    c.fillStyle=sel?"#ffde7966":
+      s.layer==="collision"?"#ff34545c":"#40bfff60";
     c.fill();
     c.lineWidth=1.5/s.scale;
-    c.strokeStyle=selected?"#ffe08a":"#ffffff88";
+    c.strokeStyle=sel?"#ffe08a":"#ffffff88";
     c.stroke();
 
-    if(!selected) return;
-    for(const [x,y] of p) {
+    if(!sel)return;
+
+    for(const [x,y]of p){
       c.fillStyle="white";
       c.fillRect(x-5/s.scale,y-5/s.scale,10/s.scale,10/s.scale);
     }
-    if(s.layer==="depth") {
+
+    if(s.layer==="depth"){
       const xs=p.map(v=>v[0]);
+
       c.beginPath();
       c.moveTo(Math.min(...xs)-15,item.baseY);
       c.lineTo(Math.max(...xs)+15,item.baseY);
-      c.strokeStyle="#ffdf59"; c.lineWidth=2/s.scale; c.stroke();
-      c.fillStyle="#ffdf59"; c.font=12/s.scale+"px Arial";
-      c.fillText(item.name+" · BASE "+Math.round(item.baseY),
-        Math.min(...xs),item.baseY-7/s.scale);
+      c.strokeStyle="#ffdf59";
+      c.lineWidth=2/s.scale;
+      c.stroke();
+      c.fillStyle="#ffdf59";
+      c.font=12/s.scale+"px Arial";
+      c.fillText(
+        item.name+" · BASE "+Math.round(item.baseY),
+        Math.min(...xs),item.baseY-7/s.scale
+      );
     }
   });
 
-  if(s.draft.length) {
+  if(s.draft.length){
     c.beginPath();
     s.draft.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));
-    c.strokeStyle="#7dffff"; c.lineWidth=2/s.scale; c.stroke();
-    for(const [x,y] of s.draft) {
+    c.strokeStyle="#7dffff";
+    c.lineWidth=2/s.scale;
+    c.stroke();
+
+    for(const [x,y]of s.draft){
       c.fillStyle="#7dffff";
       c.fillRect(x-4/s.scale,y-4/s.scale,8/s.scale,8/s.scale);
     }
   }
 
-  for(const n of npcs) {
-    c.beginPath(); c.arc(n.x,n.y,n.radius,0,Math.PI*2);
-    c.fillStyle="#ffcc69"; c.fill();
+  for(const n of npcs){
+    if(n.route){
+      c.beginPath();
+      c.moveTo(...n.route[0]);
+      c.lineTo(...n.route[1]);
+      c.strokeStyle="#ffe199";
+      c.lineWidth=2/s.scale;
+      c.stroke();
+    }
+
+    for(const p of feet(n)){
+      c.beginPath();
+      c.arc(p.x,p.y,p.r,0,Math.PI*2);
+      c.fillStyle="#ffcc69";
+      c.fill();
+    }
   }
-  for(const v of vehicles) {
+
+  for(const v of vehicles){
     const b=vehicleBounds(v);
     c.fillStyle="#b78cffaa";
     c.fillRect(b.left,b.top,b.right-b.left,b.bottom-b.top);
   }
-  c.beginPath(); c.arc(player.x,player.y,7,0,Math.PI*2);
-  c.fillStyle="white"; c.fill();
-  c.beginPath(); c.arc(player.x,player.y,5,0,Math.PI*2);
-  c.fillStyle="#ed243b"; c.fill();
+
+  c.beginPath();
+  c.arc(player.x,player.y,7,0,Math.PI*2);
+  c.fillStyle="white";
+  c.fill();
+
+  c.beginPath();
+  c.arc(player.x,player.y,5,0,Math.PI*2);
+  c.fillStyle="#ed243b";
+  c.fill();
 
   document.querySelectorAll("[data-layer]").forEach(b=>{
     b.classList.toggle("active",b.dataset.layer===s.layer);
@@ -1106,209 +1298,280 @@ function paintEditor() {
   document.querySelectorAll("[data-tool]").forEach(b=>{
     b.classList.toggle("active",b.dataset.tool===s.tool);
   });
-  $("editorBase").disabled=s.layer!=="depth" || s.selected<0;
+
+  $("editorBase").disabled=s.layer!=="depth"||s.selected<0;
 
   const help=s.base
-    ? "Tocca l’altezza della base dell’oggetto."
+    ? "Tocca l’altezza della base."
     : s.tool==="pan"
-      ? "Trascina la mappa. Usa + e − per ingrandire."
+      ? "Trascina la mappa. Usa + e −."
       : s.tool==="draw"
-        ? "Tocca gli angoli in ordine, poi Chiudi forma."
-        : "Seleziona una forma. Trascina i punti bianchi o il suo interno.";
+        ? "Tocca gli angoli, poi Chiudi forma."
+        : "Seleziona e trascina una forma o i punti bianchi.";
 
-  notice(help+(s.layer==="depth"
-    ? " Blu: contorno visivo. Giallo: base."
-    : " Rosso: ostacoli. Arancione: NPC. Viola: veicoli.")+
-    (storageFailed?" Salvataggio non disponibile: esporta i dati.":""));
+  notice(help+
+    (s.layer==="depth"
+      ? " Blu: ritagli. Giallo: base."
+      : " Rosso: ostacoli. Arancione: NPC. Linee: percorsi.")+
+    (storageFailed?" Esporta i dati: salvataggio non disponibile.":"")
+  );
 }
 
-function resizeEditor(fit=false) {
-  if(!editor.open) return;
+function resizeEditor(fit=false){
+  if(!editor.open)return;
+
   editorCanvas.width=Math.max(1,$("editorView").clientWidth);
   editorCanvas.height=Math.max(1,$("editorView").clientHeight);
-  if(fit) {
-    editor.scale=Math.min(editorCanvas.width/CONFIG.width,
-      editorCanvas.height/CONFIG.height)*.97;
-    editor.x=(editorCanvas.width-CONFIG.width*editor.scale)/2;
-    editor.y=(editorCanvas.height-CONFIG.height*editor.scale)/2;
+
+  if(fit){
+    editor.scale=Math.min(
+      editorCanvas.width/1024,editorCanvas.height/1536
+    )*.97;
+    editor.x=(editorCanvas.width-1024*editor.scale)/2;
+    editor.y=(editorCanvas.height-1536*editor.scale)/2;
   }
   paintEditor();
 }
+
 new ResizeObserver(()=>resizeEditor()).observe($("editorView"));
 
-function zoomEditor(factor) {
+function zoomEditor(factor){
   const x=editorCanvas.width/2,y=editorCanvas.height/2;
-  const wx=(x-editor.x)/editor.scale,wy=(y-editor.y)/editor.scale;
+  const wx=(x-editor.x)/editor.scale;
+  const wy=(y-editor.y)/editor.scale;
+
   editor.scale=clamp(editor.scale*factor,.12,6);
-  editor.x=x-wx*editor.scale; editor.y=y-wy*editor.scale;
+  editor.x=x-wx*editor.scale;
+  editor.y=y-wy*editor.scale;
   paintEditor();
 }
 
-/* ==================== 23 · EDITOR: STRUMENTI ==================== */
+/* ==================== 19 · EDITOR: STRUMENTI ==================== */
 $("editorOpen").onclick=()=>{
-  if(!ready || intro) return;
-  resetInput(); editor.open=true; editor.drag=null;
-  $("editor").hidden=false; game.inert=true;
+  if(!ready||intro)return;
+
+  resetInput();
+  editor.open=true;
+  editor.drag=null;
+  $("editor").hidden=false;
+  game.inert=true;
   requestAnimationFrame(()=>resizeEditor(true));
 };
 
-$("editorClose").onclick=()=>{
-  if(editor.draft.length) {
-    notice("Chiudi la forma oppure togli i punti con Annulla."); return;
-  }
+function nearestFree(n){
+  if(canOccupy(n,n.x,n.y))return true;
 
-  // Se una modifica include Riccardo, cerca un punto libero vicino.
-  if(!canStand(player.x,player.y)) {
-    let found=false;
-    for(let radius=10;radius<=180 && !found;radius+=10) {
-      for(let angle=0;angle<Math.PI*2;angle+=Math.PI/12) {
-        const x=player.x+Math.cos(angle)*radius;
-        const y=player.y+Math.sin(angle)*radius;
-        if(canStand(x,y)) {
-          player.x=x; player.y=y; found=true; break;
-        }
+  const ox=n.x,oy=n.y;
+
+  for(let r=5;r<=180;r+=5){
+    for(let a=0;a<Math.PI*2;a+=Math.PI/16){
+      const x=ox+Math.cos(a)*r,y=oy+Math.sin(a)*r;
+
+      if(canOccupy(n,x,y)){
+        n.x=x;n.y=y;
+        return true;
       }
     }
-    if(!found) { notice("Libera un passaggio vicino al punto rosso."); return; }
+  }
+  return false;
+}
+
+$("editorClose").onclick=()=>{
+  if(editor.draft.length){
+    notice("Chiudi la forma o usa Annulla.");
+    return;
   }
 
-  saveWorld(); rebuildDepth();
-  editor.open=false; editor.base=false;
-  $("editor").hidden=true; game.inert=false;
-  resetInput(); lastTime=0; updateCamera();
+  if(!nearestFree(player)){
+    notice("Libera un passaggio vicino al punto rosso.");
+    return;
+  }
+
+  saveWorld();
+  rebuildDepth();
+  editor.open=false;
+  editor.base=false;
+  $("editor").hidden=true;
+  game.inert=false;
+  resetInput();
+  lastTime=0;
+  updateCamera();
 };
 
-document.querySelectorAll("[data-layer]").forEach(button=>{
-  button.onclick=()=>{
-    if(editor.draft.length) {
-      notice("Termina o annulla prima la forma in corso."); return;
+for(const b of document.querySelectorAll("[data-layer]")){
+  b.onclick=()=>{
+    if(editor.draft.length){
+      notice("Termina o annulla la forma.");
+      return;
     }
-    editor.layer=button.dataset.layer;
-    editor.selected=-1; editor.base=false;
+
+    editor.layer=b.dataset.layer;
+    editor.selected=-1;
+    editor.base=false;
     paintEditor();
   };
-});
-document.querySelectorAll("[data-tool]").forEach(button=>{
-  button.onclick=()=>{
-    editor.tool=button.dataset.tool; editor.base=false; paintEditor();
+}
+
+for(const b of document.querySelectorAll("[data-tool]")){
+  b.onclick=()=>{
+    editor.tool=b.dataset.tool;
+    editor.base=false;
+    paintEditor();
   };
-});
+}
+
 $("editorPlus").onclick=()=>zoomEditor(1.3);
 $("editorMinus").onclick=()=>zoomEditor(1/1.3);
 $("editorFit").onclick=()=>resizeEditor(true);
 
-/* ==================== 24 · EDITOR: VALIDAZIONE ==================== */
-function shapeValid(p) {
-  if(!validPolygon(p)) return false;
+function shapeValid(p){
+  if(!validPolygon(p))return false;
+
   const orient=(a,b,c)=>
     (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+
   let area=0;
 
-  for(let i=0;i<p.length;i++) {
+  for(let i=0;i<p.length;i++){
     const a=p[i],b=p[(i+1)%p.length];
     area+=a[0]*b[1]-b[0]*a[1];
-    if(a[0]===b[0] && a[1]===b[1]) return false;
 
-    for(let j=i+1;j<p.length;j++) {
-      if(j===i+1 || (i===0 && j===p.length-1)) continue;
+    if(a[0]===b[0]&&a[1]===b[1])return false;
+
+    for(let j=i+1;j<p.length;j++){
+      if(j===i+1||(i===0&&j===p.length-1))continue;
+
       const c=p[j],d=p[(j+1)%p.length];
-      const overlap=
+
+      const box=
         Math.max(Math.min(a[0],b[0]),Math.min(c[0],d[0]))<=
-        Math.min(Math.max(a[0],b[0]),Math.max(c[0],d[0])) &&
+        Math.min(Math.max(a[0],b[0]),Math.max(c[0],d[0]))&&
         Math.max(Math.min(a[1],b[1]),Math.min(c[1],d[1]))<=
         Math.min(Math.max(a[1],b[1]),Math.max(c[1],d[1]));
 
-      if(overlap &&
-        orient(a,b,c)*orient(a,b,d)<=0 &&
-        orient(c,d,a)*orient(c,d,b)<=0) return false;
+      if(box&&
+        orient(a,b,c)*orient(a,b,d)<=0&&
+        orient(c,d,a)*orient(c,d,b)<=0)return false;
     }
   }
   return Math.abs(area)/2>3;
 }
 
 $("editorFinish").onclick=()=>{
-  if(!shapeValid(editor.draft)) {
-    notice("Servono almeno tre punti, senza incroci nel contorno."); return;
+  if(!shapeValid(editor.draft)){
+    notice("Servono almeno tre punti e un contorno senza incroci.");
+    return;
   }
+
   remember();
 
-  if(editor.layer==="collision") world.collisions.push(copy(editor.draft));
-  else world.depth.push({
-    name:"Oggetto "+(world.depth.length+1),
-    baseY:Math.max(...editor.draft.map(p=>p[1])),
-    polygon:copy(editor.draft)
-  });
+  if(editor.layer==="collision"){
+    world.collisions.push(copy(editor.draft));
+  }else{
+    world.depth.push({
+      name:"Oggetto "+(world.depth.length+1),
+      baseY:Math.max(...editor.draft.map(p=>p[1])),
+      polygon:copy(editor.draft)
+    });
+  }
 
-  editor.selected=editorItems().length-1;
-  editor.draft=[]; editor.tool="edit";
-  saveWorld(); paintEditor();
+  editor.selected=items().length-1;
+  editor.draft=[];
+  editor.tool="edit";
+  saveWorld();
+  paintEditor();
 };
 
 $("editorBase").onclick=()=>{
-  if(editor.layer!=="depth" || editor.selected<0) return;
-  editor.base=true; paintEditor();
+  if(editor.layer!=="depth"||editor.selected<0)return;
+  editor.base=true;
+  paintEditor();
 };
+
 $("editorUndo").onclick=()=>{
   editor.base=false;
-  if(editor.draft.length) editor.draft.pop();
-  else if(editor.history.length) {
+
+  if(editor.draft.length){
+    editor.draft.pop();
+  }else if(editor.history.length){
     world=JSON.parse(editor.history.pop());
-    editor.selected=-1; saveWorld();
+    editor.selected=-1;
+    saveWorld();
   }
   paintEditor();
 };
+
 $("editorDelete").onclick=()=>{
-  if(editor.selected<0) return;
-  remember(); editorItems().splice(editor.selected,1);
-  editor.selected=-1; editor.base=false;
-  saveWorld(); paintEditor();
+  if(editor.selected<0)return;
+
+  remember();
+  items().splice(editor.selected,1);
+  editor.selected=-1;
+  editor.base=false;
+  saveWorld();
+  paintEditor();
 };
 
-/* ==================== 25 · EDITOR: TOCCO E TRASCINAMENTO ==================== */
-function screenPoint(event) {
+/* ==================== 20 · EDITOR: TOCCO ED ESPORTAZIONE ==================== */
+function screenPoint(e){
   const r=editorCanvas.getBoundingClientRect();
+
   return {
-    x:(event.clientX-r.left)*editorCanvas.width/r.width,
-    y:(event.clientY-r.top)*editorCanvas.height/r.height
+    x:(e.clientX-r.left)*editorCanvas.width/r.width,
+    y:(e.clientY-r.top)*editorCanvas.height/r.height
   };
 }
-function worldPoint(p) {
+
+function worldPoint(p){
   return [
-    Math.round(clamp((p.x-editor.x)/editor.scale,0,CONFIG.width)),
-    Math.round(clamp((p.y-editor.y)/editor.scale,0,CONFIG.height))
+    Math.round(clamp((p.x-editor.x)/editor.scale,0,1024)),
+    Math.round(clamp((p.y-editor.y)/editor.scale,0,1536))
   ];
 }
 
-editorCanvas.onpointerdown=event=>{
-  if(editor.drag) return;
-  event.preventDefault();
-  editorCanvas.setPointerCapture(event.pointerId);
+editorCanvas.onpointerdown=e=>{
+  const s=editor;
+  if(s.drag)return;
 
-  const point=screenPoint(event),wp=worldPoint(point),s=editor;
+  e.preventDefault();
+  editorCanvas.setPointerCapture(e.pointerId);
 
-  if(s.base && s.selected>=0) {
-    remember(); world.depth[s.selected].baseY=wp[1]; s.base=false;
-    saveWorld(); paintEditor(); return;
+  const point=screenPoint(e),wp=worldPoint(point);
+
+  if(s.base&&s.selected>=0){
+    remember();
+    world.depth[s.selected].baseY=wp[1];
+    s.base=false;
+    saveWorld();
+    paintEditor();
+    return;
   }
-  if(s.tool==="draw") {
-    const previous=s.draft.at(-1);
-    if(!previous || Math.hypot(wp[0]-previous[0],wp[1]-previous[1])>2) {
+
+  if(s.tool==="draw"){
+    const p=s.draft.at(-1);
+
+    if(!p||Math.hypot(wp[0]-p[0],wp[1]-p[1])>2){
       s.draft.push(wp);
     }
-    paintEditor(); return;
-  }
-  if(s.tool==="pan") {
-    s.drag={id:event.pointerId,kind:"pan",point,x:s.x,y:s.y}; return;
+    paintEditor();
+    return;
   }
 
-  if(s.selected>=0) {
-    const p=itemPolygon(editorItems()[s.selected]);
-    const vertex=p.findIndex(v=>
-      Math.hypot(v[0]-wp[0],v[1]-wp[1])<16/s.scale
+  if(s.tool==="pan"){
+    s.drag={
+      id:e.pointerId,kind:"pan",point,x:s.x,y:s.y
+    };
+    return;
+  }
+
+  if(s.selected>=0){
+    const v=polygon(items()[s.selected]).findIndex(p=>
+      Math.hypot(p[0]-wp[0],p[1]-wp[1])<16/s.scale
     );
-    if(vertex>=0) {
+
+    if(v>=0){
       s.drag={
-        id:event.pointerId,kind:"vertex",vertex,
+        id:e.pointerId,kind:"vertex",vertex:v,
         before:JSON.stringify(world)
       };
       return;
@@ -1316,124 +1579,162 @@ editorCanvas.onpointerdown=event=>{
   }
 
   s.selected=-1;
-  const items=editorItems();
-  for(let i=items.length-1;i>=0;i--) {
-    if(pointInPolygon(wp[0],wp[1],itemPolygon(items[i]))) {
-      s.selected=i; break;
+
+  for(let i=items().length-1;i>=0;i--){
+    if(pointInPolygon(wp[0],wp[1],polygon(items()[i]))){
+      s.selected=i;
+      break;
     }
   }
-  if(s.selected>=0) {
+
+  if(s.selected>=0){
     s.drag={
-      id:event.pointerId,kind:"shape",point:wp,
-      original:copy(itemPolygon(items[s.selected])),
-      originalBase:s.layer==="depth"?items[s.selected].baseY:null,
+      id:e.pointerId,kind:"shape",point:wp,
+      original:copy(polygon(items()[s.selected])),
+      base:s.layer==="depth"?items()[s.selected].baseY:null,
       before:JSON.stringify(world)
     };
   }
   paintEditor();
 };
 
-editorCanvas.onpointermove=event=>{
+editorCanvas.onpointermove=e=>{
   const s=editor,d=s.drag;
-  if(!d || d.id!==event.pointerId) return;
-  const point=screenPoint(event),wp=worldPoint(point);
+  if(!d||d.id!==e.pointerId)return;
 
-  if(d.kind==="pan") {
-    s.x=d.x+point.x-d.point.x; s.y=d.y+point.y-d.point.y;
-  } else if(d.kind==="vertex") {
-    itemPolygon(editorItems()[s.selected])[d.vertex]=wp;
-  } else {
-    const xs=d.original.map(p=>p[0]),ys=d.original.map(p=>p[1]);
-    const dx=clamp(wp[0]-d.point[0],-Math.min(...xs),CONFIG.width-Math.max(...xs));
-    const dy=clamp(wp[1]-d.point[1],-Math.min(...ys),CONFIG.height-Math.max(...ys));
+  const p=screenPoint(e),wp=worldPoint(p);
+
+  if(d.kind==="pan"){
+    s.x=d.x+p.x-d.point.x;
+    s.y=d.y+p.y-d.point.y;
+  }else if(d.kind==="vertex"){
+    polygon(items()[s.selected])[d.vertex]=wp;
+  }else{
+    const xs=d.original.map(p=>p[0]);
+    const ys=d.original.map(p=>p[1]);
+
+    const dx=clamp(
+      wp[0]-d.point[0],-Math.min(...xs),1024-Math.max(...xs)
+    );
+    const dy=clamp(
+      wp[1]-d.point[1],-Math.min(...ys),1536-Math.max(...ys)
+    );
+
     setPolygon(s.selected,d.original.map(p=>[p[0]+dx,p[1]+dy]));
-    if(s.layer==="depth") {
-      world.depth[s.selected].baseY=clamp(d.originalBase+dy,0,CONFIG.height);
+
+    if(s.layer==="depth"){
+      world.depth[s.selected].baseY=clamp(d.base+dy,0,1536);
     }
   }
   paintEditor();
 };
 
-function finishDrag(event) {
+function finishDrag(e){
   const s=editor,d=s.drag;
-  if(!d || d.id!==event.pointerId) return;
+  if(!d||d.id!==e.pointerId)return;
+
   let invalid=false;
 
-  if(d.before) {
-    invalid=!shapeValid(itemPolygon(editorItems()[s.selected]));
-    if(event.type==="pointercancel" || invalid) {
+  if(d.before){
+    invalid=!shapeValid(polygon(items()[s.selected]));
+
+    if(e.type==="pointercancel"||invalid){
       world=JSON.parse(d.before);
-    } else if(d.before!==JSON.stringify(world)) {
-      remember(d.before); saveWorld();
+    }else if(d.before!==JSON.stringify(world)){
+      remember(d.before);
+      saveWorld();
     }
   }
-  s.drag=null; paintEditor();
-  if(invalid) notice("Contorno non valido: modifica annullata.");
+
+  s.drag=null;
+  paintEditor();
+
+  if(invalid)notice("Contorno non valido: modifica annullata.");
 }
+
 editorCanvas.onpointerup=finishDrag;
 editorCanvas.onpointercancel=finishDrag;
 editorCanvas.onlostpointercapture=finishDrag;
 
-/* ==================== 26 · ESPORTAZIONE ==================== */
 $("editorExport").onclick=()=>{
-  if(editor.draft.length) {
-    notice("Termina prima la forma in corso."); return;
+  if(editor.draft.length){
+    notice("Termina prima la forma.");
+    return;
   }
+
   saveWorld();
+
   $("exportData").value=JSON.stringify({
-    map:CONFIG.map,version:VERSION,
-    collisions:world.collisions,depth:world.depth
+    map:CONFIG.map,
+    version:WORLD_VERSION,
+    collisions:world.collisions,
+    depth:world.depth
   },null,2);
+
   $("exportPanel").hidden=false;
   $("exportCopy").textContent="Copia";
 };
 
-$("exportCopy").onclick=async function() {
-  try {
+$("exportCopy").onclick=async function(){
+  try{
     await navigator.clipboard.writeText($("exportData").value);
     this.textContent="Copiato!";
-  } catch(_) {
-    $("exportData").focus(); $("exportData").select();
+  }catch(_){
+    $("exportData").focus();
+    $("exportData").select();
     this.textContent="Seleziona e copia il testo";
   }
 };
-$("exportClose").onclick=()=>{ $("exportPanel").hidden=true; };
 
-/* ==================== 27 · CARICAMENTO E AVVIO ==================== */
-let loadingMap=false;
+$("exportClose").onclick=()=>{
+  $("exportPanel").hidden=true;
+};
 
-async function startGame(retry=false) {
-  if(loadingMap) return;
-  loadingMap=true; ready=false; resetInput();
+/* ==================== 21 · AVVIO ==================== */
+let loadingMap=false,assetsStarted=false;
+
+async function startGame(retry=false){
+  if(loadingMap)return;
+
+  loadingMap=true;
+  ready=false;
+  resetInput();
   $("loading").hidden=false;
   $("loadingTitle").textContent="Loading Seoul…";
   $("loadingText").textContent="Please wait.";
   $("retryLoad").hidden=true;
 
-  try {
+  try{
     await new Promise((resolve,reject)=>{
       mapImage.onload=resolve;
       mapImage.onerror=reject;
       mapImage.src=CONFIG.map+(retry?"?retry="+Date.now():"");
     });
 
-    if(!startGame.assetsStarted) {
-      startGame.assetsStarted=true;
+    if(!assetsStarted){
+      assetsStarted=true;
       await Promise.all([loadCharacters(),loadVehicles()]);
       setupTrain();
     }
 
     rebuildDepth();
+
+    for(const n of npcs){
+      nearestFree(n);
+      drawNpc(n);
+    }
+
     ready=true;
     $("loading").hidden=true;
     returnToStation();
     resize();
-  } catch(_) {
+
+  }catch(_){
     $("loadingTitle").textContent="Unable to load the map";
     $("loadingText").textContent=
-      "Controlla che la mappa sia nella stessa cartella di index.html.";
+      "Controlla il nome della mappa e la sua posizione accanto a index.html.";
     $("retryLoad").hidden=false;
-  } finally {
+  }finally{
     loadingMap=false;
   }
 }
