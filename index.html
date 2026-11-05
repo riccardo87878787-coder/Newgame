@@ -1,1203 +1,1446 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#162b35">
-<title>Tarai — RPG Prologue</title>
+<title>Tarai — Seoul</title>
 
 <style>
-/* [CSS 01] SCHERMO VERTICALE */
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b161c;color:#fff;font-family:Arial,sans-serif}
-body{display:flex;align-items:center;justify-content:center;touch-action:none;overscroll-behavior:none}
-#game{position:relative;width:min(100vw,56.25vh);height:min(100vh,177.7778vw);overflow:hidden;background:#162b35}
-@supports(height:100dvh){#game{width:min(100vw,56.25dvh);height:min(100dvh,177.7778vw)}}
+/* ==================== 01 · SCHERMO E LIVELLI ==================== */
+* { box-sizing:border-box; }
+html,body {
+  margin:0; width:100%; height:100%; overflow:hidden;
+  background:#0b161c; color:white; font-family:Arial,sans-serif;
+}
+body {
+  display:grid; place-items:center; touch-action:none;
+  overscroll-behavior:none;
+}
+#game {
+  position:relative; width:min(100vw,56.25vh);
+  height:min(100vh,177.7778vw); overflow:hidden;
+  background:#162b35; touch-action:none; user-select:none;
+}
+@supports(height:100dvh) {
+  #game {
+    width:min(100vw,56.25dvh);
+    height:min(100dvh,177.7778vw);
+  }
+}
+#scene {
+  position:absolute; left:0; top:0; width:1024px; height:1536px;
+  transform-origin:0 0; pointer-events:none;
+}
+#map {
+  position:absolute; inset:0; width:1024px; height:1536px;
+  z-index:0; image-rendering:pixelated;
+}
+.sprite {
+  position:absolute; overflow:hidden; pointer-events:none;
+  transform:translate(-50%,-100%);
+}
+.sprite img {
+  position:absolute; max-width:none; max-height:none;
+  image-rendering:pixelated; pointer-events:none;
+}
+.depth-piece {
+  position:absolute; pointer-events:none; image-rendering:pixelated;
+}
+#trainWindow {
+  position:absolute; overflow:hidden; pointer-events:none;
+  z-index:13000;
+}
+#trainWindow img {
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:fill; image-rendering:pixelated;
+}
 
-/* [CSS 02] LIVELLI DEL MONDO */
-#mapCanvas,#scene{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-#mapCanvas{z-index:0;image-rendering:pixelated}
-#scene{z-index:1;overflow:hidden}
-#sceneWorld{position:absolute;left:0;top:0;width:1024px;height:1536px;transform-origin:0 0;isolation:isolate}
-.item{position:absolute;pointer-events:none;image-rendering:pixelated;user-select:none}
-#trainLayer{position:absolute;inset:0;z-index:1;clip-path:url(#trainClip)}
-#riccardo{width:1px;height:1px}
-#riccardo img{position:absolute;display:none;max-width:none;image-rendering:pixelated}
-.bus{transform:translate(-50%,-97.8%)}
-.bus img{display:block;width:100%;height:auto;image-rendering:pixelated}
+/* ==================== 02 · INTERFACCIA ==================== */
+button {
+  min-width:42px; min-height:42px; padding:8px;
+  border:1px solid #9bbbc799; border-radius:9px;
+  background:#102631ed; color:white; font:inherit;
+  cursor:pointer; touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+}
+button:focus-visible { outline:3px solid #ffda77; }
+button.active { background:#596c49; border-color:#ffda77; }
+button:disabled { opacity:.4; }
+#hud {
+  position:absolute; z-index:5; top:max(12px,env(safe-area-inset-top));
+  left:12px; right:12px; display:flex; justify-content:space-between;
+  align-items:flex-start; gap:8px; pointer-events:none;
+}
+.panel {
+  padding:9px 11px; border:1px solid #a0c4cc66;
+  border-radius:9px; background:#102631e8; line-height:1.4;
+}
+.eyebrow { color:#f6d78e; font-size:10px; letter-spacing:1px; }
+#objective { font-size:12px; }
+#status {
+  max-width:220px; margin-top:4px; color:#b9d4dc;
+  font-size:10px; overflow-wrap:anywhere;
+}
+#resetButton { pointer-events:auto; font-size:22px; }
+#sideControls {
+  position:absolute; z-index:5; right:12px;
+  bottom:max(20px,env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:7px;
+}
+#sideControls button { font-size:12px; }
 
-/* [CSS 03] INTERFACCIA */
-button{min-width:40px;min-height:40px;padding:7px;border:1px solid #9bbbc7aa;border-radius:8px;background:#102631ed;color:#fff;font:inherit;cursor:pointer;touch-action:none;user-select:none;-webkit-tap-highlight-color:transparent}
-button:focus-visible{outline:3px solid #f7d580}
-button.active,button.pressed{background:#61704c;border-color:#ffdf80}
-button:disabled{opacity:.45}
-[hidden]{display:none!important}
-#hud{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;z-index:4;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
-.panel{padding:9px 11px;border:1px solid #a0c4cc66;border-radius:8px;background:#102631e8;line-height:1.4}
-.eyebrow{color:#f6d78e;font-size:10px;letter-spacing:1px}
-#objective{font-size:12px}
-#status{max-width:225px;margin-top:4px;color:#b9d4dc;font-size:10px;overflow-wrap:anywhere}
-#resetButton{font-size:22px;pointer-events:auto}
-#controls{position:absolute;inset:0;z-index:4;pointer-events:none}
+/* ==================== 03 · LEVETTA A COMPARSA ==================== */
+#joystick {
+  position:absolute; z-index:6; width:112px; height:112px;
+  border:2px solid #e5f1f580; border-radius:50%;
+  background:#132f3b70; box-shadow:0 2px 12px #0004;
+  transform:translate(-50%,-50%); pointer-events:none;
+}
+#stick {
+  position:absolute; left:33px; top:33px; width:42px; height:42px;
+  border:2px solid #ffffff99; border-radius:50%;
+  background:#dfedf0bb;
+}
 
-/* [CSS 04] QUATTRO DIREZIONI */
-#dpad{position:absolute;left:16px;bottom:max(20px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px);gap:3px;pointer-events:auto}
-#dpad button{padding:0;font-size:24px}
-#dpad [data-dir="up"]{grid-area:1/2}
-#dpad [data-dir="left"]{grid-area:2/1}
-#dpad [data-dir="right"]{grid-area:2/3}
-#dpad [data-dir="down"]{grid-area:3/2}
-#sideControls{position:absolute;right:12px;bottom:max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:7px;pointer-events:auto}
-#sideControls button{font-size:12px}
-#loading{position:absolute;inset:0;z-index:10;display:grid;place-content:center;padding:25px;background:#162b35;text-align:center}
+/* ==================== 04 · CARICAMENTO ==================== */
+#loading {
+  position:absolute; inset:0; z-index:20;
+  display:grid; place-content:center; padding:25px;
+  background:#162b35; text-align:center;
+}
+#loading p { max-width:280px; font-size:13px; line-height:1.5; }
+[hidden] { display:none !important; }
 
-/* [CSS 05] EDITOR */
-#editor{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;background:#10232d;font-size:12px}
-#toolbar{display:flex;flex-wrap:wrap;gap:5px;padding:7px}
-#toolbar button{min-height:37px;padding:6px;font-size:11px}
-#editorHint{padding:8px;min-height:48px;background:#203c49;line-height:1.4}
-#editorView{position:relative;flex:1;min-height:0;overflow:hidden}
-#editorCanvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
-#exportPanel{position:absolute;inset:5%;z-index:2;display:flex;flex-direction:column;gap:10px;padding:15px;border:2px solid #ffda77;border-radius:10px;background:#10232dfc}
-#exportData{flex:1;min-height:80px;width:100%;background:#071820;color:#fff;font:12px monospace;resize:none;touch-action:pan-y}
+/* ==================== 05 · EDITOR ==================== */
+#editor {
+  position:fixed; inset:0; z-index:100;
+  display:flex; flex-direction:column;
+  background:#10232d; font-size:12px;
+}
+#toolbar {
+  display:flex; flex-wrap:wrap; gap:5px; padding:7px;
+}
+#toolbar button { min-height:36px; padding:6px; font-size:11px; }
+#editorHint {
+  padding:8px; min-height:45px; background:#203c49; line-height:1.4;
+}
+#editorView { position:relative; flex:1; min-height:0; overflow:hidden; }
+#editorCanvas {
+  display:block; width:100%; height:100%;
+  touch-action:none; image-rendering:pixelated;
+}
+#exportPanel {
+  position:absolute; inset:5%; z-index:2;
+  display:flex; flex-direction:column; gap:10px; padding:15px;
+  border:2px solid #ffda77; border-radius:10px; background:#10232dfc;
+}
+#exportData {
+  flex:1; min-height:80px; width:100%; resize:none;
+  background:#071820; color:white; font:12px monospace;
+  touch-action:pan-y; user-select:text;
+}
 </style>
 </head>
 
 <body>
-<!-- [HTML 01] BINARI: MASCHERA DAVANTI AL TRENO -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
- <defs>
-  <clipPath id="trainClip" clipPathUnits="userSpaceOnUse">
-   <rect x="0" y="54" width="83" height="73"/>
-   <rect x="163" y="54" width="164" height="73"/>
-   <rect x="347" y="54" width="180" height="73"/>
-   <rect x="546" y="54" width="125" height="73"/>
-   <rect x="690" y="54" width="315" height="73"/>
-  </clipPath>
- </defs>
-</svg>
-
-<!-- [HTML 02] GIOCO -->
+<!-- ==================== 06 · HTML DEL GIOCO ==================== -->
 <main id="game">
- <canvas id="mapCanvas" aria-label="Seoul map"></canvas>
-
- <div id="scene" aria-hidden="true">
-  <div id="sceneWorld">
-   <div id="trainLayer">
-    <img id="trainImage" class="item" alt="">
-   </div>
-   <div id="riccardo" class="item"></div>
+  <div id="scene" aria-hidden="true">
+    <img id="map" alt="" draggable="false">
+    <div id="trainWindow"><img id="train" alt="" draggable="false"></div>
   </div>
- </div>
 
- <div id="hud">
-  <div class="panel">
-   <div class="eyebrow">PROLOGUE · SEOUL</div>
-   <div id="objective">Find the Job Center</div>
-   <div id="status" aria-live="polite">Loading…</div>
+  <div id="hud">
+    <div class="panel">
+      <div class="eyebrow">PROLOGUE · SEOUL</div>
+      <div id="objective">Find the Job Center</div>
+      <div id="status" aria-live="polite">Map test · no battles</div>
+    </div>
+    <button id="resetButton" aria-label="Torna alla stazione">↺</button>
   </div>
-  <button id="resetButton" aria-label="Return to station">↺</button>
- </div>
 
- <div id="controls">
-  <div id="dpad" role="group" aria-label="Movement">
-   <button data-dir="up" aria-label="Up">↑</button>
-   <button data-dir="left" aria-label="Left">←</button>
-   <button data-dir="right" aria-label="Right">→</button>
-   <button data-dir="down" aria-label="Down">↓</button>
-  </div>
   <div id="sideControls">
-   <button id="editorOpen">EDIT MAP</button>
-   <button id="zoomIn" aria-label="Zoom in">+</button>
-   <button id="zoomOut" aria-label="Zoom out">−</button>
+    <button id="editorOpen">EDIT MAP</button>
+    <button id="zoomIn" aria-label="Ingrandisci">+</button>
+    <button id="zoomOut" aria-label="Riduci">−</button>
   </div>
- </div>
 
- <div id="loading">
-  <strong id="loadingTitle">Loading Seoul…</strong>
-  <p id="loadingText">Please wait.</p>
-  <button id="retryLoad" hidden>Retry</button>
- </div>
+  <div id="joystick" hidden><div id="stick"></div></div>
+
+  <div id="loading">
+    <strong id="loadingTitle">Loading Seoul…</strong>
+    <p id="loadingText">Please wait.</p>
+    <button id="retryLoad" hidden>Retry</button>
+  </div>
 </main>
 
-<!-- [HTML 03] EDITOR -->
-<section id="editor" hidden role="dialog" aria-modal="true" aria-label="Map editor">
- <div id="toolbar">
-  <button data-layer="collision">Collisioni</button>
-  <button data-layer="depth">Profondità</button>
-  <button data-tool="pan">Sposta mappa</button>
-  <button data-tool="edit">Modifica</button>
-  <button data-tool="draw">Nuova forma</button>
-  <button id="editorFinish">Chiudi forma</button>
-  <button id="editorBase">Imposta base</button>
-  <button id="editorUndo">Annulla</button>
-  <button id="editorDelete">Elimina</button>
-  <button id="editorPlus">+</button>
-  <button id="editorMinus">−</button>
-  <button id="editorFit">Mappa intera</button>
-  <button id="editorExport">Copia dati</button>
-  <button id="editorClose">Gioca</button>
- </div>
-
- <div id="editorHint"></div>
- <div id="editorView"><canvas id="editorCanvas"></canvas></div>
-
- <div id="exportPanel" hidden>
-  <strong>Dati aggiornati</strong>
-  <div>Salvati nel browser. Copiali per integrarli nel codice su GitHub.</div>
-  <textarea id="exportData" readonly></textarea>
-  <button id="exportCopy">Copia</button>
-  <button id="exportClose">Indietro</button>
- </div>
+<!-- ==================== 07 · HTML DELL’EDITOR ==================== -->
+<section id="editor" hidden role="dialog" aria-modal="true" aria-label="Editor mappa">
+  <div id="toolbar">
+    <button data-layer="collision">Collisioni</button>
+    <button data-layer="depth">Profondità</button>
+    <button data-tool="pan">Sposta mappa</button>
+    <button data-tool="edit">Modifica</button>
+    <button data-tool="draw">Nuova forma</button>
+    <button id="editorFinish">Chiudi forma</button>
+    <button id="editorBase">Imposta base</button>
+    <button id="editorUndo">Annulla</button>
+    <button id="editorDelete">Elimina</button>
+    <button id="editorPlus">+</button>
+    <button id="editorMinus">−</button>
+    <button id="editorFit">Mappa intera</button>
+    <button id="editorExport">Copia dati</button>
+    <button id="editorClose">Gioca</button>
+  </div>
+  <div id="editorHint"></div>
+  <div id="editorView"><canvas id="editorCanvas"></canvas></div>
+  <div id="exportPanel" hidden>
+    <strong>Collisioni e profondità aggiornate</strong>
+    <div>Copia questi dati per aggiornare il codice. Il salvataggio nel browser non modifica GitHub.</div>
+    <textarea id="exportData" readonly></textarea>
+    <button id="exportCopy">Copia</button>
+    <button id="exportClose">Indietro</button>
+  </div>
 </section>
 
 <script>
 "use strict";
 
-/* ================================================================
-   [CONFIG 01] MAPPA E PERSONAGGIO
+/* ==================== 08 · CONFIGURAZIONE ==================== */
+const CONFIG = {
+  map:"file_0000000011348209b4f72c4afa5f7456.png",
+  width:1024, height:1536,
+  start:{x:512,y:448},
+  entrance:{x:512,y:366},
+  speed:135, radius:5, spriteHeight:54,
+  zoom:1.35, minZoom:.7, maxZoom:2.8,
 
-   spriteHeight = altezza VISIBILE di Riccardo.
-   speed = velocità di Riccardo.
-   radius = dimensione delle collisioni ai piedi.
-   ================================================================ */
+  // Bus: dimensione invariata, leggermente più in alto.
+  bus:{
+    width:210, groundY:648,
+    speedMin:90, speedMax:115,
+    waitMin:3, waitMax:8,
+    hitHeight:15
+  },
 
-const CONFIG={
- map:"file_0000000011348209b4f72c4afa5f7456.png",
- width:1024,height:1536,
- speed:135,radius:5,spriteHeight:54,
- zoom:1.35,minZoom:.7,maxZoom:2.8,
- collisions:true,depth:true,
- start:{x:512,y:448},
- entrance:{x:512,y:366,clipTop:325,speed:52}
+  // Auto: corsia inferiore, sotto quella dei bus.
+  car:{
+    width:115, groundY:700,
+    speedMin:115, speedMax:145,
+    waitMin:2.5, waitMax:7,
+    hitHeight:13
+  },
+
+  // La GIF contiene già arrivo, sosta e partenza.
+  // Questi valori regolano soltanto la sua posizione sulla mappa.
+  train:{
+    file:"Vetturegif/Treno_arrivo_sosta_partenza.gif",
+    x:0, y:51, width:1024, height:82
+  }
 };
 
-/* [CONFIG 02] NUOVI SPRITE: QUATTRO FERMI E QUATTRO CAMMINATE */
+const VERSION = "seoul-npc-cars-2026-11-05-04";
+const STORAGE_KEY = "tarai-rpg-world-v3";
 
-const SPRITES={
- idle:{
-  up:"Riccardogif/file_000000000780820990bd01ccc5bbea9b.png",
-  down:"Riccardogif/file_0000000049748209b268702de3e04090.png",
-  right:"Riccardogif/file_00000000a56c8209838cd9b3a6c43745.png",
-  left:"Riccardogif/file_00000000d3f0821194e2b548b3414ab4.png"
- },
- walk:{
-  right:"Riccardogif/Riccardo_camminata_destra_pixel.gif",
-  down:"Riccardogif/Riccardo_camminata_giu_pixel.gif",
-  left:"Riccardogif/Riccardo_camminata_sinistra_pixel.gif",
-  up:"Riccardogif/Riccardo_camminata_su_pixel.gif"
- }
+const $ = id => document.getElementById(id);
+const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
+const random = (a,b) => a+Math.random()*(b-a);
+const copy = value => JSON.parse(JSON.stringify(value));
+const rectangle = (x,y,w,h) => [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+
+/* ==================== 09 · SPRITE DI RICCARDO ==================== */
+const PLAYER_FILES = {
+  idle:{
+    up:"Riccardogif/file_000000000780820990bd01ccc5bbea9b.png",
+    down:"Riccardogif/file_0000000049748209b268702de3e04090.png",
+    right:"Riccardogif/file_00000000a56c8209838cd9b3a6c43745.png",
+    left:"Riccardogif/file_00000000d3f0821194e2b548b3414ab4.png"
+  },
+  walk:{
+    up:"Riccardogif/Riccardo_camminata_su_pixel.gif",
+    down:"Riccardogif/Riccardo_camminata_giu_pixel.gif",
+    right:"Riccardogif/Riccardo_camminata_destra_pixel.gif",
+    left:"Riccardogif/Riccardo_camminata_sinistra_pixel.gif"
+  }
 };
 
-/* [CONFIG 03] BUS
-   groundY più basso = bus più in alto.
-   minDelay / maxDelay = intervallo casuale, in secondi.
-*/
+/* ==================== 10 · NPC E VETTURE ==================== */
+function npc(id,name,x,y,direction) {
+  const prefix="Npc/"+id;
+  return {
+    id,name,x,y,direction,
+    gif:prefix+"_idle_v2.gif",
+    idle:{
+      right:prefix+"_fermo_destra.png",
+      down:prefix+"_fermo_giu.png",
+      left:prefix+"_fermo_sinistra.png",
+      up:prefix+"_fermo_su.png"
+    }
+  };
+}
 
-const TRAFFIC={
- files:[
+const NPC_DATA = [
+  npc("01_amico_piazzale","Amico del piazzale",430,450,"right"),
+  npc("02_amica_piazzale","Amica del piazzale",478,450,"left"),
+  npc("03_uomo_panchina","Uomo della panchina",210,577,"right"),
+  npc("04_donna_panchina","Donna della panchina",260,577,"left"),
+  npc("05_signora_fermata","Signora alla fermata",915,550,"down")
+];
+
+const BUS_FILES = [
   "Vetturegif/Bus_blu_ruote_animate.gif",
   "Vetturegif/Bus_rosso_8100_ruote_animate.gif",
   "Vetturegif/Bus_verde_4312_ruote_animate.gif"
- ],
- width:210,groundY:654,
- minSpeed:75,maxSpeed:105,
- minDelay:2.5,maxDelay:8.5,
- maxBuses:3,gap:40,
- acceleration:95,braking:240,
- crossing:{left:430,right:592,stopX:610,top:586,bottom:735}
-};
-
-/* [CONFIG 04] TRENO
-   La GIF anima già arrivo, sosta e partenza.
-*/
-
-const TRAIN={
- file:"Vetturegif/Treno_arrivo_sosta_partenza.gif",
- x:0,y:46,width:1024,height:84
-};
-
-/* ================================================================
-   [DATA 01] LE TUE 44 COLLISIONI DEFINITIVE
-   ================================================================ */
-
-const DEFAULT_COLLISIONS=[
- [[0,0],[1024,0],[1024,385],[0,385]],
- [[0,385],[98,385],[98,591],[0,591]],
- [[976,394],[1024,385],[1024,591],[991,566]],
- [[98,385],[133,385],[133,486],[98,486]],
- [[170,434],[255,436],[254,492],[173,495]],
- [[768,436],[870,432],[868,492],[767,496]],
- [[167,518],[289,513],[289,557],[164,554]],
- [[721,517],[871,516],[878,556],[722,555]],
- [[887,448],[896,448],[896,493],[887,493]],
- [[909,448],[918,448],[918,493],[909,493]],
- [[301,563],[313,563],[313,577],[301,577]],
- [[717,563],[729,563],[729,577],[717,577]],
- [[331,541],[346,541],[346,574],[331,574]],
- [[391,541],[406,541],[406,574],[391,574]],
- [[451,541],[466,541],[466,574],[451,574]],
- [[565,541],[580,541],[580,574],[565,574]],
- [[625,541],[640,541],[640,574],[625,574]],
- [[685,541],[700,541],[700,574],[685,574]],
- [[0,596],[433,596],[433,733],[0,733]],
- [[586,600],[1003,593],[1006,733],[589,716]],
- [[0,759],[384,755],[386,1086],[0,1086]],
- [[0,1111],[380,1111],[376,1479],[0,1479]],
- [[553,783],[1024,761],[1014,1089],[548,1085]],
- [[382,874],[448,874],[435,955],[385,950]],
- [[525,1056],[551,1056],[551,1083],[525,1083]],
- [[600,1097],[626,1097],[626,1115],[600,1115]],
- [[550,1192],[595,1192],[595,1179],[1024,1179],[1024,1464],
-  [805,1464],[769,1457],[733,1458],[710,1464],[550,1464]],
- [[548,1435],[685,1435],[685,1470],[548,1470]],
- [[835,1435],[1024,1435],[1024,1470],[835,1470]],
- [[174,1430],[327,1430],[327,1480],[174,1480]],
- [[358,1432],[378,1432],[378,1470],[358,1470]],
- [[554,1017],[528,1018],[527,959],[552,958]],
- [[926,493],[929,460],[927,452],[941,452],[938,495],[927,493]],
- [[946,493],[948,456],[958,452],[958,494],[949,494]],
- [[967,457],[968,495],[965,492],[961,457]],
- [[534,1350],[498,1348],[503,1408],[536,1407]],
- [[552,1483],[509,1480],[521,1446],[554,1430]],
- [[297,549],[296,532],[309,531],[312,553]],
- [[190,1087],[191,1112],[0,1111],[0,1088]],
- [[944,1161],[947,1123],[1014,1125],[1012,1160]],
- [[385,1084],[410,1089],[410,1018],[385,1012]],
- [[983,1532],[986,1480],[987,1474],[1024,1472]],
- [[942,1096],[1020,1094],[1020,1135],[948,1122]],
- [[630,729],[664,741],[652,706]]
 ];
 
-/* [DATA 02] LE TUE ULTIME 21 ZONE DI PROFONDITÀ */
-
-const rect=(x,y,w,h)=>[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
-const zone=(name,baseY,polygon)=>({name,baseY,polygon});
-
-const DEFAULT_DEPTH=[
- zone("Lampione stazione sinistro",551,[
-  [296,550],[296,414],[299,408],[326,405],
-  [331,411],[328,418],[307,420],[307,550]
- ]),
- zone("Albero stazione sinistro",489,[
-  [143,358],[150,333],[176,319],[188,304],[216,308],[231,321],
-  [250,330],[253,354],[270,367],[257,393],[234,410],[220,423],
-  [217,457],[240,463],[245,489],[175,489],[177,460],[199,455],
-  [199,420],[179,409],[157,392],[146,375]
- ]),
- zone("Albero stazione destro",489,[
-  [755,355],[764,331],[790,313],[816,307],[838,320],[860,329],
-  [865,350],[881,366],[868,392],[850,408],[831,424],[828,456],
-  [851,463],[857,489],[784,489],[786,461],[809,455],
-  [808,422],[786,412],[766,393]
- ]),
- zone("Panchina sinistra",551,rect(236,519,52,32)),
- zone("Panchina destra",551,rect(747,519,50,32)),
- zone("Fioriera sinistra",557,rect(164,514,70,43)),
- zone("Fioriera destra",557,rect(797,513,72,44)),
- zone("Lampione attraversamento sinistro",743,[
-  [372,742],[372,635],[376,626],[393,620],[409,619],
-  [414,625],[411,632],[384,637],[384,742]
- ]),
- zone("Albero strada sinistro",725,[
-  [17,584],[28,569],[42,574],[55,567],[78,574],[91,590],
-  [104,609],[99,631],[80,647],[69,650],[65,706],[89,710],
-  [89,725],[37,725],[38,708],[53,706],[54,650],
-  [34,641],[18,623],[13,603]
- ]),
- zone("Albero strada destro",729,[
-  [902,592],[916,575],[931,567],[940,550],[972,547],[996,576],
-  [1002,599],[991,610],[968,621],[964,648],[963,702],
-  [980,694],[987,729],[933,729],[939,695],[953,697],
-  [954,655],[955,624],[932,615]
- ]),
- zone("Palo elettrico",1117,[
-  [602,1116],[600,836],[585,829],[585,817],[576,817],[576,803],
-  [592,803],[592,784],[573,782],[573,770],[603,770],[603,753],
-  [622,753],[623,771],[636,773],[636,786],[621,787],
-  [621,805],[630,805],[630,833],[620,837],[622,1116]
- ]),
- zone("Fioriera MART",1091,rect(377,1023,37,68)),
- zone("Fioriera GIMBAP",1089,rect(526,1013,31,76)),
- zone("Edificio MART",1086,[
-  [0,743],[192,743],[192,766],[371,766],
-  [386,790],[386,1086],[0,1086]
- ]),
- zone("Edifici GIMBAP e farmacia",1089,[
-  [553,786],[789,786],[789,758],[936,758],
-  [936,746],[1024,746],[1024,1089],[548,1085]
- ]),
- zone("Edifici REAL ESTATE",1479,[
-  [0,1056],[190,1056],[190,1106],[345,1106],
-  [376,1130],[376,1479],[0,1479]
- ]),
- zone("Edificio JOB CENTER",1464,[
-  [550,1192],[595,1192],[595,1179],[936,1179],[936,1149],
-  [1024,1149],[1024,1464],[805,1464],[769,1457],
-  [733,1458],[710,1464],[550,1464]
- ]),
- zone("Oggetto 20",769,[[216,731],[262,738],[259,769],[211,763]]),
- zone("Oggetto 21",781,[
-  [735,781],[748,761],[764,741],[790,726],
-  [811,735],[829,744],[838,757]
- ]),
- zone("Oggetto 21",744,[
-  [612,622],[618,618],[625,618],[635,621],[638,626],[643,625],
-  [649,627],[650,638],[649,737],[651,742],[641,744],
-  [641,736],[642,669],[641,632],[633,632],
-  [625,635],[616,634],[612,627]
- ]),
- zone("Oggetto 21",553,[
-  [731,420],[724,426],[713,427],[705,419],[704,409],[707,406],
-  [736,407],[739,409],[739,418],[737,420],[737,505],
-  [739,508],[739,546],[739,549],[733,553],[726,549],
-  [726,543],[728,505],[731,505],[730,445]
- ])
+const CAR_FILES = [
+  "Vetturegif/01_utilitaria_rossa_ruote_animate.gif",
+  "Vetturegif/02_berlina_argento_ruote_animate.gif",
+  "Vetturegif/03_suv_blu_ruote_animate.gif",
+  "Vetturegif/04_taxi_arancione_ruote_animate.gif",
+  "Vetturegif/05_furgoncino_bianco_ruote_animate.gif"
 ];
 
-/* [DATA 03] VERSIONE E SALVATAGGIO NEL BROWSER
-   Cambiare DATA_VERSION quando si pubblicano nuovi dati definitivi.
-*/
+/* ==================== 11 · COLLISIONI AGGIORNATE ==================== */
+const DEFAULT_COLLISIONS = [
+  [[0,0],[1024,0],[1024,385],[0,385]],
+  [[0,385],[98,385],[98,591],[0,591]],
+  [[976,394],[1024,385],[1024,591],[991,566]],
+  [[98,385],[133,385],[133,486],[98,486]],
+  [[170,434],[255,436],[254,492],[173,495]],
+  [[768,436],[870,432],[868,492],[767,496]],
+  [[167,518],[289,513],[289,557],[164,554]],
+  [[721,517],[871,516],[878,556],[722,555]],
+  [[887,448],[896,448],[896,493],[887,493]],
+  [[909,448],[918,448],[918,493],[909,493]],
+  [[301,563],[313,563],[313,577],[301,577]],
+  [[717,563],[729,563],[729,577],[717,577]],
+  [[331,541],[346,541],[346,574],[331,574]],
+  [[391,541],[406,541],[406,574],[391,574]],
+  [[451,541],[466,541],[466,574],[451,574]],
+  [[565,541],[580,541],[580,574],[565,574]],
+  [[625,541],[640,541],[640,574],[625,574]],
+  [[685,541],[700,541],[700,574],[685,574]],
+  [[0,596],[433,596],[433,733],[0,733]],
+  [[586,600],[1003,593],[1006,733],[589,716]],
+  [[0,759],[384,755],[386,1086],[0,1086]],
+  [[0,1111],[380,1111],[376,1479],[0,1479]],
+  [[553,783],[1024,761],[1014,1089],[548,1085]],
+  [[382,874],[448,874],[435,955],[385,950]],
+  [[525,1056],[551,1056],[551,1083],[525,1083]],
+  [[600,1097],[626,1097],[626,1115],[600,1115]],
 
-const DATA_VERSION="seoul-traffic-2026-11-05-03";
-const STORAGE_KEY="tarai-rpg-world-v3";
-const clone=v=>JSON.parse(JSON.stringify(v));
-const validPolygon=p=>Array.isArray(p)&&p.length>=3&&p.every(v=>
- Array.isArray(v)&&v.length===2&&v.every(Number.isFinite)
-);
-const validWorld=d=>d&&Array.isArray(d.collisions)&&
- d.collisions.every(validPolygon)&&Array.isArray(d.depth)&&
- d.depth.every(z=>z&&Number.isFinite(z.baseY)&&validPolygon(z.polygon));
+  // Ultima correzione: [774,1463] e [738,1461].
+  [
+    [550,1192],[595,1192],[595,1179],[1024,1179],
+    [1024,1464],[805,1464],[774,1463],[738,1461],
+    [710,1464],[550,1464]
+  ],
+
+  [[548,1435],[685,1435],[685,1470],[548,1470]],
+  [[835,1435],[1024,1435],[1024,1470],[835,1470]],
+  [[174,1430],[327,1430],[327,1480],[174,1480]],
+  [[358,1432],[378,1432],[378,1470],[358,1470]],
+  [[554,1017],[528,1018],[527,959],[552,958]],
+  [[926,493],[929,460],[927,452],[941,452],[938,495],[927,493]],
+  [[946,493],[948,456],[958,452],[958,494],[949,494]],
+  [[967,457],[968,495],[965,492],[961,457]],
+  [[534,1350],[498,1348],[503,1408],[536,1407]],
+  [[552,1483],[509,1480],[521,1446],[554,1430]],
+  [[297,549],[296,532],[309,531],[312,553]],
+  [[190,1087],[191,1112],[0,1111],[0,1088]],
+  [[944,1161],[947,1123],[1014,1125],[1012,1160]],
+  [[385,1084],[410,1089],[410,1018],[385,1012]],
+  [[983,1532],[986,1480],[987,1474],[1024,1472]],
+  [[942,1096],[1020,1094],[1020,1135],[948,1122]],
+  [[630,729],[664,741],[652,706]]
+];
+
+/* ==================== 12 · PROFONDITÀ AGGIORNATA ==================== */
+const zone = (name,baseY,polygon) => ({name,baseY,polygon});
+
+const DEFAULT_DEPTH = [
+  zone("Lampione stazione sinistro",551,[
+    [296,550],[296,414],[299,408],[326,405],
+    [331,411],[328,418],[307,420],[307,550]
+  ]),
+  zone("Albero stazione sinistro",489,[
+    [143,358],[150,333],[176,319],[188,304],[216,308],
+    [231,321],[250,330],[253,354],[270,367],[257,393],
+    [234,410],[220,423],[217,457],[240,463],[245,489],
+    [175,489],[177,460],[199,455],[199,420],
+    [179,409],[157,392],[146,375]
+  ]),
+  zone("Albero stazione destro",489,[
+    [755,355],[764,331],[790,313],[816,307],[838,320],
+    [860,329],[865,350],[881,366],[868,392],[850,408],
+    [831,424],[828,456],[851,463],[857,489],[784,489],
+    [786,461],[809,455],[808,422],[786,412],[766,393]
+  ]),
+  zone("Panchina sinistra",551,rectangle(236,519,52,32)),
+  zone("Panchina destra",551,rectangle(747,519,50,32)),
+  zone("Fioriera sinistra",557,rectangle(164,514,70,43)),
+  zone("Fioriera destra",557,rectangle(797,513,72,44)),
+
+  zone("Lampione attraversamento sinistro",743,[
+    [372,742],[372,635],[376,626],[393,620],[409,619],
+    [414,625],[411,632],[384,637],[384,742]
+  ]),
+  zone("Albero strada sinistro",725,[
+    [17,584],[28,569],[42,574],[55,567],[78,574],[91,590],
+    [104,609],[99,631],[80,647],[69,650],[65,706],
+    [89,710],[89,725],[37,725],[38,708],[53,706],
+    [54,650],[34,641],[18,623],[13,603]
+  ]),
+  zone("Albero strada destro",729,[
+    [902,592],[916,575],[931,567],[940,550],[972,547],
+    [996,576],[1002,599],[991,610],[968,621],[964,648],
+    [963,702],[980,694],[987,729],[933,729],[939,695],
+    [953,697],[954,655],[955,624],[932,615]
+  ]),
+  zone("Palo elettrico",1117,[
+    [602,1116],[600,836],[585,829],[585,817],[576,817],
+    [576,803],[592,803],[592,784],[573,782],[573,770],
+    [603,770],[603,753],[622,753],[623,771],[636,773],
+    [636,786],[621,787],[621,805],[630,805],[630,833],
+    [620,837],[622,1116]
+  ]),
+  zone("Fioriera MART",1091,rectangle(377,1023,37,68)),
+  zone("Fioriera GIMBAP",1089,rectangle(526,1013,31,76)),
+
+  zone("Edificio MART",1086,[
+    [0,743],[192,743],[192,766],[371,766],
+    [386,790],[386,1086],[0,1086]
+  ]),
+  zone("Edifici GIMBAP e farmacia",1089,[
+    [553,786],[789,786],[789,758],[936,758],
+    [936,746],[1024,746],[1024,1089],[548,1085]
+  ]),
+  zone("Edifici REAL ESTATE",1479,[
+    [0,1056],[190,1056],[190,1106],[345,1106],
+    [376,1130],[376,1479],[0,1479]
+  ]),
+  zone("Edificio JOB CENTER",1464,[
+    [550,1192],[595,1192],[595,1179],[936,1179],
+    [936,1149],[1024,1149],[1024,1464],
+    [805,1464],[769,1457],[733,1458],[710,1464],[550,1464]
+  ]),
+  zone("Oggetto 20",769,[
+    [216,731],[262,738],[259,769],[211,763]
+  ]),
+  zone("Oggetto 21",781,[
+    [735,781],[748,761],[764,741],[790,726],
+    [811,735],[829,744],[838,757]
+  ]),
+  zone("Lampione attraversamento destro",744,[
+    [612,622],[618,618],[625,618],[635,621],[638,626],
+    [643,625],[649,627],[650,638],[649,737],[651,742],
+    [641,744],[641,736],[642,669],[641,632],[633,632],
+    [625,635],[616,634],[612,627]
+  ]),
+  zone("Lampione stazione destro",553,[
+    [731,420],[724,426],[713,427],[705,419],[704,409],
+    [707,406],[736,407],[739,409],[739,418],[737,420],
+    [737,505],[739,508],[739,546],[739,549],[733,553],
+    [726,549],[726,543],[728,505],[731,505],[730,445]
+  ])
+];
+
+/* ==================== 13 · SALVATAGGIO ==================== */
+function validPolygon(p) {
+  return Array.isArray(p) && p.length>=3 && p.every(v =>
+    Array.isArray(v) && v.length===2 && v.every(Number.isFinite)
+  );
+}
+function validWorld(w) {
+  return w && Array.isArray(w.collisions) &&
+    w.collisions.every(validPolygon) && Array.isArray(w.depth) &&
+    w.depth.every(z => z && Number.isFinite(z.baseY) && validPolygon(z.polygon));
+}
 
 let world={
- collisions:clone(DEFAULT_COLLISIONS),
- depth:clone(DEFAULT_DEPTH)
+  collisions:copy(DEFAULT_COLLISIONS),
+  depth:copy(DEFAULT_DEPTH)
 };
 let storageFailed=false;
 
-try{
- const s=JSON.parse(localStorage.getItem(STORAGE_KEY));
- if(s?.version===DATA_VERSION&&s.map===CONFIG.map&&validWorld(s.world)){
-  world=s.world;
- }
-}catch(_){}
+try {
+  const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
+  if(saved?.version===VERSION && validWorld(saved.world)) world=saved.world;
+} catch(_) {}
 
-function saveWorld(){
- try{
-  localStorage.setItem(STORAGE_KEY,JSON.stringify({
-   version:DATA_VERSION,map:CONFIG.map,world
-  }));
-  storageFailed=false;
- }catch(_){storageFailed=true;}
+function saveWorld() {
+  try {
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({version:VERSION,world}));
+    storageFailed=false;
+  } catch(_) { storageFailed=true; }
 }
 
-/* ================================================================
-   [JS 01] ELEMENTI E STATO
-   ================================================================ */
-
-const $=id=>document.getElementById(id);
-const all=s=>document.querySelectorAll(s);
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const random=(a,b)=>a+Math.random()*(b-a);
-
-const game=$("game"),canvas=$("mapCanvas");
-const ctx=canvas.getContext("2d");
-const scene=$("sceneWorld"),actor=$("riccardo"),mapImage=new Image();
-const player={x:512,y:448,direction:"down",moving:false};
-const camera={x:0,y:0},assets={idle:{},walk:{}};
-const missing=new Set(),held=new Map();
-
-let ready=false,lastTime=0,viewWidth=1,viewHeight=1,density=1;
-let zoom=CONFIG.zoom,intro=false,active=null;
-let nextBus=random(1.2,4),buses=[],busResources=[],depthNodes=[];
-
-const E={
- open:false,layer:"collision",tool:"pan",selected:-1,
- draft:[],history:[],drag:null,scale:1,x:0,y:0,base:false
+/* ==================== 14 · STATO E ASSET ==================== */
+const game=$("game"), scene=$("scene"), mapImage=$("map");
+const player={
+  x:CONFIG.entrance.x, y:CONFIG.entrance.y,
+  direction:"down", moving:false, radius:CONFIG.radius,
+  actor:null
 };
+const camera={x:0,y:0};
+const actors=[], npcs=[], vehicles=[], missing=new Set();
+const cache=new Map(), heldInputs=new Map();
 
-/* [JS 02] CARICAMENTO E ALLINEAMENTO AUTOMATICO DEGLI SPRITE
-   Legge il corpo visibile: PNG e GIF hanno margini diversi.
-   Le GIF restano elementi IMG per mantenere l'animazione.
+let ready=false, lastTime=0, zoom=CONFIG.zoom;
+let viewWidth=1, viewHeight=1, intro=true;
+let depthNodes=[], nextBus=random(2,5), nextCar=random(1,4);
+
+/*
+  Analizza il bordo trasparente e ritaglia visivamente l'immagine.
+  Il file originale resta intero: le GIF continuano ad animarsi.
 */
+function loadAsset(file) {
+  if(cache.has(file)) return cache.get(file);
 
-function loadImage(file){
- return new Promise(resolve=>{
-  const image=new Image();
-  image.onload=()=>{missing.delete(file);resolve(image);};
-  image.onerror=()=>{missing.add(file);resolve(null);};
-  image.src=file;
- });
+  const promise=new Promise(resolve => {
+    const image=new Image();
+    image.onload=() => {
+      let bounds={x:0,y:0,w:image.naturalWidth,h:image.naturalHeight};
+
+      try {
+        const c=document.createElement("canvas");
+        c.width=image.naturalWidth; c.height=image.naturalHeight;
+        const ctx=c.getContext("2d",{willReadFrequently:true});
+        ctx.drawImage(image,0,0);
+        const data=ctx.getImageData(0,0,c.width,c.height).data;
+        let left=c.width,top=c.height,right=-1,bottom=-1;
+
+        for(let y=0;y<c.height;y++) {
+          for(let x=0;x<c.width;x++) {
+            if(data[(y*c.width+x)*4+3]<100) continue;
+            left=Math.min(left,x); right=Math.max(right,x);
+            top=Math.min(top,y); bottom=Math.max(bottom,y);
+          }
+        }
+        if(right>=left && bottom>=top) {
+          bounds={x:left,y:top,w:right-left+1,h:bottom-top+1};
+        }
+      } catch(_) {}
+
+      missing.delete(file);
+      resolve({file,image,bounds});
+    };
+    image.onerror=() => { missing.add(file); resolve(null); };
+    image.src=file;
+  });
+
+  cache.set(file,promise);
+  return promise;
 }
 
-function measureSprite(image){
- const w=image.naturalWidth,h=image.naturalHeight;
- let box={left:0,top:0,right:w,bottom:h};
+function createActor(height=54,width=null) {
+  const node=document.createElement("div");
+  node.className="sprite";
+  node.hidden=true;
+  scene.appendChild(node);
 
- try{
-  const c=document.createElement("canvas");
-  c.width=w;c.height=h;
-  const g=c.getContext("2d",{willReadFrequently:true});
-  g.drawImage(image,0,0);
-  const data=g.getImageData(0,0,w,h).data;
-  let left=w,top=h,right=-1,bottom=-1;
+  const actor={
+    node,height,width,assets:new Map(),active:null,
+    visibleWidth:width||30,visibleHeight:height
+  };
+  actors.push(actor);
+  return actor;
+}
 
-  for(let y=0;y<h;y++){
-   for(let x=0;x<w;x++){
-    if(data[(y*w+x)*4+3]>=220){
-     left=Math.min(left,x);right=Math.max(right,x);
-     top=Math.min(top,y);bottom=Math.max(bottom,y);
-    }
-   }
+function setActorAsset(actor,asset) {
+  if(!asset || actor.active===asset) return;
+
+  let image=actor.assets.get(asset.file);
+  if(!image) {
+    image=asset.image.cloneNode();
+    image.alt=""; image.draggable=false;
+    image.hidden=true;
+    actor.assets.set(asset.file,image);
+    actor.node.appendChild(image);
   }
-  if(right>=left)box={left,top,right:right+1,bottom:bottom+1};
- }catch(_){}
 
- return box;
+  for(const other of actor.assets.values()) other.hidden=true;
+
+  const b=asset.bounds;
+  const scale=actor.width ? actor.width/b.w : actor.height/b.h;
+
+  actor.visibleWidth=b.w*scale;
+  actor.visibleHeight=b.h*scale;
+  actor.node.style.width=actor.visibleWidth+"px";
+  actor.node.style.height=actor.visibleHeight+"px";
+  image.style.width=asset.image.naturalWidth*scale+"px";
+  image.style.height=asset.image.naturalHeight*scale+"px";
+  image.style.left=-b.x*scale+"px";
+  image.style.top=-b.y*scale+"px";
+  image.hidden=false;
+  actor.active=asset;
+  actor.node.hidden=false;
 }
 
-async function loadActors(){
- await Promise.all(Object.entries(SPRITES).flatMap(([mode,dirs])=>
-  Object.entries(dirs).map(async([dir,file])=>{
-   const image=await loadImage(file);
-   if(!image)return;
-   const box=measureSprite(image);
-   image.alt="";image.draggable=false;
-   assets[mode][dir]={image,box};
-   actor.appendChild(image);
-  })
- ));
+function placeActor(actor,x,y,offset=10) {
+  actor.node.style.left=x+"px";
+  actor.node.style.top=y+"px";
+  actor.node.style.zIndex=Math.round(y*100+offset);
 }
 
-async function loadBuses(){
- await Promise.all(TRAFFIC.files.map(async file=>{
-  const image=await loadImage(file);
-  if(!image)return;
-  let still="";
+/* ==================== 15 · CARICAMENTO PERSONAGGI ==================== */
+const playerAssets={idle:{},walk:{}};
+player.actor=createActor(CONFIG.spriteHeight);
 
-  try{
-   const c=document.createElement("canvas");
-   c.width=image.naturalWidth;c.height=image.naturalHeight;
-   c.getContext("2d").drawImage(image,0,0);
-   still=c.toDataURL();
-  }catch(_){}
+async function loadCharacters() {
+  const jobs=[];
 
-  busResources.push({file,still});
- }));
+  for(const mode of ["idle","walk"]) {
+    for(const direction of ["up","down","left","right"]) {
+      jobs.push(loadAsset(PLAYER_FILES[mode][direction]).then(asset => {
+        playerAssets[mode][direction]=asset;
+      }));
+    }
+  }
+
+  for(const data of NPC_DATA) {
+    const person={
+      ...data,radius:9,actor:createActor(54),
+      animation:null,idleAssets:{}
+    };
+    npcs.push(person);
+
+    jobs.push(loadAsset(data.gif).then(asset => {
+      person.animation=asset;
+      setActorAsset(person.actor,asset);
+      placeActor(person.actor,person.x,person.y);
+    }));
+
+    // Caricati ma non mostrati: serviranno per i dialoghi.
+    for(const direction of ["up","down","left","right"]) {
+      jobs.push(loadAsset(data.idle[direction]).then(asset => {
+        person.idleAssets[direction]=asset;
+      }));
+    }
+  }
+
+  await Promise.all(jobs);
 }
 
-function drawActor(){
- const a=assets[player.moving?"walk":"idle"][player.direction]||
-  assets.idle[player.direction]||assets.idle.down;
+const vehicleAssets={bus:[],car:[]};
 
- if(a!==active){
-  if(active)active.image.style.display="none";
-  active=a;
-  if(a)a.image.style.display="block";
- }
- if(!a)return;
-
- const {image,box}=a;
- const s=CONFIG.spriteHeight/(box.bottom-box.top);
- const top=-box.bottom*s;
- const cut=intro?
-  Math.max(0,CONFIG.entrance.clipTop-player.y-top):0;
-
- Object.assign(image.style,{
-  width:image.naturalWidth*s+"px",
-  height:image.naturalHeight*s+"px",
-  left:-(box.left+box.right)/2*s+"px",
-  top:top+"px",
-  clipPath:`inset(${Math.max(box.top*s,cut)}px ${(image.naturalWidth-box.right)*s}px ${(image.naturalHeight-box.bottom)*s}px ${box.left*s}px)`
- });
-
- Object.assign(actor.style,{
-  left:player.x+"px",
-  top:player.y+"px",
-  zIndex:String(Math.round(player.y*100)+1)
- });
+async function loadVehicles() {
+  const results=await Promise.all([
+    Promise.all(BUS_FILES.map(loadAsset)),
+    Promise.all(CAR_FILES.map(loadAsset))
+  ]);
+  vehicleAssets.bus=results[0].filter(Boolean);
+  vehicleAssets.car=results[1].filter(Boolean);
 }
 
-/* [JS 03] PROFONDITÀ DEGLI OGGETTI */
-
-function path(c,p){
- c.beginPath();
- p.forEach((v,i)=>i?c.lineTo(v[0],v[1]):c.moveTo(v[0],v[1]));
- c.closePath();
+/* ==================== 16 · PROFONDITÀ DEGLI OGGETTI ==================== */
+function polygonPath(ctx,p) {
+  ctx.beginPath();
+  p.forEach(([x,y],i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+  ctx.closePath();
 }
 
-function buildDepth(){
- depthNodes.forEach(n=>n.remove());depthNodes=[];
- if(!CONFIG.depth)return;
+function makeDepthPiece(polygon,baseY) {
+  const xs=polygon.map(p=>p[0]), ys=polygon.map(p=>p[1]);
+  const x=Math.floor(Math.min(...xs)), y=Math.floor(Math.min(...ys));
+  const w=Math.ceil(Math.max(...xs))-x;
+  const h=Math.ceil(Math.max(...ys))-y;
+  if(w<1 || h<1) return;
 
- for(const z of world.depth){
-  const xs=z.polygon.map(p=>p[0]),ys=z.polygon.map(p=>p[1]);
-  const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));
   const c=document.createElement("canvas");
+  c.className="depth-piece";
+  c.width=w; c.height=h;
+  c.style.left=x+"px"; c.style.top=y+"px";
+  c.style.zIndex=Math.round(baseY*100+30);
 
-  c.width=Math.ceil(Math.max(...xs))-x+1;
-  c.height=Math.ceil(Math.max(...ys))-y+1;
-  c.className="item";
+  const ctx=c.getContext("2d");
+  ctx.imageSmoothingEnabled=false;
+  ctx.translate(-x,-y);
+  polygonPath(ctx,polygon);
+  ctx.clip();
+  ctx.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
+  scene.appendChild(c);
+  depthNodes.push(c);
+}
 
-  Object.assign(c.style,{
-   left:x+"px",top:y+"px",
-   zIndex:String(Math.round(z.baseY*100))
+function rebuildDepth() {
+  depthNodes.forEach(n=>n.remove());
+  depthNodes=[];
+  for(const z of world.depth) makeDepthPiece(z.polygon,z.baseY);
+
+  // Elementi della pensilina davanti al treno.
+  makeDepthPiece(rectangle(0,0,1024,55),145);
+  makeDepthPiece(rectangle(328,55,20,90),145);
+  makeDepthPiece(rectangle(660,55,28,90),145);
+  makeDepthPiece(rectangle(1003,55,21,90),145);
+}
+
+/* ==================== 17 · TRENO ==================== */
+function setupTrain() {
+  const t=CONFIG.train, window=$("trainWindow");
+  Object.assign(window.style,{
+    left:t.x+"px",top:t.y+"px",width:t.width+"px",height:t.height+"px"
   });
-
-  const g=c.getContext("2d");
-  g.translate(-x,-y);
-  path(g,z.polygon);g.clip();
-  g.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
-  scene.appendChild(c);depthNodes.push(c);
- }
+  $("train").onerror=() => { missing.add(t.file); window.hidden=true; };
+  $("train").onload=() => { missing.delete(t.file); window.hidden=false; };
+  $("train").src=t.file;
 }
 
-/* [JS 04] COLLISIONI DEL CERCHIO AI PIEDI */
-
-function inside(x,y,p){
- let hit=false;
- for(let i=0,j=p.length-1;i<p.length;j=i++){
-  const a=p[i],b=p[j];
-  if((a[1]>y)!==(b[1]>y)&&
-   x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])hit=!hit;
- }
- return hit;
+/* ==================== 18 · COLLISIONI STATICHE ==================== */
+function pointInPolygon(x,y,p) {
+  let inside=false;
+  for(let i=0,j=p.length-1;i<p.length;j=i++) {
+    const [xi,yi]=p[i], [xj,yj]=p[j];
+    if((yi>y)!==(yj>y) && x<(xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
 }
 
-function segmentDistance(x,y,a,b){
- const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;
- const t=l?clamp(((x-a[0])*dx+(y-a[1])*dy)/l,0,1):0;
- return(x-a[0]-t*dx)**2+(y-a[1]-t*dy)**2;
+function segmentDistanceSquared(x,y,a,b) {
+  const dx=b[0]-a[0], dy=b[1]-a[1], length=dx*dx+dy*dy;
+  const t=length ? clamp(((x-a[0])*dx+(y-a[1])*dy)/length,0,1) : 0;
+  return (x-a[0]-t*dx)**2+(y-a[1]-t*dy)**2;
 }
 
-function canStand(x,y){
- const r=CONFIG.radius;
- if(x<r||y<r||x>CONFIG.width-r||y>CONFIG.height-r)return false;
-
- return!CONFIG.collisions||!world.collisions.some(p=>
-  inside(x,y,p)||p.some((a,i)=>
-   segmentDistance(x,y,a,p[(i+1)%p.length])<=r*r
-  )
- );
+function hitsPolygon(x,y,r,p) {
+  return pointInPolygon(x,y,p) || p.some((a,i) =>
+    segmentDistanceSquared(x,y,a,p[(i+1)%p.length])<=r*r
+  );
 }
 
-function movePlayer(dx,dy){
- const n=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/2));
- for(let i=0;i<n;i++){
-  if(canStand(player.x+dx/n,player.y))player.x+=dx/n;
-  if(canStand(player.x,player.y+dy/n))player.y+=dy/n;
- }
+function circleRectangle(x,y,r,b) {
+  const nx=clamp(x,b.left,b.right), ny=clamp(y,b.top,b.bottom);
+  return (x-nx)**2+(y-ny)**2<=r*r;
 }
 
-/* [JS 05] COMANDI: SOLO QUATTRO DIREZIONI */
+function vehicleBounds(v,x=v.x) {
+  return {
+    left:x-v.width/2+5,
+    right:x+v.width/2-5,
+    top:v.y-v.hitHeight,
+    bottom:v.y+2
+  };
+}
 
-const DIR={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
-const KEY={
- arrowup:"up",w:"up",arrowdown:"down",s:"down",
- arrowleft:"left",a:"left",arrowright:"right",d:"right"
+function staticFree(x,y) {
+  const r=CONFIG.radius;
+  return x>=r && y>=r && x<=CONFIG.width-r && y<=CONFIG.height-r &&
+    !world.collisions.some(p=>hitsPolygon(x,y,r,p));
+}
+
+function canStand(x,y) {
+  if(!staticFree(x,y)) return false;
+
+  if(npcs.some(n=>Math.hypot(x-n.x,y-n.y)<CONFIG.radius+n.radius)) {
+    return false;
+  }
+  return !vehicles.some(v=>circleRectangle(x,y,CONFIG.radius,vehicleBounds(v)));
+}
+
+function movePlayer(dx,dy) {
+  const steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/2));
+  for(let i=0;i<steps;i++) {
+    if(canStand(player.x+dx/steps,player.y)) player.x+=dx/steps;
+    if(canStand(player.x,player.y+dy/steps)) player.y+=dy/steps;
+  }
+}
+
+/* ==================== 19 · TRAFFICO CASUALE ==================== */
+function spawnVehicle(type) {
+  const list=vehicleAssets[type], settings=CONFIG[type];
+  if(!list.length) return false;
+
+  const width=type==="car"
+    ? settings.width*random(.94,1.08)
+    : settings.width;
+
+  // Lascia spazio libero all'ingresso della corsia.
+  const occupied=vehicles.some(v =>
+    v.type===type && v.x+v.width/2>CONFIG.width-70
+  );
+  if(occupied) return false;
+
+  const asset=list[Math.floor(Math.random()*list.length)];
+  const actor=createActor(1,width);
+  setActorAsset(actor,asset);
+
+  const vehicle={
+    type,actor,width,x:CONFIG.width+width/2+15,
+    y:settings.groundY,
+    speed:random(settings.speedMin,settings.speedMax),
+    hitHeight:settings.hitHeight
+  };
+  vehicles.push(vehicle);
+  placeActor(actor,vehicle.x,vehicle.y);
+  return true;
+}
+
+function rectanglesOverlap(a,b,gap=0) {
+  return a.left<b.right+gap && a.right>b.left-gap &&
+    a.top<b.bottom && a.bottom>b.top;
+}
+
+function updateTraffic(dt) {
+  nextBus-=dt; nextCar-=dt;
+
+  if(nextBus<=0) {
+    nextBus=spawnVehicle("bus")
+      ? random(CONFIG.bus.waitMin,CONFIG.bus.waitMax)
+      : .5;
+  }
+  if(nextCar<=0) {
+    nextCar=spawnVehicle("car")
+      ? random(CONFIG.car.waitMin,CONFIG.car.waitMax)
+      : .5;
+  }
+
+  // Chi è più avanti viene aggiornato per primo.
+  const ordered=[...vehicles].sort((a,b)=>a.x-b.x);
+
+  for(const v of ordered) {
+    const distance=v.speed*dt;
+    const steps=Math.max(1,Math.ceil(distance/2));
+
+    for(let i=0;i<steps;i++) {
+      const nx=v.x-distance/steps;
+      const bounds=vehicleBounds(v,nx);
+
+      const hitsPlayer=!intro &&
+        circleRectangle(player.x,player.y,CONFIG.radius+2,bounds);
+
+      const hitsNpc=npcs.some(n=>
+        circleRectangle(n.x,n.y,n.radius,bounds)
+      );
+
+      const hitsVehicle=vehicles.some(other =>
+        other!==v && other.type===v.type &&
+        rectanglesOverlap(bounds,vehicleBounds(other),18)
+      );
+
+      // Si fermano prima di Riccardo o di un altro veicolo.
+      if(hitsPlayer || hitsNpc || hitsVehicle) break;
+      v.x=nx;
+    }
+
+    placeActor(v.actor,v.x,v.y);
+
+    if(v.x+v.width/2<-25) {
+      v.actor.node.remove();
+      const actorIndex=actors.indexOf(v.actor);
+      if(actorIndex>=0) actors.splice(actorIndex,1);
+      vehicles.splice(vehicles.indexOf(v),1);
+    }
+  }
+}
+
+/* ==================== 20 · MOVIMENTO IN QUATTRO DIREZIONI ==================== */
+const VECTORS={
+  up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}
 };
+const KEY_DIRECTION={
+  arrowup:"up",w:"up",arrowdown:"down",s:"down",
+  arrowleft:"left",a:"left",arrowright:"right",d:"right"
+};
+const joystick={pointer:null,x:0,y:0,direction:null};
 
-function direction(){return[...held.values()].pop()||null;}
-function buttons(){
- all("#dpad button").forEach(b=>
-  b.classList.toggle("pressed",b.dataset.dir===direction())
- );
+function press(token,direction) {
+  heldInputs.delete(token);
+  heldInputs.set(token,direction);
 }
-function resetInput(){held.clear();player.moving=false;buttons();}
-function press(token,dir){
- held.delete(token);held.set(token,dir);buttons();
+function currentDirection() {
+  const values=[...heldInputs.values()];
+  return values.at(-1)||null;
+}
+function resetInput() {
+  heldInputs.clear();
+  joystick.pointer=null;
+  joystick.direction=null;
+  $("joystick").hidden=true;
+  $("stick").style.transform="";
+  player.moving=false;
 }
 
-window.addEventListener("keydown",e=>{
- const k=e.key.toLowerCase();
- if(!KEY[k]||!$("exportPanel").hidden)return;
- e.preventDefault();
- if(ready&&!E.open&&!intro&&!e.repeat)press("k:"+k,KEY[k]);
+window.addEventListener("keydown",event=>{
+  const direction=KEY_DIRECTION[event.key.toLowerCase()];
+  if(!direction || !ready || intro || editor.open) return;
+  event.preventDefault();
+  if(!event.repeat) press("key:"+event.key.toLowerCase(),direction);
+});
+window.addEventListener("keyup",event=>{
+  heldInputs.delete("key:"+event.key.toLowerCase());
 });
 
-window.addEventListener("keyup",e=>{
- held.delete("k:"+e.key.toLowerCase());buttons();
+function updateJoystick(event) {
+  const dx=event.clientX-joystick.x, dy=event.clientY-joystick.y;
+  const distance=Math.hypot(dx,dy), limit=34;
+  let direction=null;
+
+  if(distance>=10) {
+    direction=Math.abs(dx)>Math.abs(dy)
+      ? (dx>0?"right":"left")
+      : (dy>0?"down":"up");
+  }
+
+  const vector=direction ? VECTORS[direction] : {x:0,y:0};
+  const amount=Math.min(distance,limit);
+  $("stick").style.transform=
+    `translate(${vector.x*amount}px,${vector.y*amount}px)`;
+
+  if(direction!==joystick.direction) {
+    heldInputs.delete("touch");
+    if(direction) press("touch",direction);
+    joystick.direction=direction;
+  }
+}
+
+game.addEventListener("pointerdown",event=>{
+  if(event.target.closest("button") || !ready || intro || editor.open) return;
+  if(joystick.pointer!==null) return;
+  if(event.pointerType==="mouse" && event.button!==0) return;
+
+  event.preventDefault();
+  joystick.pointer=event.pointerId;
+  joystick.x=event.clientX; joystick.y=event.clientY;
+
+  const bounds=game.getBoundingClientRect();
+  $("joystick").style.left=event.clientX-bounds.left+"px";
+  $("joystick").style.top=event.clientY-bounds.top+"px";
+  $("joystick").hidden=false;
+  game.setPointerCapture(event.pointerId);
+  updateJoystick(event);
+});
+game.addEventListener("pointermove",event=>{
+  if(event.pointerId===joystick.pointer) updateJoystick(event);
 });
 
-all("#dpad button").forEach(b=>{
- b.onpointerdown=e=>{
-  if(!ready||E.open||intro)return;
-  e.preventDefault();b.setPointerCapture(e.pointerId);
-  press("p:"+e.pointerId,b.dataset.dir);
- };
- for(const type of["pointerup","pointercancel","lostpointercapture"]){
-  b.addEventListener(type,e=>{
-   held.delete("p:"+e.pointerId);buttons();
-  });
- }
-});
-
+function endJoystick(event) {
+  if(event.pointerId!==joystick.pointer) return;
+  heldInputs.delete("touch");
+  joystick.pointer=null; joystick.direction=null;
+  $("joystick").hidden=true;
+  $("stick").style.transform="";
+}
+for(const name of ["pointerup","pointercancel","lostpointercapture"]) {
+  game.addEventListener(name,endJoystick);
+}
 window.addEventListener("blur",resetInput);
 document.addEventListener("visibilitychange",()=>{
- resetInput();lastTime=0;
+  resetInput(); lastTime=0;
 });
 
-/* [JS 06] CAMERA E ZOOM */
+/* ==================== 21 · CAMERA E DISEGNO ==================== */
+function updateCamera() {
+  const w=viewWidth/zoom, h=viewHeight/zoom;
+  camera.x=CONFIG.width>w
+    ? clamp(player.x-w/2,0,CONFIG.width-w) : (CONFIG.width-w)/2;
+  camera.y=CONFIG.height>h
+    ? clamp(player.y-h/2,0,CONFIG.height-h) : (CONFIG.height-h)/2;
 
-function updateCamera(){
- const w=viewWidth/zoom,h=viewHeight/zoom;
- camera.x=CONFIG.width>w?
-  clamp(player.x-w/2,0,CONFIG.width-w):(CONFIG.width-w)/2;
- camera.y=CONFIG.height>h?
-  clamp(player.y-h/2,0,CONFIG.height-h):(CONFIG.height-h)/2;
+  scene.style.transform=
+    `translate(${-camera.x*zoom}px,${-camera.y*zoom}px) scale(${zoom})`;
 }
 
-function resize(){
- const r=game.getBoundingClientRect();
- viewWidth=Math.max(1,r.width);viewHeight=Math.max(1,r.height);
- density=Math.min(window.devicePixelRatio||1,2);
- canvas.width=Math.round(viewWidth*density);
- canvas.height=Math.round(viewHeight*density);
- updateCamera();if(ready)draw();
+function resize() {
+  const r=game.getBoundingClientRect();
+  viewWidth=Math.max(1,r.width); viewHeight=Math.max(1,r.height);
+  updateCamera();
 }
-
-function draw(){
- ctx.setTransform(density,0,0,density,0,0);
- ctx.clearRect(0,0,viewWidth,viewHeight);
- ctx.imageSmoothingEnabled=false;
- ctx.scale(zoom,zoom);ctx.translate(-camera.x,-camera.y);
- ctx.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
- scene.style.transform=
-  `translate(${-camera.x*zoom}px,${-camera.y*zoom}px) scale(${zoom})`;
- drawActor();
-}
-
 new ResizeObserver(resize).observe(game);
 
 $("zoomIn").onclick=()=>{
- zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom);
+  zoom=clamp(zoom+.2,CONFIG.minZoom,CONFIG.maxZoom); updateCamera();
 };
 $("zoomOut").onclick=()=>{
- zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom);
+  zoom=clamp(zoom-.2,CONFIG.minZoom,CONFIG.maxZoom); updateCamera();
 };
 
-/* ================================================================
-   [TRAFFIC 01] COLORI E INTERVALLI CASUALI
-   Sono possibili due bus consecutivi dello stesso colore.
-   ================================================================ */
+function drawPlayer() {
+  const mode=player.moving?"walk":"idle";
+  const asset=playerAssets[mode][player.direction] ||
+    playerAssets.idle[player.direction] || playerAssets.idle.down;
 
-function spawnBus(){
- if(!busResources.length||buses.length>=TRAFFIC.maxBuses)return false;
- const x=CONFIG.width+TRAFFIC.width/2+15;
+  setActorAsset(player.actor,asset);
+  placeActor(player.actor,player.x,player.y,20);
 
- if(buses.some(b=>x-b.x<TRAFFIC.width+TRAFFIC.gap+30))return false;
-
- const r=busResources[Math.floor(Math.random()*busResources.length)];
- const node=document.createElement("div");
- const moving=new Image(),still=new Image();
-
- node.className="bus item";
- Object.assign(node.style,{
-  width:TRAFFIC.width+"px",
-  top:TRAFFIC.groundY+"px",
-  zIndex:String(Math.round(TRAFFIC.groundY*100)+1)
- });
-
- moving.src=r.file;moving.alt="";
- still.src=r.still||r.file;still.alt="";still.hidden=true;
- node.append(moving,still);scene.appendChild(node);
-
- buses.push({
-  x,v:0,speed:random(TRAFFIC.minSpeed,TRAFFIC.maxSpeed),
-  node,moving,still,stopped:false
- });
- return true;
+  // Durante l'uscita, la testa emerge dall'apertura nera.
+  const top=player.y-player.actor.visibleHeight;
+  const cut=intro ? Math.max(0,325-top) : 0;
+  player.actor.node.style.clipPath=cut ? `inset(${cut}px 0 0 0)` : "";
 }
 
-/* [TRAFFIC 02] DISTANZE E PRECEDENZA A RICCARDO SULLE STRISCE */
-
-function updateTraffic(dt){
- nextBus-=dt;
- if(nextBus<=0){
-  nextBus=spawnBus()?random(TRAFFIC.minDelay,TRAFFIC.maxDelay):.5;
- }
- buses.sort((a,b)=>a.x-b.x);
-
- const c=TRAFFIC.crossing;
- const yielding=player.x>c.left-10&&player.x<c.right+10&&
-  player.y>c.top&&player.y<c.bottom;
-
- for(let i=0;i<buses.length;i++){
-  const b=buses[i],front=b.x-TRAFFIC.width/2;
-  let distance=Infinity;
-
-  if(i>0){
-   distance=Math.max(
-    0,b.x-buses[i-1].x-TRAFFIC.width-TRAFFIC.gap
-   );
-  }
-  if(yielding&&front>=c.stopX-.01){
-   distance=Math.min(distance,Math.max(0,front-c.stopX));
-  }
-
-  const target=Math.min(b.speed,Math.sqrt(2*TRAFFIC.braking*distance));
-  b.v=target>b.v?
-   Math.min(target,b.v+TRAFFIC.acceleration*dt):
-   Math.max(target,b.v-TRAFFIC.braking*dt);
-
-  const travel=Math.min(b.v*dt,distance);
-  b.x-=travel;
-  if(distance-travel<.01)b.v=0;
-
-  const stopped=b.v<1;
-  if(stopped!==b.stopped){
-   b.stopped=stopped;
-   b.moving.hidden=stopped;b.still.hidden=!stopped;
-  }
-  b.node.style.left=b.x+"px";
- }
-
- buses=buses.filter(b=>{
-  if(b.x<-TRAFFIC.width){b.node.remove();return false;}
-  return true;
- });
+function returnToStation() {
+  resetInput();
+  player.x=CONFIG.entrance.x; player.y=CONFIG.entrance.y;
+  player.direction="down"; player.moving=true; intro=true;
+  updateCamera();
 }
-
-/* [INTRO 01] USCITA DALLA STAZIONE E RESET */
-
-function returnToStation(){
- resetInput();intro=true;
- player.x=CONFIG.entrance.x;player.y=CONFIG.entrance.y;
- player.direction="down";
- $("editorOpen").disabled=true;
- updateCamera();if(ready)draw();
-}
-
-function updatePlayer(dt){
- const x=player.x,y=player.y;
-
- if(intro){
-  player.y=Math.min(CONFIG.start.y,player.y+CONFIG.entrance.speed*dt);
-  if(player.y>=CONFIG.start.y){
-   intro=false;$("editorOpen").disabled=false;resetInput();
-  }
- }else{
-  const d=direction();
-  if(d){
-   player.direction=d;
-   movePlayer(DIR[d][0]*CONFIG.speed*dt,DIR[d][1]*CONFIG.speed*dt);
-  }
- }
- player.moving=Math.hypot(player.x-x,player.y-y)>.0001;
-}
-
 $("resetButton").onclick=returnToStation;
 
-/* [JS 07] CICLO PRINCIPALE E MESSAGGI */
-
-function updateStatus(){
- let text=intro?"Arriving in Seoul…":"Map test · no battles";
- if(missing.size)text="Missing image: "+[...missing][0];
- else if(!intro&&player.x>685&&player.x<840&&player.y>1435&&player.y<1500){
-  text="Job Center entrance · interior coming next";
- }
- if($("status").textContent!==text)$("status").textContent=text;
+function updateStatus() {
+  let text="Map test · no battles";
+  if(missing.size) text="Missing image: "+[...missing][0];
+  else if(intro) text="Arriving in Seoul…";
+  else if(player.x>685 && player.x<840 && player.y>1465 && player.y<1510) {
+    text="Job Center entrance · interior coming next";
+  }
+  if($("status").textContent!==text) $("status").textContent=text;
 }
 
-function tick(now){
- const dt=lastTime?Math.min((now-lastTime)/1000,.04):0;
- lastTime=now;
+function tick(now) {
+  const dt=lastTime ? Math.min((now-lastTime)/1000,.04) : 0;
+  lastTime=now;
 
- if(ready&&!E.open&&!document.hidden){
-  updatePlayer(dt);updateTraffic(dt);
-  updateCamera();draw();updateStatus();
- }
- requestAnimationFrame(tick);
+  if(ready && !editor.open && !document.hidden) {
+    const oldX=player.x,oldY=player.y;
+
+    if(intro) {
+      player.direction="down";
+      player.y=Math.min(CONFIG.start.y,player.y+75*dt);
+      if(player.y>=CONFIG.start.y) intro=false;
+    } else {
+      const direction=currentDirection();
+      if(direction) {
+        player.direction=direction;
+        const v=VECTORS[direction];
+        movePlayer(v.x*CONFIG.speed*dt,v.y*CONFIG.speed*dt);
+      }
+    }
+
+    player.moving=Math.hypot(player.x-oldX,player.y-oldY)>.0001;
+    updateTraffic(dt);
+    drawPlayer();
+    updateCamera();
+    updateStatus();
+  }
+  requestAnimationFrame(tick);
 }
 
-/* ================================================================
-   [EDITOR 01] STATO, STORICO E DISEGNO
-   ================================================================ */
+/* ==================== 22 · EDITOR: STATO E VISTA ==================== */
+const editorCanvas=$("editorCanvas");
+const editorCtx=editorCanvas.getContext("2d");
+const editor={
+  open:false,layer:"collision",tool:"pan",selected:-1,
+  draft:[],history:[],drag:null,base:false,scale:1,x:0,y:0
+};
 
-const ec=$("editorCanvas"),eg=ec.getContext("2d");
-const items=()=>E.layer==="collision"?world.collisions:world.depth;
-const polygon=o=>E.layer==="collision"?o:o.polygon;
+const editorItems=()=>editor.layer==="collision" ? world.collisions : world.depth;
+const itemPolygon=item=>editor.layer==="collision" ? item : item.polygon;
 
-function setPolygon(i,p){
- if(E.layer==="collision")world.collisions[i]=p;
- else world.depth[i].polygon=p;
+function setPolygon(index,p) {
+  if(editor.layer==="collision") world.collisions[index]=p;
+  else world.depth[index].polygon=p;
 }
-
-function remember(s=JSON.stringify(world)){
- E.history.push(s);
- if(E.history.length>40)E.history.shift();
+function remember(snapshot=JSON.stringify(world)) {
+  editor.history.push(snapshot);
+  if(editor.history.length>40) editor.history.shift();
 }
+function notice(text) { $("editorHint").textContent=text; }
 
-function notice(t){$("editorHint").textContent=t;}
+function paintEditor() {
+  if(!editor.open || !ready) return;
 
-function paintEditor(){
- if(!E.open)return;
- eg.setTransform(1,0,0,1,0,0);
- eg.clearRect(0,0,ec.width,ec.height);
- eg.fillStyle="#10232d";eg.fillRect(0,0,ec.width,ec.height);
- eg.translate(E.x,E.y);eg.scale(E.scale,E.scale);
- eg.imageSmoothingEnabled=false;
- eg.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
+  const c=editorCtx,s=editor;
+  c.setTransform(1,0,0,1,0,0);
+  c.fillStyle="#10232d";
+  c.fillRect(0,0,editorCanvas.width,editorCanvas.height);
+  c.translate(s.x,s.y); c.scale(s.scale,s.scale);
+  c.imageSmoothingEnabled=false;
+  c.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
 
- items().forEach((o,i)=>{
-  const p=polygon(o),selected=i===E.selected;
-  path(eg,p);
-  eg.fillStyle=selected?"#ffde7966":
-   E.layer==="collision"?"#ff34545c":"#40bfff60";
-  eg.fill();eg.strokeStyle=selected?"#ffe08a":"#ffffff88";
-  eg.lineWidth=1.5/E.scale;eg.stroke();
-  if(!selected)return;
+  editorItems().forEach((item,index)=>{
+    const p=itemPolygon(item), selected=index===s.selected;
+    polygonPath(c,p);
+    c.fillStyle=selected ? "#ffde7966" :
+      s.layer==="collision" ? "#ff34545c" : "#40bfff60";
+    c.fill();
+    c.lineWidth=1.5/s.scale;
+    c.strokeStyle=selected?"#ffe08a":"#ffffff88";
+    c.stroke();
 
-  for(const v of p){
-   eg.fillStyle="white";
-   eg.fillRect(v[0]-5/E.scale,v[1]-5/E.scale,10/E.scale,10/E.scale);
+    if(!selected) return;
+    for(const [x,y] of p) {
+      c.fillStyle="white";
+      c.fillRect(x-5/s.scale,y-5/s.scale,10/s.scale,10/s.scale);
+    }
+    if(s.layer==="depth") {
+      const xs=p.map(v=>v[0]);
+      c.beginPath();
+      c.moveTo(Math.min(...xs)-15,item.baseY);
+      c.lineTo(Math.max(...xs)+15,item.baseY);
+      c.strokeStyle="#ffdf59"; c.lineWidth=2/s.scale; c.stroke();
+      c.fillStyle="#ffdf59"; c.font=12/s.scale+"px Arial";
+      c.fillText(item.name+" · BASE "+Math.round(item.baseY),
+        Math.min(...xs),item.baseY-7/s.scale);
+    }
+  });
+
+  if(s.draft.length) {
+    c.beginPath();
+    s.draft.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));
+    c.strokeStyle="#7dffff"; c.lineWidth=2/s.scale; c.stroke();
+    for(const [x,y] of s.draft) {
+      c.fillStyle="#7dffff";
+      c.fillRect(x-4/s.scale,y-4/s.scale,8/s.scale,8/s.scale);
+    }
   }
 
-  if(E.layer==="depth"){
-   const xs=p.map(v=>v[0]);
-   eg.beginPath();
-   eg.moveTo(Math.min(...xs)-15,o.baseY);
-   eg.lineTo(Math.max(...xs)+15,o.baseY);
-   eg.strokeStyle="#ffdf59";eg.lineWidth=2/E.scale;eg.stroke();
-   eg.fillStyle="#ffdf59";eg.font=12/E.scale+"px Arial";
-   eg.fillText(
-    (o.name||"Oggetto")+" · "+o.baseY,
-    Math.min(...xs),o.baseY-7/E.scale
-   );
+  for(const n of npcs) {
+    c.beginPath(); c.arc(n.x,n.y,n.radius,0,Math.PI*2);
+    c.fillStyle="#ffcc69"; c.fill();
   }
- });
-
- if(E.draft.length){
-  eg.beginPath();
-  E.draft.forEach((v,i)=>i?eg.lineTo(...v):eg.moveTo(...v));
-  eg.strokeStyle="#7dffff";eg.lineWidth=2/E.scale;eg.stroke();
-  for(const v of E.draft){
-   eg.fillStyle="#7dffff";
-   eg.fillRect(v[0]-4/E.scale,v[1]-4/E.scale,8/E.scale,8/E.scale);
+  for(const v of vehicles) {
+    const b=vehicleBounds(v);
+    c.fillStyle="#b78cffaa";
+    c.fillRect(b.left,b.top,b.right-b.left,b.bottom-b.top);
   }
- }
+  c.beginPath(); c.arc(player.x,player.y,7,0,Math.PI*2);
+  c.fillStyle="white"; c.fill();
+  c.beginPath(); c.arc(player.x,player.y,5,0,Math.PI*2);
+  c.fillStyle="#ed243b"; c.fill();
 
- eg.beginPath();eg.arc(player.x,player.y,6,0,Math.PI*2);
- eg.fillStyle="#ff243b";eg.fill();
+  document.querySelectorAll("[data-layer]").forEach(b=>{
+    b.classList.toggle("active",b.dataset.layer===s.layer);
+  });
+  document.querySelectorAll("[data-tool]").forEach(b=>{
+    b.classList.toggle("active",b.dataset.tool===s.tool);
+  });
+  $("editorBase").disabled=s.layer!=="depth" || s.selected<0;
 
- all("[data-layer]").forEach(b=>
-  b.classList.toggle("active",b.dataset.layer===E.layer)
- );
- all("[data-tool]").forEach(b=>
-  b.classList.toggle("active",b.dataset.tool===E.tool)
- );
- $("editorBase").disabled=E.layer!=="depth"||E.selected<0;
+  const help=s.base
+    ? "Tocca l’altezza della base dell’oggetto."
+    : s.tool==="pan"
+      ? "Trascina la mappa. Usa + e − per ingrandire."
+      : s.tool==="draw"
+        ? "Tocca gli angoli in ordine, poi Chiudi forma."
+        : "Seleziona una forma. Trascina i punti bianchi o il suo interno.";
 
- notice(
-  (E.base?"Tocca l'altezza della base dell'oggetto.":
-   E.tool==="pan"?"Trascina la mappa. Usa + e − per ingrandire.":
-   E.tool==="draw"?"Tocca gli angoli in ordine, poi Chiudi forma.":
-   "Seleziona una forma e trascina i punti bianchi.")+
-  (E.layer==="depth"?" Blu: contorno visivo. Giallo: base.":
-   " Rosso: ostacoli per i piedi.")+
-  (storageFailed?" Salvataggio non disponibile: esporta i dati.":"")
- );
+  notice(help+(s.layer==="depth"
+    ? " Blu: contorno visivo. Giallo: base."
+    : " Rosso: ostacoli. Arancione: NPC. Viola: veicoli.")+
+    (storageFailed?" Salvataggio non disponibile: esporta i dati.":""));
 }
 
-/* [EDITOR 02] APERTURA, ZOOM E STRUMENTI */
-
-function resizeEditor(fit=false){
- if(!E.open)return;
- ec.width=Math.max(1,$("editorView").clientWidth);
- ec.height=Math.max(1,$("editorView").clientHeight);
-
- if(fit){
-  E.scale=Math.min(ec.width/CONFIG.width,ec.height/CONFIG.height)*.97;
-  E.x=(ec.width-CONFIG.width*E.scale)/2;
-  E.y=(ec.height-CONFIG.height*E.scale)/2;
- }
- paintEditor();
+function resizeEditor(fit=false) {
+  if(!editor.open) return;
+  editorCanvas.width=Math.max(1,$("editorView").clientWidth);
+  editorCanvas.height=Math.max(1,$("editorView").clientHeight);
+  if(fit) {
+    editor.scale=Math.min(editorCanvas.width/CONFIG.width,
+      editorCanvas.height/CONFIG.height)*.97;
+    editor.x=(editorCanvas.width-CONFIG.width*editor.scale)/2;
+    editor.y=(editorCanvas.height-CONFIG.height*editor.scale)/2;
+  }
+  paintEditor();
 }
-
 new ResizeObserver(()=>resizeEditor()).observe($("editorView"));
 
-function editorZoom(f){
- const x=ec.width/2,y=ec.height/2;
- const wx=(x-E.x)/E.scale,wy=(y-E.y)/E.scale;
- E.scale=clamp(E.scale*f,.12,6);
- E.x=x-wx*E.scale;E.y=y-wy*E.scale;
- paintEditor();
+function zoomEditor(factor) {
+  const x=editorCanvas.width/2,y=editorCanvas.height/2;
+  const wx=(x-editor.x)/editor.scale,wy=(y-editor.y)/editor.scale;
+  editor.scale=clamp(editor.scale*factor,.12,6);
+  editor.x=x-wx*editor.scale; editor.y=y-wy*editor.scale;
+  paintEditor();
 }
 
+/* ==================== 23 · EDITOR: STRUMENTI ==================== */
 $("editorOpen").onclick=()=>{
- if(!ready||intro)return;
- resetInput();E.open=true;
- $("editor").hidden=false;game.inert=true;
- requestAnimationFrame(()=>resizeEditor(true));
+  if(!ready || intro) return;
+  resetInput(); editor.open=true; editor.drag=null;
+  $("editor").hidden=false; game.inert=true;
+  requestAnimationFrame(()=>resizeEditor(true));
 };
 
 $("editorClose").onclick=()=>{
- if(E.draft.length){
-  notice("Termina la forma o usa Annulla.");return;
- }
- if(!canStand(player.x,player.y)){
-  notice("Riccardo è dentro un ostacolo: correggi la forma.");return;
- }
- saveWorld();buildDepth();E.open=false;E.base=false;
- $("editor").hidden=true;game.inert=false;
- resetInput();lastTime=0;$("editorOpen").focus();
-};
-
-all("[data-layer]").forEach(b=>b.onclick=()=>{
- if(E.draft.length){notice("Termina prima la forma.");return;}
- E.layer=b.dataset.layer;E.selected=-1;E.base=false;
- paintEditor();
-});
-
-all("[data-tool]").forEach(b=>b.onclick=()=>{
- E.tool=b.dataset.tool;E.base=false;paintEditor();
-});
-
-$("editorPlus").onclick=()=>editorZoom(1.3);
-$("editorMinus").onclick=()=>editorZoom(1/1.3);
-$("editorFit").onclick=()=>resizeEditor(true);
-$("editorBase").onclick=()=>{
- if(E.layer==="depth"&&E.selected>=0){E.base=true;paintEditor();}
-};
-
-/* [EDITOR 03] VALIDAZIONE, CREAZIONE, ANNULLA ED ELIMINA */
-
-function shapeValid(p){
- if(!validPolygon(p))return false;
- const orient=(a,b,c)=>
-  (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
- let area=0;
-
- for(let i=0;i<p.length;i++){
-  const a=p[i],b=p[(i+1)%p.length];
-  area+=a[0]*b[1]-b[0]*a[1];
-  if(a[0]===b[0]&&a[1]===b[1])return false;
-
-  for(let j=i+1;j<p.length;j++){
-   if(j===i+1||(i===0&&j===p.length-1))continue;
-   const c=p[j],d=p[(j+1)%p.length];
-   const overlap=
-    Math.max(Math.min(a[0],b[0]),Math.min(c[0],d[0]))<=
-    Math.min(Math.max(a[0],b[0]),Math.max(c[0],d[0]))&&
-    Math.max(Math.min(a[1],b[1]),Math.min(c[1],d[1]))<=
-    Math.min(Math.max(a[1],b[1]),Math.max(c[1],d[1]));
-
-   if(overlap&&orient(a,b,c)*orient(a,b,d)<=0&&
-    orient(c,d,a)*orient(c,d,b)<=0)return false;
+  if(editor.draft.length) {
+    notice("Chiudi la forma oppure togli i punti con Annulla."); return;
   }
- }
- return Math.abs(area)/2>3;
+
+  // Se una modifica include Riccardo, cerca un punto libero vicino.
+  if(!canStand(player.x,player.y)) {
+    let found=false;
+    for(let radius=10;radius<=180 && !found;radius+=10) {
+      for(let angle=0;angle<Math.PI*2;angle+=Math.PI/12) {
+        const x=player.x+Math.cos(angle)*radius;
+        const y=player.y+Math.sin(angle)*radius;
+        if(canStand(x,y)) {
+          player.x=x; player.y=y; found=true; break;
+        }
+      }
+    }
+    if(!found) { notice("Libera un passaggio vicino al punto rosso."); return; }
+  }
+
+  saveWorld(); rebuildDepth();
+  editor.open=false; editor.base=false;
+  $("editor").hidden=true; game.inert=false;
+  resetInput(); lastTime=0; updateCamera();
+};
+
+document.querySelectorAll("[data-layer]").forEach(button=>{
+  button.onclick=()=>{
+    if(editor.draft.length) {
+      notice("Termina o annulla prima la forma in corso."); return;
+    }
+    editor.layer=button.dataset.layer;
+    editor.selected=-1; editor.base=false;
+    paintEditor();
+  };
+});
+document.querySelectorAll("[data-tool]").forEach(button=>{
+  button.onclick=()=>{
+    editor.tool=button.dataset.tool; editor.base=false; paintEditor();
+  };
+});
+$("editorPlus").onclick=()=>zoomEditor(1.3);
+$("editorMinus").onclick=()=>zoomEditor(1/1.3);
+$("editorFit").onclick=()=>resizeEditor(true);
+
+/* ==================== 24 · EDITOR: VALIDAZIONE ==================== */
+function shapeValid(p) {
+  if(!validPolygon(p)) return false;
+  const orient=(a,b,c)=>
+    (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+  let area=0;
+
+  for(let i=0;i<p.length;i++) {
+    const a=p[i],b=p[(i+1)%p.length];
+    area+=a[0]*b[1]-b[0]*a[1];
+    if(a[0]===b[0] && a[1]===b[1]) return false;
+
+    for(let j=i+1;j<p.length;j++) {
+      if(j===i+1 || (i===0 && j===p.length-1)) continue;
+      const c=p[j],d=p[(j+1)%p.length];
+      const overlap=
+        Math.max(Math.min(a[0],b[0]),Math.min(c[0],d[0]))<=
+        Math.min(Math.max(a[0],b[0]),Math.max(c[0],d[0])) &&
+        Math.max(Math.min(a[1],b[1]),Math.min(c[1],d[1]))<=
+        Math.min(Math.max(a[1],b[1]),Math.max(c[1],d[1]));
+
+      if(overlap &&
+        orient(a,b,c)*orient(a,b,d)<=0 &&
+        orient(c,d,a)*orient(c,d,b)<=0) return false;
+    }
+  }
+  return Math.abs(area)/2>3;
 }
 
 $("editorFinish").onclick=()=>{
- if(!shapeValid(E.draft)){
-  notice("Servono almeno tre punti e un contorno non incrociato.");return;
- }
- remember();
+  if(!shapeValid(editor.draft)) {
+    notice("Servono almeno tre punti, senza incroci nel contorno."); return;
+  }
+  remember();
 
- items().push(E.layer==="collision"?clone(E.draft):
-  zone(
-   "Oggetto "+(world.depth.length+1),
-   Math.max(...E.draft.map(p=>p[1])),
-   clone(E.draft)
-  )
- );
+  if(editor.layer==="collision") world.collisions.push(copy(editor.draft));
+  else world.depth.push({
+    name:"Oggetto "+(world.depth.length+1),
+    baseY:Math.max(...editor.draft.map(p=>p[1])),
+    polygon:copy(editor.draft)
+  });
 
- E.selected=items().length-1;E.draft=[];E.tool="edit";
- saveWorld();paintEditor();
+  editor.selected=editorItems().length-1;
+  editor.draft=[]; editor.tool="edit";
+  saveWorld(); paintEditor();
 };
 
+$("editorBase").onclick=()=>{
+  if(editor.layer!=="depth" || editor.selected<0) return;
+  editor.base=true; paintEditor();
+};
 $("editorUndo").onclick=()=>{
- E.base=false;
- if(E.draft.length)E.draft.pop();
- else if(E.history.length){
-  world=JSON.parse(E.history.pop());E.selected=-1;saveWorld();
- }
- paintEditor();
+  editor.base=false;
+  if(editor.draft.length) editor.draft.pop();
+  else if(editor.history.length) {
+    world=JSON.parse(editor.history.pop());
+    editor.selected=-1; saveWorld();
+  }
+  paintEditor();
 };
-
 $("editorDelete").onclick=()=>{
- if(E.selected<0)return;
- remember();items().splice(E.selected,1);
- E.selected=-1;E.base=false;saveWorld();paintEditor();
+  if(editor.selected<0) return;
+  remember(); editorItems().splice(editor.selected,1);
+  editor.selected=-1; editor.base=false;
+  saveWorld(); paintEditor();
 };
 
-/* [EDITOR 04] TOCCO E TRASCINAMENTO */
-
-function editorPoint(e){
- const r=ec.getBoundingClientRect();
- return{
-  x:(e.clientX-r.left)*ec.width/r.width,
-  y:(e.clientY-r.top)*ec.height/r.height
- };
-}
-
-function worldPoint(p){
- return[
-  Math.round(clamp((p.x-E.x)/E.scale,0,CONFIG.width)),
-  Math.round(clamp((p.y-E.y)/E.scale,0,CONFIG.height))
- ];
-}
-
-ec.onpointerdown=e=>{
- if(E.drag)return;
- e.preventDefault();ec.setPointerCapture(e.pointerId);
- const p=editorPoint(e),w=worldPoint(p);
-
- if(E.base&&E.selected>=0){
-  remember();world.depth[E.selected].baseY=w[1];
-  E.base=false;saveWorld();paintEditor();return;
- }
-
- if(E.tool==="draw"){
-  const prev=E.draft[E.draft.length-1];
-  if(!prev||Math.hypot(w[0]-prev[0],w[1]-prev[1])>2)E.draft.push(w);
-  paintEditor();return;
- }
-
- if(E.tool==="pan"){
-  E.drag={id:e.pointerId,kind:"pan",point:p,x:E.x,y:E.y};return;
- }
-
- if(E.selected>=0){
-  const vertex=polygon(items()[E.selected]).findIndex(v=>
-   Math.hypot(v[0]-w[0],v[1]-w[1])<16/E.scale
-  );
-  if(vertex>=0){
-   E.drag={
-    id:e.pointerId,kind:"vertex",vertex,
-    before:JSON.stringify(world)
-   };
-   return;
-  }
- }
-
- E.selected=-1;
- for(let i=items().length-1;i>=0;i--){
-  if(inside(w[0],w[1],polygon(items()[i]))){E.selected=i;break;}
- }
-
- if(E.selected>=0){
-  E.drag={
-   id:e.pointerId,kind:"shape",point:w,
-   original:clone(polygon(items()[E.selected])),
-   baseY:E.layer==="depth"?items()[E.selected].baseY:0,
-   before:JSON.stringify(world)
+/* ==================== 25 · EDITOR: TOCCO E TRASCINAMENTO ==================== */
+function screenPoint(event) {
+  const r=editorCanvas.getBoundingClientRect();
+  return {
+    x:(event.clientX-r.left)*editorCanvas.width/r.width,
+    y:(event.clientY-r.top)*editorCanvas.height/r.height
   };
- }
- paintEditor();
-};
-
-ec.onpointermove=e=>{
- const d=E.drag;
- if(!d||d.id!==e.pointerId)return;
- const p=editorPoint(e),w=worldPoint(p);
-
- if(d.kind==="pan"){
-  E.x=d.x+p.x-d.point.x;E.y=d.y+p.y-d.point.y;
- }else if(d.kind==="vertex"){
-  polygon(items()[E.selected])[d.vertex]=w;
- }else{
-  const xs=d.original.map(p=>p[0]),ys=d.original.map(p=>p[1]);
-  const dx=clamp(
-   w[0]-d.point[0],-Math.min(...xs),CONFIG.width-Math.max(...xs)
-  );
-  const dy=clamp(
-   w[1]-d.point[1],-Math.min(...ys),CONFIG.height-Math.max(...ys)
-  );
-  setPolygon(E.selected,d.original.map(p=>[p[0]+dx,p[1]+dy]));
-
-  if(E.layer==="depth"){
-   items()[E.selected].baseY=clamp(d.baseY+dy,0,CONFIG.height);
-  }
- }
- paintEditor();
-};
-
-function endDrag(e){
- const d=E.drag;
- if(!d||d.id!==e.pointerId)return;
- let invalid=false;
-
- if(d.before){
-  invalid=!shapeValid(polygon(items()[E.selected]));
-  if(e.type==="pointercancel"||invalid)world=JSON.parse(d.before);
-  else if(d.before!==JSON.stringify(world)){
-   remember(d.before);saveWorld();
-  }
- }
- E.drag=null;paintEditor();
- if(invalid)notice("Contorno non valido: modifica annullata.");
+}
+function worldPoint(p) {
+  return [
+    Math.round(clamp((p.x-editor.x)/editor.scale,0,CONFIG.width)),
+    Math.round(clamp((p.y-editor.y)/editor.scale,0,CONFIG.height))
+  ];
 }
 
-ec.onpointerup=endDrag;
-ec.onpointercancel=endDrag;
-ec.onlostpointercapture=endDrag;
+editorCanvas.onpointerdown=event=>{
+  if(editor.drag) return;
+  event.preventDefault();
+  editorCanvas.setPointerCapture(event.pointerId);
 
-/* [EDITOR 05] ESPORTAZIONE E COPIA */
+  const point=screenPoint(event),wp=worldPoint(point),s=editor;
 
+  if(s.base && s.selected>=0) {
+    remember(); world.depth[s.selected].baseY=wp[1]; s.base=false;
+    saveWorld(); paintEditor(); return;
+  }
+  if(s.tool==="draw") {
+    const previous=s.draft.at(-1);
+    if(!previous || Math.hypot(wp[0]-previous[0],wp[1]-previous[1])>2) {
+      s.draft.push(wp);
+    }
+    paintEditor(); return;
+  }
+  if(s.tool==="pan") {
+    s.drag={id:event.pointerId,kind:"pan",point,x:s.x,y:s.y}; return;
+  }
+
+  if(s.selected>=0) {
+    const p=itemPolygon(editorItems()[s.selected]);
+    const vertex=p.findIndex(v=>
+      Math.hypot(v[0]-wp[0],v[1]-wp[1])<16/s.scale
+    );
+    if(vertex>=0) {
+      s.drag={
+        id:event.pointerId,kind:"vertex",vertex,
+        before:JSON.stringify(world)
+      };
+      return;
+    }
+  }
+
+  s.selected=-1;
+  const items=editorItems();
+  for(let i=items.length-1;i>=0;i--) {
+    if(pointInPolygon(wp[0],wp[1],itemPolygon(items[i]))) {
+      s.selected=i; break;
+    }
+  }
+  if(s.selected>=0) {
+    s.drag={
+      id:event.pointerId,kind:"shape",point:wp,
+      original:copy(itemPolygon(items[s.selected])),
+      originalBase:s.layer==="depth"?items[s.selected].baseY:null,
+      before:JSON.stringify(world)
+    };
+  }
+  paintEditor();
+};
+
+editorCanvas.onpointermove=event=>{
+  const s=editor,d=s.drag;
+  if(!d || d.id!==event.pointerId) return;
+  const point=screenPoint(event),wp=worldPoint(point);
+
+  if(d.kind==="pan") {
+    s.x=d.x+point.x-d.point.x; s.y=d.y+point.y-d.point.y;
+  } else if(d.kind==="vertex") {
+    itemPolygon(editorItems()[s.selected])[d.vertex]=wp;
+  } else {
+    const xs=d.original.map(p=>p[0]),ys=d.original.map(p=>p[1]);
+    const dx=clamp(wp[0]-d.point[0],-Math.min(...xs),CONFIG.width-Math.max(...xs));
+    const dy=clamp(wp[1]-d.point[1],-Math.min(...ys),CONFIG.height-Math.max(...ys));
+    setPolygon(s.selected,d.original.map(p=>[p[0]+dx,p[1]+dy]));
+    if(s.layer==="depth") {
+      world.depth[s.selected].baseY=clamp(d.originalBase+dy,0,CONFIG.height);
+    }
+  }
+  paintEditor();
+};
+
+function finishDrag(event) {
+  const s=editor,d=s.drag;
+  if(!d || d.id!==event.pointerId) return;
+  let invalid=false;
+
+  if(d.before) {
+    invalid=!shapeValid(itemPolygon(editorItems()[s.selected]));
+    if(event.type==="pointercancel" || invalid) {
+      world=JSON.parse(d.before);
+    } else if(d.before!==JSON.stringify(world)) {
+      remember(d.before); saveWorld();
+    }
+  }
+  s.drag=null; paintEditor();
+  if(invalid) notice("Contorno non valido: modifica annullata.");
+}
+editorCanvas.onpointerup=finishDrag;
+editorCanvas.onpointercancel=finishDrag;
+editorCanvas.onlostpointercapture=finishDrag;
+
+/* ==================== 26 · ESPORTAZIONE ==================== */
 $("editorExport").onclick=()=>{
- if(E.draft.length){notice("Termina prima la forma.");return;}
- saveWorld();
- $("exportData").value=JSON.stringify({
-  map:CONFIG.map,version:DATA_VERSION,...world
- },null,2);
- $("exportPanel").hidden=false;
- $("exportCopy").textContent="Copia";
+  if(editor.draft.length) {
+    notice("Termina prima la forma in corso."); return;
+  }
+  saveWorld();
+  $("exportData").value=JSON.stringify({
+    map:CONFIG.map,version:VERSION,
+    collisions:world.collisions,depth:world.depth
+  },null,2);
+  $("exportPanel").hidden=false;
+  $("exportCopy").textContent="Copia";
 };
 
-$("exportCopy").onclick=async function(){
- try{
-  await navigator.clipboard.writeText($("exportData").value);
-  this.textContent="Copiato!";
- }catch(_){
-  $("exportData").focus();$("exportData").select();
-  this.textContent="Seleziona e copia il testo";
- }
+$("exportCopy").onclick=async function() {
+  try {
+    await navigator.clipboard.writeText($("exportData").value);
+    this.textContent="Copiato!";
+  } catch(_) {
+    $("exportData").focus(); $("exportData").select();
+    this.textContent="Seleziona e copia il testo";
+  }
 };
+$("exportClose").onclick=()=>{ $("exportPanel").hidden=true; };
 
-$("exportClose").onclick=()=>{$("exportPanel").hidden=true;};
+/* ==================== 27 · CARICAMENTO E AVVIO ==================== */
+let loadingMap=false;
 
-/* ================================================================
-   [BOOT 01] CARICAMENTO E AVVIO
-   ================================================================ */
+async function startGame(retry=false) {
+  if(loadingMap) return;
+  loadingMap=true; ready=false; resetInput();
+  $("loading").hidden=false;
+  $("loadingTitle").textContent="Loading Seoul…";
+  $("loadingText").textContent="Please wait.";
+  $("retryLoad").hidden=true;
 
-const actorsReady=loadActors();
-loadBuses();
+  try {
+    await new Promise((resolve,reject)=>{
+      mapImage.onload=resolve;
+      mapImage.onerror=reject;
+      mapImage.src=CONFIG.map+(retry?"?retry="+Date.now():"");
+    });
 
-Object.assign($("trainImage").style,{
- left:TRAIN.x+"px",top:TRAIN.y+"px",
- width:TRAIN.width+"px",height:TRAIN.height+"px"
-});
+    if(!startGame.assetsStarted) {
+      startGame.assetsStarted=true;
+      await Promise.all([loadCharacters(),loadVehicles()]);
+      setupTrain();
+    }
 
-$("trainImage").onerror=()=>{
- missing.add(TRAIN.file);$("trainImage").hidden=true;
-};
-$("trainImage").src=TRAIN.file;
+    rebuildDepth();
+    ready=true;
+    $("loading").hidden=true;
+    returnToStation();
+    resize();
+  } catch(_) {
+    $("loadingTitle").textContent="Unable to load the map";
+    $("loadingText").textContent=
+      "Controlla che la mappa sia nella stessa cartella di index.html.";
+    $("retryLoad").hidden=false;
+  } finally {
+    loadingMap=false;
+  }
+}
 
-mapImage.onload=async()=>{
- await actorsReady;
- ready=true;$("loading").hidden=true;
- buildDepth();resize();returnToStation();
-};
-
-mapImage.onerror=()=>{
- ready=false;resetInput();
- $("loading").hidden=false;
- $("loadingTitle").textContent="Unable to load the map";
- $("loadingText").textContent="Check the filename beside index.html.";
- $("retryLoad").hidden=false;
-};
-
-$("retryLoad").onclick=function(){
- $("loadingTitle").textContent="Loading Seoul…";
- $("loadingText").textContent="Please wait.";
- this.hidden=true;
- mapImage.src=CONFIG.map+"?retry="+Date.now();
-};
-
+$("retryLoad").onclick=()=>startGame(true);
 resize();
-mapImage.src=CONFIG.map;
+startGame();
 requestAnimationFrame(tick);
 </script>
 </body>
