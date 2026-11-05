@@ -36,20 +36,17 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #editorCanvas{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
 #exportPanel{position:absolute;inset:5%;z-index:2;display:flex;flex-direction:column;gap:10px;padding:15px;border:2px solid #ffda77;border-radius:10px;background:#10232dfc}
 #exportData{flex:1;min-height:80px;width:100%;resize:none;background:#071820;color:white;font:12px monospace;touch-action:pan-y;user-select:text}
-/* 05 · BALLOON COMUNI A TUTTI */
+/* 05 · BALLOON PNG E COMPARSA ANIMATA */
 #interactions{position:absolute;inset:0;z-index:7;pointer-events:none}
-.bubble{border:2px solid #27303a;border-radius:3px;background:#fffdf5;color:#20242a;box-shadow:3px 3px 0 #0005;font-family:Arial,"Noto Sans KR",sans-serif}
-.bubble::after{content:"";position:absolute;left:var(--tail,50%);bottom:-7px;width:11px;height:11px;background:#fffdf5;border-right:2px solid #27303a;border-bottom:2px solid #27303a;transform:translateX(-50%) rotate(45deg)}
-.marker{position:absolute;pointer-events:auto;min-width:44px;min-height:44px;padding:6px;transform:translate(-50%,-100%);background:transparent;border:0}
-.marker .bubble{position:relative;display:grid;place-items:center;width:32px;height:27px;font-size:21px;font-weight:bold;line-height:1;animation:float 1.4s ease-in-out infinite}
-.marker.object .bubble{color:#d52f3a;font-size:25px}
-@keyframes float{50%{transform:translateY(-3px)}}
-#speech{position:absolute;z-index:9;width:280px;max-width:calc(100% - 24px);padding:13px 15px 22px;min-height:60px;font-size:17px;line-height:1.5;text-align:left;overflow-wrap:anywhere;word-break:keep-all;touch-action:manipulation}
-#speech::before{content:"▼";position:absolute;right:9px;bottom:4px;font-size:9px;color:#56616b}
-#reaction{position:absolute;z-index:8;min-width:34px;padding:3px 9px;color:#d52f3a;font-size:28px;font-weight:bold;text-align:center;pointer-events:none;transform:translate(-50%,-100%)}
-#reaction:not([hidden]){animation:questionPop .2s ease-out}
-@keyframes questionPop{from{transform:translate(-50%,-85%) scale(.7)}to{transform:translate(-50%,-100%) scale(1)}}
-@media(prefers-reduced-motion:reduce){.marker .bubble,#reaction:not([hidden]){animation:none}}
+.marker{position:absolute;pointer-events:auto;width:48px;height:48px;min-width:48px;min-height:48px;padding:0;transform:translate(-50%,-100%);background:none;border:0;box-shadow:none}
+.marker img{display:block;width:48px;height:46px;object-fit:contain;image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 2px 1px #0003)}
+.appear{animation:balloonPop .24s cubic-bezier(.2,.8,.3,1.25) both}
+@keyframes balloonPop{0%{opacity:0;transform:translateY(7px) scale(.72)}75%{opacity:1;transform:translateY(-2px) scale(1.04)}100%{opacity:1;transform:translateY(0) scale(1)}}
+#speech{position:absolute;z-index:9;width:310px;max-width:calc(100% - 20px);min-height:116px;padding:5px 7px 17px;border-style:solid;border-color:transparent;border-width:14px 20px 24px;border-image-source:url("icons/Balloon_dialogo.png");border-image-slice:70 100 110 fill;border-image-width:14px 20px 24px;border-image-repeat:stretch;background:none;border-radius:0;box-shadow:none;color:#000;font-family:Arial,"Noto Sans KR",sans-serif;font-size:18px;font-weight:700;line-height:1.5;text-align:left;word-break:keep-all;overflow-wrap:anywhere;touch-action:manipulation;transform-origin:center bottom}
+#speechText{position:relative;z-index:1;color:#000;font-weight:700}
+#reaction{position:absolute;z-index:8;width:48px;height:46px;pointer-events:none;transform:translate(-50%,-100%)}
+#reaction img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+@media(prefers-reduced-motion:reduce){.appear{animation:none}}
 </style>
 </head>
 <body>
@@ -65,8 +62,8 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
   </div>
   <div id="sideControls"><button id="editorOpen">EDIT MAP</button><button id="zoomIn" aria-label="Ingrandisci">+</button><button id="zoomOut" aria-label="Riduci">−</button></div>
   <div id="interactions" aria-label="Interazioni vicine"></div>
-  <button id="speech" class="bubble" hidden aria-label="Continua conversazione"><span id="speechText"></span></button>
-  <div id="reaction" class="bubble" hidden>?</div>
+  <button id="speech" hidden aria-label="Continua conversazione"><span id="speechText"></span></button>
+  <div id="reaction" hidden><img id="reactionImage" src="icons/Balloon_interrogativo-1.png" alt="?"></div>
   <div id="joystick" hidden><div id="stick"></div></div>
   <div id="loading"><strong id="loadingTitle">Loading Seoul…</strong><p id="loadingText">Please wait.</p><button id="retryLoad" hidden>Retry</button></div>
 </main>
@@ -193,6 +190,21 @@ let nextBus=random(2,5),nextCar=random(1,4);
 const film={phase:"loading",time:0,anchor:{x:730,y:1360}};
 let dialogue=null,reactionTime=0,trainRun=0;
 const markerNodes=new Map();
+const UI_ASSETS={
+ dialogue:"icons/Balloon_dialogo.png",
+ exclamation:"icons/Balloon_esclamativo.png",
+ question:"icons/Balloon_interrogativo-1.png",
+ dots:"icons/Balloon_puntini.png"
+};
+function pop(element){element.classList.remove("appear");void element.offsetWidth;element.classList.add("appear");}
+function setVisible(element,show,animationTarget=element){
+ const newlyVisible=show&&element.hidden;element.hidden=!show;
+ if(newlyVisible)pop(animationTarget);
+}
+// Precarica le quattro immagini senza bloccare la mappa.
+for(const file of Object.values(UI_ASSETS)){
+ const image=new Image();image.onload=()=>missing.delete(file);image.onerror=()=>missing.add(file);image.src=file;
+}
 /* 11 · BATTUTE: NEL GIOCO SOLO COREANO, RICCARDO IN INGLESE */
 const NPC_LINES={
  "01_amico_piazzale":"우리끼리 얘기 중이잖아. 좀 비켜 줄래?",
@@ -454,7 +466,7 @@ function screenPosition(p){return{x:(p.x-camera.x)*zoom,y:(p.y-camera.y)*zoom};}
 function clearMarkers(){for(const b of markerNodes.values())b.hidden=true;}
 function openSpeech(lines,options={}){
  resetInput();reactionTime=0;dialogue={lines,index:0,type:options.type||"npc",target:options.target||null};
- $("speechText").textContent=lines[0];$("speech").hidden=false;clearMarkers();
+ $("speechText").textContent=lines[0];$("speech").hidden=false;pop($("speech"));clearMarkers();
 }
 function interact(t){
  if(!ready||intro||dialogue||editor.open||!nearTarget(t))return;
@@ -479,37 +491,67 @@ function closeDialogue(question=true){
 }
 function advanceSpeech(){
  if(!dialogue)return;
- if(dialogue.index+1<dialogue.lines.length){dialogue.index++;$("speechText").textContent=dialogue.lines[dialogue.index];}
+ if(dialogue.index+1<dialogue.lines.length){dialogue.index++;$("speechText").textContent=dialogue.lines[dialogue.index];pop($("speech"));}
  else closeDialogue();
  updateCamera();updateInteractionUI();
 }
-$("speech").addEventListener("click",e=>{e.stopPropagation();advanceSpeech();});
+// Durante un dialogo, un tocco ovunque avanza. Il gesto viene consumato:
+// niente levetta, doppio avanzamento o attivazione di pulsanti sottostanti.
+let dialogueGesture=null,suppressDialogClickUntil=0;
+window.addEventListener("pointerdown",e=>{
+ if(!dialogue||editor.open)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(dialogueGesture!==null||e.isPrimary===false)return;
+ dialogueGesture=e.pointerId;resetInput();
+},true);
+window.addEventListener("pointerup",e=>{
+ if(dialogueGesture===null)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(e.pointerId!==dialogueGesture)return;
+ dialogueGesture=null;suppressDialogClickUntil=performance.now()+450;advanceSpeech();
+},true);
+window.addEventListener("pointercancel",e=>{
+ if(dialogueGesture===null)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(e.pointerId===dialogueGesture){dialogueGesture=null;suppressDialogClickUntil=performance.now()+450;}
+},true);
+window.addEventListener("click",e=>{
+ if(performance.now()<suppressDialogClickUntil){e.preventDefault();e.stopImmediatePropagation();return;}
+ if(dialogue&&!editor.open){e.preventDefault();e.stopImmediatePropagation();advanceSpeech();}
+},true);
+window.addEventListener("blur",()=>{dialogueGesture=null;});
+window.addEventListener("keydown",e=>{
+ if(dialogue&&!editor.open&&["Enter"," "].includes(e.key)){
+  e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)advanceSpeech();
+ }
+},true);
 function updateInteractionUI(){
  if(!ready||editor.open){clearMarkers();$("speech").hidden=true;$("reaction").hidden=true;return;}
- clearMarkers();
+ const visible=new Set();
  if(!intro&&!dialogue){
   for(const t of allTargets()){
    if(!nearTarget(t))continue;let button=markerNodes.get(t.key);
    if(!button){
     button=document.createElement("button");button.className="marker"+(t.type==="sign"?" object":"");
-    const skin=document.createElement("span");skin.className="bubble";skin.textContent=t.type==="sign"?"!":"…";button.appendChild(skin);
+    const skin=document.createElement("img");skin.src=t.type==="sign"?UI_ASSETS.exclamation:UI_ASSETS.dots;skin.alt="";skin.draggable=false;button.appendChild(skin);button.hidden=true;
     button.setAttribute("aria-label",t.type==="sign"?"Esamina la mappa":t.dog?"Parla con il cane":"Parla con "+t.owner.name);
     button.addEventListener("click",e=>{e.stopPropagation();interact(t);});$("interactions").appendChild(button);markerNodes.set(t.key,button);
    }
-   const p=screenPosition(targetHead(t));button.hidden=p.x<0||p.x>viewWidth||p.y<0||p.y>viewHeight;
+   const p=screenPosition(targetHead(t));const show=p.x>=0&&p.x<=viewWidth&&p.y>=0&&p.y<=viewHeight;setVisible(button,show,button.firstElementChild);if(show)visible.add(t.key);
    button.style.left=p.x+"px";button.style.top=p.y+"px";
   }
  }
+ for(const [key,button] of markerNodes)if(!visible.has(key))button.hidden=true;
  if(dialogue){
   $("speech").hidden=false;
   const worldAnchor=dialogue.type==="npc"?targetHead(dialogue.target):{x:player.x,y:headY(player)};
-  const anchor=screenPosition(worldAnchor),bubble=$("speech"),w=Math.min(280,viewWidth-24);
+  const anchor=screenPosition(worldAnchor),bubble=$("speech"),w=Math.min(310,viewWidth-20);
   bubble.style.width=w+"px";const h=bubble.offsetHeight||90;
   const left=clamp(anchor.x-w/2,12,Math.max(12,viewWidth-w-12));
   bubble.style.left=left+"px";bubble.style.top=clamp(anchor.y-h-17,12,Math.max(12,viewHeight-h-12))+"px";
   bubble.style.setProperty("--tail",clamp(anchor.x-left,15,w-15)+"px");
  }else $("speech").hidden=true;
- const reaction=$("reaction");reaction.hidden=reactionTime<=0||!!dialogue||intro;
+ const reaction=$("reaction");setVisible(reaction,reactionTime>0&&!dialogue&&!intro,$("reactionImage"));
  if(!reaction.hidden){const p=screenPosition({x:player.x,y:headY(player)});reaction.style.left=p.x+"px";reaction.style.top=p.y+"px";reaction.style.opacity=Math.min(1,reactionTime/.3);}
 }
 function updateStatus(){
