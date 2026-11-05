@@ -2,35 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
 <meta
   name="viewport"
   content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
 >
-
 <meta name="theme-color" content="#162b35">
-
 <title>Tarai — RPG Prologue</title>
 
 <style>
-
 /* ================================================================
    [CSS 01] SCHERMO VERTICALE
    ================================================================ */
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body {
+html, body {
   margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: #0b161c;
-  font-family: Arial, sans-serif;
   color: white;
+  font-family: Arial, sans-serif;
 }
 
 body {
@@ -56,27 +49,33 @@ body {
   }
 }
 
-#world {
-  display: block;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
-  touch-action: none;
-}
-
 /* ================================================================
-   [CSS 02] SPRITE DI RICCARDO
+   [CSS 02] LIVELLI GRAFICI
 
-   Dimensioni e punto di appoggio vengono impostati dal JavaScript.
-   Le GIF rimangono immagini HTML per mantenere l'animazione.
+   0: mappa
+   1: Riccardo
+   2: parti degli oggetti che coprono Riccardo
+   4: interfaccia
    ================================================================ */
 
-#actorLayer {
+#world, #foreground, #actorLayer {
   position: absolute;
   inset: 0;
-  z-index: 2;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
+}
+
+#world {
+  z-index: 0;
+  image-rendering: pixelated;
+}
+
+#actorLayer { z-index: 1; }
+
+#foreground {
+  z-index: 2;
+  image-rendering: pixelated;
 }
 
 .actor-image {
@@ -92,8 +91,32 @@ body {
 }
 
 /* ================================================================
-   [CSS 03] INFORMAZIONI E PULSANTI
+   [CSS 03] PULSANTI E HUD
    ================================================================ */
+
+button {
+  min-width: 40px;
+  min-height: 42px;
+  padding: 8px;
+  border: 1px solid #9bbbc7aa;
+  border-radius: 8px;
+  background: #102631ed;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible {
+  outline: 3px solid #f7d580;
+}
+
+button.active, button.pressed {
+  background: #61704c;
+  border-color: #ffdf80;
+}
 
 #hud {
   position: absolute;
@@ -113,46 +136,23 @@ body {
   border: 1px solid #a0c4cc66;
   border-radius: 8px;
   background: #102631e8;
-  box-shadow: 0 3px 12px #0004;
   line-height: 1.4;
 }
 
 .eyebrow {
   color: #f6d78e;
   font-size: 10px;
-  font-weight: bold;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
 }
 
-#objective {
-  margin-top: 3px;
-  font-size: 12px;
-}
+#objective { font-size: 12px; }
 
 #status {
-  margin-top: 3px;
-  max-width: 235px;
+  max-width: 230px;
+  margin-top: 4px;
   color: #b9d4dc;
   font-size: 10px;
   overflow-wrap: anywhere;
-}
-
-button {
-  min-width: 42px;
-  min-height: 42px;
-  border: 1px solid #9bbbc7aa;
-  border-radius: 8px;
-  background: #102631e8;
-  color: #f2f7f9;
-  font: inherit;
-  cursor: pointer;
-  touch-action: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-button:focus-visible {
-  outline: 3px solid #f7d580;
-  outline-offset: 2px;
 }
 
 #resetButton {
@@ -161,72 +161,63 @@ button:focus-visible {
 }
 
 /* ================================================================
-   [CSS 04] JOYSTICK E ZOOM
+   [CSS 04] CROCE DIREZIONALE
    ================================================================ */
 
 #controls {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: max(18px, env(safe-area-inset-bottom));
-  height: 134px;
+  inset: 0;
   z-index: 4;
   pointer-events: none;
 }
 
-#joystick {
+#dpad {
   position: absolute;
-  left: 18px;
-  bottom: 0;
-  width: 124px;
-  height: 124px;
-  border: 2px solid #e5f1f57a;
-  border-radius: 50%;
-  background: #132f3b70;
-  box-shadow: 0 2px 15px #0005;
-  pointer-events: auto;
-  touch-action: none;
-  user-select: none;
-}
-
-#joystick::before {
-  content: "✥";
-  position: absolute;
-  inset: 0;
+  left: 16px;
+  bottom: max(20px, env(safe-area-inset-bottom));
   display: grid;
-  place-items: center;
-  color: #d5e9ee44;
-  font-size: 78px;
-}
-
-#stick {
-  position: absolute;
-  left: 38px;
-  top: 38px;
-  width: 44px;
-  height: 44px;
-  border: 2px solid #fff9;
-  border-radius: 50%;
-  background: #dfedf0b8;
-  box-shadow: 0 2px 6px #0005;
-  pointer-events: none;
-}
-
-#zoomControls {
-  position: absolute;
-  right: 16px;
-  bottom: 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 3px;
   pointer-events: auto;
 }
 
-#zoomControls button {
-  width: 44px;
-  height: 44px;
+#dpad button {
+  padding: 0;
   font-size: 24px;
 }
+
+#dpad [data-direction="up"] {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+#dpad [data-direction="left"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#dpad [data-direction="right"] {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+#dpad [data-direction="down"] {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+#sideControls {
+  position: absolute;
+  right: 12px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: auto;
+}
+
+#sideControls button { font-size: 12px; }
 
 /* ================================================================
    [CSS 05] CARICAMENTO
@@ -236,46 +227,107 @@ button:focus-visible {
   position: absolute;
   inset: 0;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 30px;
+  display: grid;
+  place-content: center;
+  padding: 25px;
   background: #162b35;
   text-align: center;
 }
 
-#loading[hidden] {
-  display: none;
+#loading p { font-size: 13px; }
+
+[hidden] { display: none !important; }
+
+/* ================================================================
+   [CSS 06] EDITOR
+   ================================================================ */
+
+#editor {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: #10232d;
+  font-size: 12px;
 }
 
-#loading p {
-  color: #d4e1e6;
-  font-size: 13px;
-  line-height: 1.6;
+#editorToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 7px;
 }
 
+#editorToolbar button {
+  padding: 6px;
+  min-height: 38px;
+  font-size: 11px;
+}
+
+#editorHint {
+  padding: 8px;
+  min-height: 48px;
+  background: #203c49;
+  line-height: 1.4;
+}
+
+#editorView {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#editorCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  image-rendering: pixelated;
+}
+
+#exportPanel {
+  position: absolute;
+  inset: 5%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px;
+  border: 2px solid #ffda77;
+  border-radius: 10px;
+  background: #10232dfc;
+}
+
+#exportData {
+  flex: 1;
+  min-height: 80px;
+  width: 100%;
+  background: #071820;
+  color: white;
+  font: 12px monospace;
+  resize: none;
+  touch-action: pan-y;
+}
 </style>
 </head>
 
 <body>
 
 <!-- =============================================================
-     [HTML 01] MAPPA E PERSONAGGIO
+     [HTML 01] GIOCO
      ============================================================= -->
 
 <main id="game">
 
-  <canvas
-    id="world"
-    aria-label="Explore using the joystick, arrow keys or WASD"
-  ></canvas>
+  <canvas id="world" aria-label="Seoul map"></canvas>
 
   <div id="actorLayer" aria-hidden="true"></div>
 
-  <!-- [HTML 02] INFORMAZIONI -->
+  <canvas id="foreground" aria-hidden="true"></canvas>
 
   <div id="hud">
-
     <div class="panel">
       <div class="eyebrow">PROLOGUE · SEOUL</div>
       <div id="objective">Find the Job Center</div>
@@ -288,357 +340,402 @@ button:focus-visible {
       id="resetButton"
       type="button"
       aria-label="Return to station"
-      title="Return to station"
     >↺</button>
-
   </div>
-
-  <!-- [HTML 03] COMANDI -->
 
   <div id="controls">
 
-    <div
-      id="joystick"
-      role="group"
-      aria-label="Movement joystick"
-    >
-      <div id="stick"></div>
+    <div id="dpad" role="group" aria-label="Movement">
+      <button data-direction="up" aria-label="Up">↑</button>
+      <button data-direction="left" aria-label="Left">←</button>
+      <button data-direction="right" aria-label="Right">→</button>
+      <button data-direction="down" aria-label="Down">↓</button>
     </div>
 
-    <div id="zoomControls">
-      <button
-        id="zoomIn"
-        type="button"
-        aria-label="Zoom in"
-      >+</button>
-
-      <button
-        id="zoomOut"
-        type="button"
-        aria-label="Zoom out"
-      >−</button>
+    <div id="sideControls">
+      <button id="editorOpen">EDIT MAP</button>
+      <button id="zoomIn" aria-label="Zoom in">+</button>
+      <button id="zoomOut" aria-label="Zoom out">−</button>
     </div>
 
   </div>
 
-  <!-- [HTML 04] CARICAMENTO -->
-
   <div id="loading">
-    <div>
-      <strong id="loadingTitle">Loading Seoul…</strong>
-      <p id="loadingText">Please wait.</p>
-      <button id="retryLoad" type="button" hidden>
-        Retry
-      </button>
-    </div>
+    <strong id="loadingTitle">Loading Seoul…</strong>
+    <p id="loadingText">Please wait.</p>
+    <button id="retryLoad" hidden>Retry</button>
   </div>
 
 </main>
+
+<!-- =============================================================
+     [HTML 02] EDITOR COLLISIONI E PROFONDITÀ
+     ============================================================= -->
+
+<section
+  id="editor"
+  hidden
+  role="dialog"
+  aria-modal="true"
+  aria-label="Map editor"
+>
+
+  <div id="editorToolbar">
+
+    <button data-layer="collision">Collisioni</button>
+    <button data-layer="depth">Profondità</button>
+
+    <button data-tool="pan">Sposta mappa</button>
+    <button data-tool="edit">Modifica</button>
+    <button data-tool="draw">Nuova forma</button>
+
+    <button id="editorFinish">Chiudi forma</button>
+    <button id="editorBase">Imposta base</button>
+
+    <button id="editorUndo">Annulla</button>
+    <button id="editorDelete">Elimina</button>
+
+    <button id="editorPlus">+</button>
+    <button id="editorMinus">−</button>
+    <button id="editorFit">Mappa intera</button>
+
+    <button id="editorExport">Copia dati</button>
+    <button id="editorClose">Gioca</button>
+
+  </div>
+
+  <div id="editorHint"></div>
+
+  <div id="editorView">
+    <canvas id="editorCanvas"></canvas>
+  </div>
+
+  <div id="exportPanel" hidden>
+    <strong>Dati aggiornati della mappa</strong>
+
+    <div>
+      Copia tutto e mandamelo per integrarli nel codice.
+      Il salvataggio nel browser non aggiorna GitHub.
+    </div>
+
+    <textarea id="exportData" readonly></textarea>
+
+    <button id="exportCopy">Copia</button>
+    <button id="exportClose">Indietro</button>
+  </div>
+
+</section>
 
 <script>
 "use strict";
 
 /* ================================================================
-   [CONFIG 01] MAPPA E MOVIMENTO
-   Coordinate della mappa: 1024 × 1536.
+   [CONFIG 01] MAPPA, VELOCITÀ E DIMENSIONE DI RICCARDO
    ================================================================ */
 
 const CONFIG = {
+  map: "file_00000000b7408209868184cc07238f4e.png",
 
-  map:
-    "https://i.ibb.co/vCkKyDnG/file-000000001d2c82119d2853d5d3b5152a.png",
+  width: 1024,
+  height: 1536,
 
-  referenceWidth: 1024,
-  referenceHeight: 1536,
-
-  start: {
-    x: 512,
-    y: 448
-  },
+  start: { x: 512, y: 448 },
 
   speed: 135,
-  collisionRadius: 5,
+  radius: 5,
+
+  spriteHeight: 54,
 
   zoom: 1.35,
   minZoom: 0.7,
   maxZoom: 2.8,
 
   collisions: true,
-  debug: false
-
+  depth: true
 };
 
 /* ================================================================
-   [CONFIG 02] DIMENSIONE DI RICCARDO
+   [CONFIG 02] SPRITE E GIF
 
-   Cambia height per ingrandire o rimpicciolire TUTTE le pose.
-   Il valore è riferito alla mappa, prima dello zoom.
-
-   ground: punto dei piedi dentro l'immagine.
-   1 = bordo inferiore.
-   0.974 = piedi poco sopra il bordo inferiore.
-
-   scale: correzione facoltativa della singola immagine.
-   offsetX / offsetY: correzione della singola posa sulla mappa.
+   ground = altezza del punto dei piedi nell'immagine.
+   scale = correzione facoltativa per la singola posa.
    ================================================================ */
 
-const RICCARDO = {
+function sprite(file, ground = 0.974, scale = 1) {
+  return { file, ground, scale };
+}
 
-  height: 54,
-
+const SPRITES = {
   idle: {
-
-    right: {
-      file: "Riccardo_fermo_destra.png",
-      ground: 341 / 350,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    },
-
-    down: {
-      file: "Riccardo_fermo_giu.png",
-      ground: 341 / 350,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    },
-
-    left: {
-      file: "Riccardo_fermo_sinistra.png",
-      ground: 341 / 350,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    },
-
-    up: {
-      file: "Riccardo_fermo_su.png",
-      ground: 341 / 350,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    }
-
+    down: sprite("Riccardo_fermo_giu.png"),
+    up: sprite("Riccardo_fermo_su.png"),
+    right: sprite("Riccardo_fermo_destra.png"),
+    left: sprite("Riccardo_fermo_sinistra.png")
   },
 
   walk: {
-
-    right: {
-      file: "Riccardo_camminata_destra.gif",
-      ground: 0.974,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    },
-
-    down: {
-      file: "file_0000000005dc8230b315715b4e8d1917.gif",
-      ground: 0.974,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    },
-
-    left: {
-      file: "Riccardo_camminata_sinistra.gif",
-      ground: 0.974,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    },
-
-    up: {
-      file: "Riccardo_camminata_su-1.gif",
-      ground: 0.974,
-      scale: 1,
-      offsetX: 0,
-      offsetY: 0
-    }
-
+    down: sprite("file_0000000005dc8230b315715b4e8d1917.gif"),
+    up: sprite("Riccardo_camminata_su-1.gif"),
+    right: sprite("Riccardo_camminata_destra.gif"),
+    left: sprite("Riccardo_camminata_sinistra.gif")
   }
-
 };
 
 /* ================================================================
-   [MAP 01] COLLISIONI DEFINITIVE
+   [DATA 01] LE TUE 43 COLLISIONI AGGIORNATE
 
-   Questi poligoni sostituiscono le vecchie zone WALKABLE
-   e i vecchi rettangoli OBSTACLES.
+   Coordinate sulla mappa 1024 × 1536.
    ================================================================ */
 
-const VERSIONE_COLLISIONI = "seoul-2026-11-04-01";
-
-const COLLISION_STORAGE = "tarai-seoul-collisions-v2";
-
-const COLLISIONI_DEFINITIVE = [
-
+const DEFAULT_COLLISIONS = [
   [[0,0],[1024,0],[1024,385],[0,385]],
   [[0,385],[98,385],[98,591],[0,591]],
   [[976,394],[1024,385],[1024,591],[991,566]],
   [[98,385],[133,385],[133,486],[98,486]],
-
   [[170,434],[255,436],[254,492],[173,495]],
   [[768,436],[870,432],[868,492],[767,496]],
-
   [[167,518],[289,513],[289,557],[164,554]],
   [[721,517],[871,516],[878,556],[722,555]],
-
   [[887,448],[896,448],[896,493],[887,493]],
   [[909,448],[918,448],[918,493],[909,493]],
-
   [[301,563],[313,563],[313,577],[301,577]],
   [[717,563],[729,563],[729,577],[717,577]],
-
   [[331,541],[346,541],[346,574],[331,574]],
   [[391,541],[406,541],[406,574],[391,574]],
   [[451,541],[466,541],[466,574],[451,574]],
   [[565,541],[580,541],[580,574],[565,574]],
   [[625,541],[640,541],[640,574],[625,574]],
   [[685,541],[700,541],[700,574],[685,574]],
-
   [[0,596],[433,596],[433,733],[0,733]],
   [[585,599],[1002,592],[997,719],[588,715]],
-
   [[0,759],[384,755],[386,1086],[0,1086]],
   [[0,1111],[380,1111],[376,1479],[0,1479]],
-
-  [[553,783],[1024,761],[1020,1062],[556,1062]],
-
+  [[553,783],[1024,761],[1014,1089],[548,1085]],
   [[382,874],[448,874],[435,955],[385,950]],
-
   [[525,1056],[551,1056],[551,1083],[525,1083]],
   [[600,1097],[626,1097],[626,1115],[600,1115]],
-
   [
-    [550,1193],
-    [595,1193],
-    [595,1180],
-    [1024,1180],
-    [1024,1465],
-    [805,1465],
-    [805,1420],
-    [710,1420],
-    [710,1465],
-    [550,1465]
+    [550,1192],[595,1192],[595,1179],[1024,1179],
+    [1024,1464],[805,1464],[769,1457],[733,1458],
+    [710,1464],[550,1464]
   ],
-
   [[548,1435],[685,1435],[685,1470],[548,1470]],
   [[835,1435],[1024,1435],[1024,1470],[835,1470]],
-
   [[174,1430],[327,1430],[327,1480],[174,1480]],
   [[358,1432],[378,1432],[378,1470],[358,1470]],
-
   [[554,1017],[528,1018],[527,959],[552,958]],
-
-  [
-    [926,493],
-    [929,460],
-    [927,452],
-    [941,452],
-    [938,495],
-    [927,493]
-  ],
-
+  [[926,493],[929,460],[927,452],[941,452],[938,495],[927,493]],
   [[946,493],[948,456],[958,452],[958,494],[949,494]],
   [[967,457],[968,495],[965,492],[961,457]],
-
   [[534,1350],[498,1348],[503,1408],[536,1407]],
   [[552,1483],[509,1480],[521,1446],[554,1430]],
-
   [[297,549],[296,532],[309,531],[312,553]],
-
   [[190,1087],[191,1112],[0,1111],[0,1088]],
-
   [[944,1161],[947,1123],[1014,1125],[1012,1160]],
-
   [[385,1084],[410,1089],[410,1018],[385,1012]],
-
-  [[983,1532],[986,1480],[987,1474],[1024,1472]]
-
+  [[983,1532],[986,1480],[987,1474],[1024,1472]],
+  [[942,1096],[1020,1094],[1020,1135],[948,1122]]
 ];
 
 /* ================================================================
-   [MAP 02] RECUPERO DELLE COLLISIONI SALVATE
+   [DATA 02] ZONE DI PROFONDITÀ INIZIALI
 
-   Conserva gli eventuali ritocchi fatti nell'editor
-   per questa stessa versione delle collisioni.
+   polygon: contorno VISIVO dell'oggetto.
+   baseY: coordinata verticale della sua base.
+
+   Se i piedi di Riccardo sono sopra baseY, questa zona
+   viene ridisegnata davanti a lui.
+
+   Le zone possono essere corrette nell'editor.
    ================================================================ */
 
-function validCollisionData(data) {
+function rect(x, y, w, h) {
+  return [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+}
 
+function depthZone(name, baseY, polygon) {
+  return { name, baseY, polygon };
+}
+
+const DEFAULT_DEPTH = [
+
+  depthZone("Lampione stazione sinistro", 551, [
+    [296,550],[296,414],[299,408],[326,405],
+    [331,411],[328,418],[307,420],[307,550]
+  ]),
+
+  depthZone("Lampione stazione destro", 551, [
+    [713,550],[713,416],[716,409],[742,406],
+    [747,412],[744,418],[724,421],[724,550]
+  ]),
+
+  depthZone("Albero stazione sinistro", 489, [
+    [143,358],[150,333],[176,319],[188,304],
+    [216,308],[231,321],[250,330],[253,354],
+    [270,367],[257,393],[234,410],[220,423],
+    [217,457],[240,463],[245,489],
+    [175,489],[177,460],[199,455],[199,420],
+    [179,409],[157,392],[146,375]
+  ]),
+
+  depthZone("Albero stazione destro", 489, [
+    [755,355],[764,331],[790,313],[816,307],
+    [838,320],[860,329],[865,350],[881,366],
+    [868,392],[850,408],[831,424],[828,456],
+    [851,463],[857,489],[784,489],[786,461],
+    [809,455],[808,422],[786,412],[766,393]
+  ]),
+
+  depthZone("Panchina sinistra", 551, rect(236,519,52,32)),
+  depthZone("Panchina destra", 551, rect(747,519,50,32)),
+
+  depthZone("Fioriera sinistra", 557, rect(164,514,70,43)),
+  depthZone("Fioriera destra", 557, rect(797,513,72,44)),
+
+  depthZone("Lampione attraversamento sinistro", 743, [
+    [372,742],[372,635],[376,626],[393,620],
+    [409,619],[414,625],[411,632],[384,637],
+    [384,742]
+  ]),
+
+  depthZone("Lampione attraversamento destro", 743, [
+    [615,742],[615,637],[611,632],[614,625],
+    [628,625],[644,631],[648,639],[642,644],
+    [627,640],[627,742]
+  ]),
+
+  depthZone("Albero strada sinistro", 725, [
+    [17,584],[28,569],[42,574],[55,567],
+    [78,574],[91,590],[104,609],[99,631],
+    [80,647],[69,650],[65,706],[89,710],
+    [89,725],[37,725],[38,708],[53,706],
+    [54,650],[34,641],[18,623],[13,603]
+  ]),
+
+  depthZone("Albero strada destro", 725, [
+    [911,588],[925,571],[944,571],[962,556],
+    [978,574],[995,576],[1011,595],[1014,616],
+    [999,639],[978,650],[977,706],[995,711],
+    [996,725],[942,725],[943,709],[963,706],
+    [963,651],[942,646],[922,628]
+  ]),
+
+  depthZone("Palo elettrico", 1117, [
+    [602,1116],[600,836],[585,829],[585,817],
+    [576,817],[576,803],[592,803],[592,784],
+    [573,782],[573,770],[603,770],[603,753],
+    [622,753],[623,771],[636,773],[636,786],
+    [621,787],[621,805],[630,805],[630,833],
+    [620,837],[622,1116]
+  ]),
+
+  depthZone("Fioriera MART", 1091, rect(377,1023,37,68)),
+  depthZone("Fioriera GIMBAP", 1089, rect(526,1013,31,76)),
+
+  depthZone("Edificio MART", 1086, [
+    [0,743],[192,743],[192,766],[371,766],
+    [386,790],[386,1086],[0,1086]
+  ]),
+
+  depthZone("Edifici GIMBAP e farmacia", 1089, [
+    [553,786],[789,786],[789,758],[936,758],
+    [936,746],[1024,746],[1024,1089],[548,1085]
+  ]),
+
+  depthZone("Edifici REAL ESTATE", 1479, [
+    [0,1056],[190,1056],[190,1106],[345,1106],
+    [376,1130],[376,1479],[0,1479]
+  ]),
+
+  depthZone("Edificio JOB CENTER", 1464, [
+    [550,1192],[595,1192],[595,1179],[936,1179],
+    [936,1149],[1024,1149],[1024,1464],
+    [805,1464],[769,1457],[733,1458],
+    [710,1464],[550,1464]
+  ])
+];
+
+/* ================================================================
+   [DATA 03] SALVATAGGIO E VERSIONE
+
+   Nuova chiave: non importa collisioni obsolete dal vecchio file.
+   Modifica la versione quando distribuisci nuovi dati definitivi.
+   ================================================================ */
+
+const DATA_VERSION = "seoul-depth-2026-11-05-01";
+const STORAGE_KEY = "tarai-rpg-world-v3";
+
+const clone = value => JSON.parse(JSON.stringify(value));
+
+function validPolygon(p) {
   return (
-    Array.isArray(data) &&
-    data.length > 0 &&
-    data.every(polygon =>
-      Array.isArray(polygon) &&
-      polygon.length >= 3 &&
-      polygon.every(point =>
-        Array.isArray(point) &&
-        point.length === 2 &&
-        point.every(Number.isFinite)
-      )
+    Array.isArray(p) && p.length >= 3 &&
+    p.every(v =>
+      Array.isArray(v) && v.length === 2 &&
+      v.every(Number.isFinite)
     )
   );
-
 }
 
-function loadCollisions() {
-
-  const defaults = COLLISIONI_DEFINITIVE.map(
-    polygon => polygon.map(point => [...point])
+function validWorld(data) {
+  return (
+    data &&
+    Array.isArray(data.collisions) &&
+    data.collisions.every(validPolygon) &&
+    Array.isArray(data.depth) &&
+    data.depth.every(zone =>
+      zone &&
+      Number.isFinite(zone.baseY) &&
+      validPolygon(zone.polygon)
+    )
   );
-
-  try {
-
-    const version = localStorage.getItem(
-      "tarai-collision-release"
-    );
-
-    const saved = JSON.parse(
-      localStorage.getItem(COLLISION_STORAGE)
-    );
-
-    if (
-      version === VERSIONE_COLLISIONI &&
-      validCollisionData(saved)
-    ) {
-      return saved;
-    }
-
-    localStorage.setItem(
-      COLLISION_STORAGE,
-      JSON.stringify(defaults)
-    );
-
-    localStorage.setItem(
-      "tarai-collision-release",
-      VERSIONE_COLLISIONI
-    );
-
-  } catch (_) {}
-
-  return defaults;
-
 }
 
-let colliderPolygons = loadCollisions();
+let world = {
+  collisions: clone(DEFAULT_COLLISIONS),
+  depth: clone(DEFAULT_DEPTH)
+};
+
+try {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+
+  if (
+    saved &&
+    saved.version === DATA_VERSION &&
+    validWorld(saved.world)
+  ) {
+    world = saved.world;
+  }
+} catch (_) {}
+
+let storageFailed = false;
+
+function saveWorld() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: DATA_VERSION,
+      world
+    }));
+    storageFailed = false;
+  } catch (_) {
+    storageFailed = true;
+  }
+}
 
 /* ================================================================
    [JS 01] ELEMENTI E STATO
    ================================================================ */
 
-const game = document.getElementById("game");
-const canvas = document.getElementById("world");
+const $ = id => document.getElementById(id);
+
+const game = $("game");
+const canvas = $("world");
+const foreground = $("foreground");
+
 const ctx = canvas.getContext("2d");
+const frontCtx = foreground.getContext("2d");
 
-const actorLayer = document.getElementById("actorLayer");
-const loading = document.getElementById("loading");
-const statusText = document.getElementById("status");
-
-const joystick = document.getElementById("joystick");
-const stick = document.getElementById("stick");
-
+const actorLayer = $("actorLayer");
 const mapImage = new Image();
 
 const player = {
@@ -648,259 +745,72 @@ const player = {
   moving: false
 };
 
-const camera = {
-  x: 0,
-  y: 0
-};
+const camera = { x: 0, y: 0 };
 
-const keys = new Set();
-
-const analog = {
-  x: 0,
-  y: 0
-};
-
-const actorAssets = {
-  idle: {},
-  walk: {}
-};
-
+const assets = { idle: {}, walk: {} };
 const failedAssets = new Set();
 
 let activeAsset = null;
 let ready = false;
-let lastTime = 0;
 let viewWidth = 1;
 let viewHeight = 1;
-let joystickPointer = null;
+let density = 1;
+let lastTime = 0;
+let gameZoom = CONFIG.zoom;
 
-function clamp(value, minimum, maximum) {
-
-  return Math.max(
-    minimum,
-    Math.min(maximum, value)
-  );
-
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
 }
 
 /* ================================================================
-   [JS 02] CARICAMENTO DELLE OTTO POSE
-
-   Ogni file viene caricato una volta sola.
-   Non cambiamo continuamente src durante il movimento.
+   [JS 02] CARICAMENTO DELLE OTTO IMMAGINI
    ================================================================ */
 
-function loadActorAssets() {
+for (const mode of ["idle", "walk"]) {
+  for (const direction of ["down", "up", "left", "right"]) {
 
-  for (const mode of ["idle", "walk"]) {
+    const settings = SPRITES[mode][direction];
+    const image = new Image();
+    const asset = { image, settings, loaded: false };
 
-    for (const direction of ["down", "up", "right", "left"]) {
+    image.className = "actor-image";
+    image.alt = "";
+    image.draggable = false;
 
-      const settings = RICCARDO[mode][direction];
+    image.onload = () => {
+      asset.loaded = true;
+      failedAssets.delete(settings.file);
+    };
 
-      const image = new Image();
+    image.onerror = () => {
+      asset.loaded = false;
+      failedAssets.add(settings.file);
+    };
 
-      const asset = {
-        image,
-        settings,
-        loaded: false
-      };
+    assets[mode][direction] = asset;
+    actorLayer.appendChild(image);
 
-      image.className = "actor-image";
-      image.alt = "";
-      image.draggable = false;
-
-      image.onload = function() {
-
-        asset.loaded = true;
-
-        failedAssets.delete(settings.file);
-
-      };
-
-      image.onerror = function() {
-
-        asset.loaded = false;
-
-        failedAssets.add(settings.file);
-
-      };
-
-      actorAssets[mode][direction] = asset;
-
-      actorLayer.appendChild(image);
-
-      image.src = settings.file;
-
-    }
-
+    image.src = settings.file;
   }
-
 }
 
-function selectActorAsset() {
-
+function getActorAsset() {
   const mode = player.moving ? "walk" : "idle";
 
-  const requested = actorAssets[mode][player.direction];
+  const candidates = [
+    assets[mode][player.direction],
+    assets.idle[player.direction],
+    assets.idle.down
+  ];
 
-  if (requested && requested.loaded) {
-    return requested;
-  }
-
-  // Se una GIF manca, prova la posa ferma della stessa direzione.
-
-  const sameDirection = actorAssets.idle[player.direction];
-
-  if (sameDirection && sameDirection.loaded) {
-    return sameDirection;
-  }
-
-  // Ultima alternativa: una delle pose ferme disponibili.
-
-  for (const direction of ["down", "up", "right", "left"]) {
-
-    const asset = actorAssets.idle[direction];
-
-    if (asset && asset.loaded) {
-      return asset;
-    }
-
-  }
-
-  return null;
-
+  return candidates.find(asset => asset.loaded) || null;
 }
 
 /* ================================================================
-   [JS 03] POSIZIONE DELLO SPRITE SOPRA LA MAPPA
-
-   player.x e player.y rappresentano il punto dei piedi.
-   La larghezza mantiene le proporzioni originali del file.
-   ================================================================ */
-
-function drawActor() {
-
-  const asset = selectActorAsset();
-
-  if (activeAsset !== asset) {
-
-    if (activeAsset) {
-      activeAsset.image.style.display = "none";
-    }
-
-    activeAsset = asset;
-
-    if (activeAsset) {
-      activeAsset.image.style.display = "block";
-    }
-
-  }
-
-  if (!asset) {
-    return;
-  }
-
-  const settings = asset.settings;
-
-  const screenX = (
-    player.x +
-    settings.offsetX -
-    camera.x
-  ) * CONFIG.zoom;
-
-  const screenY = (
-    player.y +
-    settings.offsetY -
-    camera.y
-  ) * CONFIG.zoom;
-
-  const height = (
-    RICCARDO.height *
-    settings.scale *
-    CONFIG.zoom
-  );
-
-  asset.image.style.height = height + "px";
-
-  asset.image.style.left = Math.round(screenX) + "px";
-
-  asset.image.style.top = Math.round(screenY) + "px";
-
-  asset.image.style.transform =
-    "translate(-50%, -" +
-    (settings.ground * 100) +
-    "%)";
-
-}
-
-/* ================================================================
-   [JS 04] RIDIMENSIONAMENTO
-   ================================================================ */
-
-function resize() {
-
-  const rect = game.getBoundingClientRect();
-
-  viewWidth = Math.max(1, rect.width);
-  viewHeight = Math.max(1, rect.height);
-
-  const density = Math.min(
-    window.devicePixelRatio || 1,
-    2
-  );
-
-  canvas.width = Math.round(viewWidth * density);
-  canvas.height = Math.round(viewHeight * density);
-
-  ctx.setTransform(density, 0, 0, density, 0, 0);
-
-  ctx.imageSmoothingEnabled = false;
-
-  if (ready) {
-    updateCamera();
-    draw();
-  }
-
-}
-
-new ResizeObserver(resize).observe(game);
-
-window.addEventListener("resize", resize);
-
-/* ================================================================
-   [JS 05] ZOOM DELLA CAMERA
-   ================================================================ */
-
-function setZoom(value) {
-
-  CONFIG.zoom = clamp(
-    value,
-    CONFIG.minZoom,
-    CONFIG.maxZoom
-  );
-
-  if (ready) {
-    updateCamera();
-    draw();
-  }
-
-}
-
-document.getElementById("zoomIn").onclick = function() {
-  setZoom(CONFIG.zoom + 0.2);
-};
-
-document.getElementById("zoomOut").onclick = function() {
-  setZoom(CONFIG.zoom - 0.2);
-};
-
-/* ================================================================
-   [JS 06] COLLISIONE: PUNTO DENTRO UN POLIGONO
+   [JS 03] COLLISIONI CERCHIO / POLIGONO
    ================================================================ */
 
 function pointInPolygon(x, y, polygon) {
-
   let inside = false;
 
   for (
@@ -908,1892 +818,1151 @@ function pointInPolygon(x, y, polygon) {
     i < polygon.length;
     j = i++
   ) {
-
     const [xi, yi] = polygon[i];
     const [xj, yj] = polygon[j];
 
-    const crosses = (
+    if (
       (yi > y) !== (yj > y) &&
       x < (xj - xi) * (y - yi) / (yj - yi) + xi
-    );
-
-    if (crosses) {
+    ) {
       inside = !inside;
     }
-
   }
 
   return inside;
-
 }
 
-/* ================================================================
-   [JS 07] COLLISIONE: DISTANZA DAI BORDI
+function segmentDistanceSquared(x, y, a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const length = dx * dx + dy * dy;
 
-   Il piccolo cerchio dei piedi non deve attraversare
-   né l'interno né i bordi degli ostacoli.
-   ================================================================ */
-
-function distanceToSegmentSquared(
-  px, py,
-  ax, ay,
-  bx, by
-) {
-
-  const dx = bx - ax;
-  const dy = by - ay;
-
-  const lengthSquared = dx * dx + dy * dy;
-
-  if (lengthSquared === 0) {
-
-    return (
-      (px - ax) ** 2 +
-      (py - ay) ** 2
-    );
-
-  }
-
-  const t = clamp(
-    (
-      (px - ax) * dx +
-      (py - ay) * dy
-    ) / lengthSquared,
-    0,
-    1
-  );
-
-  const nearestX = ax + t * dx;
-  const nearestY = ay + t * dy;
+  const t = length
+    ? clamp(
+        ((x-a[0])*dx + (y-a[1])*dy) / length,
+        0,
+        1
+      )
+    : 0;
 
   return (
-    (px - nearestX) ** 2 +
-    (py - nearestY) ** 2
+    (x-a[0]-t*dx) ** 2 +
+    (y-a[1]-t*dy) ** 2
   );
-
 }
 
 function circleHitsPolygon(x, y, radius, polygon) {
+  if (pointInPolygon(x, y, polygon)) return true;
 
-  if (pointInPolygon(x, y, polygon)) {
-    return true;
-  }
-
-  const radiusSquared = radius * radius;
-
-  for (let i = 0; i < polygon.length; i++) {
-
-    const a = polygon[i];
-
-    const b = polygon[
-      (i + 1) % polygon.length
-    ];
-
-    if (
-      distanceToSegmentSquared(
-        x, y,
-        a[0], a[1],
-        b[0], b[1]
-      ) <= radiusSquared
-    ) {
-      return true;
-    }
-
-  }
-
-  return false;
-
+  return polygon.some((a, i) =>
+    segmentDistanceSquared(
+      x, y, a, polygon[(i+1) % polygon.length]
+    ) <= radius * radius
+  );
 }
 
 function canStand(x, y) {
-
-  const radius = CONFIG.collisionRadius;
+  const r = CONFIG.radius;
 
   if (
-    x < radius ||
-    y < radius ||
-    x > CONFIG.referenceWidth - radius ||
-    y > CONFIG.referenceHeight - radius
-  ) {
-    return false;
-  }
+    x < r || y < r ||
+    x > CONFIG.width-r ||
+    y > CONFIG.height-r
+  ) return false;
 
-  if (!CONFIG.collisions) {
-    return true;
-  }
-
-  return !colliderPolygons.some(
-    polygon => circleHitsPolygon(
-      x,
-      y,
-      radius,
-      polygon
-    )
+  return !CONFIG.collisions || !world.collisions.some(
+    p => circleHitsPolygon(x, y, r, p)
   );
-
 }
-
-/* ================================================================
-   [JS 08] MOVIMENTO CON PICCOLI PASSI
-
-   Divide gli spostamenti per evitare di saltare gli ostacoli.
-   Permette di scorrere lungo le pareti.
-   ================================================================ */
 
 function movePlayer(dx, dy) {
-
   const steps = Math.max(
     1,
-    Math.ceil(
-      Math.max(
-        Math.abs(dx),
-        Math.abs(dy)
-      ) / 2
-    )
+    Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 2)
   );
-
-  const stepX = dx / steps;
-  const stepY = dy / steps;
 
   for (let i = 0; i < steps; i++) {
-
-    if (canStand(player.x + stepX, player.y)) {
-      player.x += stepX;
+    if (canStand(player.x + dx/steps, player.y)) {
+      player.x += dx/steps;
     }
 
-    if (canStand(player.x, player.y + stepY)) {
-      player.y += stepY;
+    if (canStand(player.x, player.y + dy/steps)) {
+      player.y += dy/steps;
     }
-
   }
-
 }
 
 /* ================================================================
-   [JS 09] DIREZIONE DI RICCARDO
+   [JS 04] MOVIMENTO SOLO IN QUATTRO DIREZIONI
 
-   In diagonale mantiene la direzione corrente quando
-   le due componenti sono quasi uguali.
+   Se tieni premuti più comandi, vince l'ultimo.
+   Non vengono mai sommate due direzioni.
    ================================================================ */
 
-function updateDirection(x, y) {
+const DIRECTIONS = {
+  up:    { x: 0, y: -1 },
+  down:  { x: 0, y: 1 },
+  left:  { x: -1, y: 0 },
+  right: { x: 1, y: 0 }
+};
 
-  const horizontal = Math.abs(x);
-  const vertical = Math.abs(y);
+const KEY_DIRECTION = {
+  arrowup: "up", w: "up",
+  arrowdown: "down", s: "down",
+  arrowleft: "left", a: "left",
+  arrowright: "right", d: "right"
+};
 
-  if (horizontal < 0.001 && vertical < 0.001) {
-    return;
-  }
+const heldInputs = new Map();
 
-  if (
-    Math.abs(horizontal - vertical) < 0.12 &&
-    horizontal > 0.001 &&
-    vertical > 0.001
-  ) {
-
-    if (
-      player.direction === "left" ||
-      player.direction === "right"
-    ) {
-
-      player.direction = x > 0 ? "right" : "left";
-
-    } else {
-
-      player.direction = y > 0 ? "down" : "up";
-
-    }
-
-    return;
-
-  }
-
-  if (horizontal > vertical) {
-
-    player.direction = x > 0 ? "right" : "left";
-
-  } else {
-
-    player.direction = y > 0 ? "down" : "up";
-
-  }
-
+function pressInput(token, direction) {
+  heldInputs.delete(token);
+  heldInputs.set(token, direction);
+  updateButtons();
 }
 
-/* ================================================================
-   [JS 10] CAMERA CHE SEGUE RICCARDO
-   ================================================================ */
-
-function updateCamera() {
-
-  const visibleWidth = viewWidth / CONFIG.zoom;
-  const visibleHeight = viewHeight / CONFIG.zoom;
-
-  camera.x = CONFIG.referenceWidth > visibleWidth
-    ? clamp(
-        player.x - visibleWidth / 2,
-        0,
-        CONFIG.referenceWidth - visibleWidth
-      )
-    : (CONFIG.referenceWidth - visibleWidth) / 2;
-
-  camera.y = CONFIG.referenceHeight > visibleHeight
-    ? clamp(
-        player.y - visibleHeight / 2,
-        0,
-        CONFIG.referenceHeight - visibleHeight
-      )
-    : (CONFIG.referenceHeight - visibleHeight) / 2;
-
+function releaseInput(token) {
+  heldInputs.delete(token);
+  updateButtons();
 }
 
-/* ================================================================
-   [JS 11] DISEGNO DELLA MAPPA E DEBUG
-   F2 mostra o nasconde le collisioni.
-   ================================================================ */
+function currentDirection() {
+  const list = [...heldInputs.values()];
+  return list[list.length-1] || null;
+}
 
-function draw() {
+function updateButtons() {
+  const direction = currentDirection();
 
-  ctx.clearRect(0, 0, viewWidth, viewHeight);
-
-  ctx.fillStyle = "#162b35";
-  ctx.fillRect(0, 0, viewWidth, viewHeight);
-
-  ctx.save();
-
-  ctx.scale(CONFIG.zoom, CONFIG.zoom);
-  ctx.translate(-camera.x, -camera.y);
-
-  ctx.drawImage(
-    mapImage,
-    0,
-    0,
-    CONFIG.referenceWidth,
-    CONFIG.referenceHeight
-  );
-
-  if (CONFIG.debug) {
-
-    ctx.fillStyle = "#ff264a65";
-    ctx.strokeStyle = "#ff7187";
-    ctx.lineWidth = 1 / CONFIG.zoom;
-
-    for (const polygon of colliderPolygons) {
-
-      ctx.beginPath();
-
-      polygon.forEach(function(point, index) {
-
-        if (index === 0) {
-          ctx.moveTo(point[0], point[1]);
-        } else {
-          ctx.lineTo(point[0], point[1]);
-        }
-
-      });
-
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-    }
-
-    ctx.beginPath();
-
-    ctx.arc(
-      player.x,
-      player.y,
-      CONFIG.collisionRadius,
-      0,
-      Math.PI * 2
+  document.querySelectorAll("#dpad button").forEach(button => {
+    button.classList.toggle(
+      "pressed",
+      button.dataset.direction === direction
     );
-
-    ctx.fillStyle = "#40ff94";
-    ctx.fill();
-
-  }
-
-  ctx.restore();
-
-  drawActor();
-
+  });
 }
-
-/* ================================================================
-   [JS 12] TASTIERA: FRECCE E WASD
-   ================================================================ */
-
-const movementKeys = new Set([
-  "arrowup",
-  "arrowdown",
-  "arrowleft",
-  "arrowright",
-  "w",
-  "a",
-  "s",
-  "d"
-]);
-
-window.addEventListener("keydown", function(event) {
-
-  const key = event.key.toLowerCase();
-
-  if (movementKeys.has(key)) {
-
-    event.preventDefault();
-
-    keys.add(key);
-
-  }
-
-  if (key === "f2" && !event.repeat) {
-
-    event.preventDefault();
-
-    CONFIG.debug = !CONFIG.debug;
-
-  }
-
-});
-
-window.addEventListener("keyup", function(event) {
-
-  const key = event.key.toLowerCase();
-
-  if (movementKeys.has(key)) {
-    event.preventDefault();
-  }
-
-  keys.delete(key);
-
-});
-
-/* ================================================================
-   [JS 13] JOYSTICK TOUCH E MOUSE
-   ================================================================ */
 
 function resetInput() {
-
-  const pointer = joystickPointer;
-
-  joystickPointer = null;
-
-  keys.clear();
-
-  analog.x = 0;
-  analog.y = 0;
-
+  heldInputs.clear();
   player.moving = false;
-
-  stick.style.transform = "";
-
-  if (
-    pointer !== null &&
-    joystick.hasPointerCapture(pointer)
-  ) {
-    joystick.releasePointerCapture(pointer);
-  }
-
+  updateButtons();
 }
 
-function updateJoystick(event) {
+window.addEventListener("keydown", event => {
+  const key = event.key.toLowerCase();
+  const direction = KEY_DIRECTION[key];
 
-  const rect = joystick.getBoundingClientRect();
+  if (!direction) return;
 
-  const limit = 38;
-
-  let dx = event.clientX - (
-    rect.left + rect.width / 2
-  );
-
-  let dy = event.clientY - (
-    rect.top + rect.height / 2
-  );
-
-  const distance = Math.hypot(dx, dy);
-
-  if (distance > limit) {
-
-    dx *= limit / distance;
-    dy *= limit / distance;
-
-  }
-
-  stick.style.transform =
-    "translate(" + dx + "px, " + dy + "px)";
-
-  const strength = Math.hypot(dx, dy) / limit;
-
-  if (strength < 0.15) {
-
-    analog.x = 0;
-    analog.y = 0;
-
-    return;
-
-  }
-
-  analog.x = dx / limit;
-  analog.y = dy / limit;
-
-}
-
-joystick.addEventListener("pointerdown", function(event) {
-
-  if (joystickPointer !== null) {
-    return;
-  }
+  // Le frecce devono funzionare normalmente nel testo esportato.
+  if (!$("exportPanel").hidden) return;
 
   event.preventDefault();
 
-  joystickPointer = event.pointerId;
-
-  joystick.setPointerCapture(event.pointerId);
-
-  updateJoystick(event);
-
+  if (!editorState.open && !event.repeat) {
+    pressInput("key:" + key, direction);
+  }
 });
 
-joystick.addEventListener("pointermove", function(event) {
+window.addEventListener("keyup", event => {
+  releaseInput("key:" + event.key.toLowerCase());
+});
 
-  if (event.pointerId === joystickPointer) {
+document.querySelectorAll("#dpad button").forEach(button => {
+  button.addEventListener("pointerdown", event => {
+    if (editorState.open || !ready) return;
 
     event.preventDefault();
+    button.setPointerCapture(event.pointerId);
 
-    updateJoystick(event);
-
-  }
-
-});
-
-[
-  "pointerup",
-  "pointercancel",
-  "lostpointercapture"
-].forEach(function(eventName) {
-
-  joystick.addEventListener(eventName, function(event) {
-
-    if (event.pointerId === joystickPointer) {
-      resetInput();
-    }
-
+    pressInput(
+      "pointer:" + event.pointerId,
+      button.dataset.direction
+    );
   });
 
+  for (const name of [
+    "pointerup", "pointercancel", "lostpointercapture"
+  ]) {
+    button.addEventListener(name, event => {
+      releaseInput("pointer:" + event.pointerId);
+    });
+  }
 });
 
 window.addEventListener("blur", resetInput);
 
-document.addEventListener("visibilitychange", function() {
-
+document.addEventListener("visibilitychange", () => {
   resetInput();
-
   lastTime = 0;
-
 });
 
 /* ================================================================
-   [JS 14] TESTO DI STATO ED ERRORI DELLE IMMAGINI
+   [JS 05] CAMERA E RIDIMENSIONAMENTO
    ================================================================ */
 
-function updateStatus() {
+function updateCamera() {
+  const w = viewWidth / gameZoom;
+  const h = viewHeight / gameZoom;
 
-  let message;
+  camera.x = CONFIG.width > w
+    ? clamp(player.x-w/2, 0, CONFIG.width-w)
+    : (CONFIG.width-w)/2;
 
-  if (failedAssets.size > 0) {
+  camera.y = CONFIG.height > h
+    ? clamp(player.y-h/2, 0, CONFIG.height-h)
+    : (CONFIG.height-h)/2;
+}
 
-    message = "Missing image: " + [...failedAssets][0];
+function resize() {
+  const r = game.getBoundingClientRect();
 
-  } else {
+  viewWidth = Math.max(1, r.width);
+  viewHeight = Math.max(1, r.height);
+  density = Math.min(window.devicePixelRatio || 1, 2);
 
-    const atJobCenter = (
-      player.x > 685 &&
-      player.x < 840 &&
-      player.y > 1390 &&
-      player.y < 1480
-    );
-
-    message = atJobCenter
-      ? "Job Center entrance · interior coming next"
-      : "Map test · no battles";
-
+  for (const layer of [canvas, foreground]) {
+    layer.width = Math.round(viewWidth*density);
+    layer.height = Math.round(viewHeight*density);
   }
 
-  if (statusText.textContent !== message) {
-    statusText.textContent = message;
+  updateCamera();
+
+  if (ready) drawGame();
+}
+
+new ResizeObserver(resize).observe(game);
+
+$("zoomIn").onclick = () => {
+  gameZoom = clamp(gameZoom+0.2, CONFIG.minZoom, CONFIG.maxZoom);
+  updateCamera();
+};
+
+$("zoomOut").onclick = () => {
+  gameZoom = clamp(gameZoom-0.2, CONFIG.minZoom, CONFIG.maxZoom);
+  updateCamera();
+};
+
+/* ================================================================
+   [JS 06] DISEGNO MAPPA E SPRITE
+   ================================================================ */
+
+function prepareWorldContext(context) {
+  context.setTransform(density, 0, 0, density, 0, 0);
+  context.clearRect(0, 0, viewWidth, viewHeight);
+  context.imageSmoothingEnabled = false;
+
+  context.scale(gameZoom, gameZoom);
+  context.translate(-camera.x, -camera.y);
+}
+
+function polygonPath(context, polygon) {
+  context.beginPath();
+
+  polygon.forEach((point, index) => {
+    if (!index) context.moveTo(point[0], point[1]);
+    else context.lineTo(point[0], point[1]);
+  });
+
+  context.closePath();
+}
+
+function drawActor() {
+  const asset = getActorAsset();
+
+  if (activeAsset !== asset) {
+    if (activeAsset) activeAsset.image.style.display = "none";
+
+    activeAsset = asset;
+
+    if (activeAsset) activeAsset.image.style.display = "block";
   }
 
+  if (!asset) return;
+
+  asset.image.style.height = (
+    CONFIG.spriteHeight * asset.settings.scale * gameZoom
+  ) + "px";
+
+  asset.image.style.left =
+    ((player.x-camera.x)*gameZoom) + "px";
+
+  asset.image.style.top =
+    ((player.y-camera.y)*gameZoom) + "px";
+
+  asset.image.style.transform =
+    "translate(-50%, -" + asset.settings.ground*100 + "%)";
 }
 
 /* ================================================================
-   [JS 15] CICLO PRINCIPALE
+   [JS 07] PROFONDITÀ: OGGETTI DAVANTI O DIETRO
 
-   Cammina solo se la posizione cambia realmente.
-   Quando rilasci i comandi o incontri una parete,
-   mostra la posa ferma nell'ultima direzione.
+   Ridisegna sopra lo sprite solo i ritagli degli oggetti
+   davanti ai quali Riccardo non è ancora passato.
+   Non richiede nuove immagini trasparenti.
    ================================================================ */
 
-function tick(now) {
+function drawForeground() {
+  prepareWorldContext(frontCtx);
 
-  const delta = lastTime
-    ? Math.min((now - lastTime) / 1000, 0.04)
+  if (!CONFIG.depth || !activeAsset) return;
+
+  const height = CONFIG.spriteHeight *
+    activeAsset.settings.scale;
+
+  const width = height *
+    activeAsset.image.naturalWidth /
+    activeAsset.image.naturalHeight;
+
+  const actorBounds = {
+    left: player.x-width/2,
+    right: player.x+width/2,
+    top: player.y-height*activeAsset.settings.ground,
+    bottom: player.y+height*(1-activeAsset.settings.ground)
+  };
+
+  const visibleZones = world.depth.filter(zone => {
+    if (player.y >= zone.baseY) return false;
+
+    const xs = zone.polygon.map(p => p[0]);
+    const ys = zone.polygon.map(p => p[1]);
+
+    return (
+      Math.max(...xs) >= actorBounds.left &&
+      Math.min(...xs) <= actorBounds.right &&
+      Math.max(...ys) >= actorBounds.top &&
+      Math.min(...ys) <= actorBounds.bottom
+    );
+  });
+
+  // Ogni zona riprende i pixel originali della mappa.
+  for (const zone of visibleZones) {
+    frontCtx.save();
+
+    polygonPath(frontCtx, zone.polygon);
+    frontCtx.clip();
+
+    frontCtx.drawImage(
+      mapImage, 0, 0, CONFIG.width, CONFIG.height
+    );
+
+    frontCtx.restore();
+  }
+}
+
+function drawGame() {
+  prepareWorldContext(ctx);
+
+  ctx.drawImage(
+    mapImage, 0, 0, CONFIG.width, CONFIG.height
+  );
+
+  drawActor();
+  drawForeground();
+}
+
+/* ================================================================
+   [JS 08] RESET E CICLO PRINCIPALE
+   ================================================================ */
+
+function returnToStation() {
+  resetInput();
+
+  player.x = CONFIG.start.x;
+  player.y = CONFIG.start.y;
+  player.direction = "down";
+
+  updateCamera();
+
+  if (ready) drawGame();
+}
+
+$("resetButton").onclick = returnToStation;
+
+function updateStatus() {
+  let message = "Map test · no battles";
+
+  if (failedAssets.size) {
+    message = "Missing image: " + [...failedAssets][0];
+  } else if (
+    player.x > 685 && player.x < 840 &&
+    player.y > 1435 && player.y < 1500
+  ) {
+    message = "Job Center entrance · interior coming next";
+  }
+
+  if ($("status").textContent !== message) {
+    $("status").textContent = message;
+  }
+}
+
+function tick(now) {
+  const dt = lastTime
+    ? Math.min((now-lastTime)/1000, 0.04)
     : 0;
 
   lastTime = now;
 
-  if (ready && !document.hidden) {
+  if (ready && !editorState.open && !document.hidden) {
+    const direction = currentDirection();
 
-    let x = analog.x;
-    let y = analog.y;
+    const oldX = player.x;
+    const oldY = player.y;
 
-    if (keys.has("arrowright") || keys.has("d")) {
-      x += 1;
+    if (direction) {
+      player.direction = direction;
+
+      const vector = DIRECTIONS[direction];
+
+      movePlayer(
+        vector.x*CONFIG.speed*dt,
+        vector.y*CONFIG.speed*dt
+      );
     }
 
-    if (keys.has("arrowleft") || keys.has("a")) {
-      x -= 1;
-    }
-
-    if (keys.has("arrowdown") || keys.has("s")) {
-      y += 1;
-    }
-
-    if (keys.has("arrowup") || keys.has("w")) {
-      y -= 1;
-    }
-
-    const length = Math.hypot(x, y);
-
-    if (length > 1) {
-
-      x /= length;
-      y /= length;
-
-    }
-
-    updateDirection(x, y);
-
-    const previousX = player.x;
-    const previousY = player.y;
-
-    movePlayer(
-      x * CONFIG.speed * delta,
-      y * CONFIG.speed * delta
-    );
-
-    const movedX = player.x - previousX;
-    const movedY = player.y - previousY;
-
-    player.moving = Math.hypot(movedX, movedY) > 0.0001;
-
-    if (player.moving) {
-
-      // Se scorre lungo una parete, guarda dove sta andando.
-
-      updateDirection(movedX, movedY);
-
-    }
+    player.moving = Math.hypot(
+      player.x-oldX,
+      player.y-oldY
+    ) > 0.0001;
 
     updateCamera();
-
-    draw();
-
+    drawGame();
     updateStatus();
-
   }
 
   requestAnimationFrame(tick);
-
 }
 
 /* ================================================================
-   [JS 16] RITORNO ALLA STAZIONE
+   [EDITOR 01] STATO E STRUMENTI
+
+   Collisioni: dove i piedi non possono passare.
+   Profondità: contorno visivo dell'oggetto che copre Riccardo.
    ================================================================ */
 
-function returnToStation() {
+const editorCanvas = $("editorCanvas");
+const editorCtx = editorCanvas.getContext("2d");
 
-  player.x = CONFIG.start.x;
-  player.y = CONFIG.start.y;
+const editorState = {
+  open: false,
+  layer: "collision",
+  tool: "pan",
+  selected: -1,
+  draft: [],
+  history: [],
+  drag: null,
+  scale: 1,
+  x: 0,
+  y: 0,
+  settingBase: false
+};
 
-  player.direction = "down";
-  player.moving = false;
+function editorItems() {
+  return editorState.layer === "collision"
+    ? world.collisions
+    : world.depth;
+}
 
-  resetInput();
+function itemPolygon(item) {
+  return editorState.layer === "collision"
+    ? item
+    : item.polygon;
+}
 
-  updateCamera();
+function setItemPolygon(index, polygon) {
+  if (editorState.layer === "collision") {
+    world.collisions[index] = polygon;
+  } else {
+    world.depth[index].polygon = polygon;
+  }
+}
 
-  if (ready) {
-    draw();
+function pushHistory(snapshot = JSON.stringify(world)) {
+  editorState.history.push(snapshot);
+
+  if (editorState.history.length > 40) {
+    editorState.history.shift();
+  }
+}
+
+function editorNotice(text) {
+  $("editorHint").textContent = text;
+}
+
+function editorHelp() {
+  const s = editorState;
+
+  let message;
+
+  if (s.settingBase) {
+    message = "Tocca la mappa all’altezza della base dell’oggetto.";
+  } else if (s.tool === "pan") {
+    message = "Trascina la mappa. Usa + e − per ingrandire.";
+  } else if (s.tool === "draw") {
+    message = "Tocca gli angoli in ordine, poi Chiudi forma.";
+  } else {
+    message = "Seleziona una forma e trascina i punti bianchi.";
   }
 
+  if (s.layer === "depth") {
+    message += " Blu: ritaglio visivo. Giallo: linea di base.";
+  } else {
+    message += " Rosso: ostacoli per i piedi.";
+  }
+
+  if (storageFailed) {
+    message += " Salvataggio non disponibile: esporta i dati.";
+  }
+
+  editorNotice(message);
 }
 
-document.getElementById("resetButton").onclick =
-  returnToStation;
-
 /* ================================================================
-   [JS 17] CARICAMENTO MAPPA ONLINE
+   [EDITOR 02] DISEGNO
    ================================================================ */
 
-mapImage.onload = function() {
+function paintEditor() {
+  if (!editorState.open) return;
 
-  ready = true;
+  const s = editorState;
+  const c = editorCtx;
 
-  loading.hidden = true;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
 
-  resize();
+  c.fillStyle = "#10232d";
+  c.fillRect(0, 0, editorCanvas.width, editorCanvas.height);
 
-  returnToStation();
+  c.translate(s.x, s.y);
+  c.scale(s.scale, s.scale);
+  c.imageSmoothingEnabled = false;
 
-};
+  c.drawImage(
+    mapImage, 0, 0, CONFIG.width, CONFIG.height
+  );
 
-mapImage.onerror = function() {
+  editorItems().forEach((item, index) => {
+    const polygon = itemPolygon(item);
+    const selected = index === s.selected;
 
-  ready = false;
+    polygonPath(c, polygon);
+
+    c.fillStyle = selected
+      ? "#ffde7966"
+      : s.layer === "collision"
+        ? "#ff34545c"
+        : "#40bfff60";
+
+    c.fill();
+
+    c.lineWidth = 1.5/s.scale;
+    c.strokeStyle = selected ? "#ffe08a" : "#ffffff88";
+    c.stroke();
+
+    if (!selected) return;
+
+    for (const p of polygon) {
+      c.fillStyle = "white";
+
+      c.fillRect(
+        p[0]-5/s.scale,
+        p[1]-5/s.scale,
+        10/s.scale,
+        10/s.scale
+      );
+    }
+
+    if (s.layer === "depth") {
+      const xs = polygon.map(p => p[0]);
+
+      c.beginPath();
+      c.moveTo(Math.min(...xs)-15, item.baseY);
+      c.lineTo(Math.max(...xs)+15, item.baseY);
+      c.strokeStyle = "#ffdf59";
+      c.lineWidth = 2/s.scale;
+      c.stroke();
+
+      c.fillStyle = "#ffdf59";
+      c.font = (12/s.scale) + "px Arial";
+
+      c.fillText(
+        "BASE " + Math.round(item.baseY),
+        Math.min(...xs),
+        item.baseY-6/s.scale
+      );
+    }
+  });
+
+  if (s.draft.length) {
+    c.beginPath();
+
+    s.draft.forEach((p, i) => {
+      if (!i) c.moveTo(p[0], p[1]);
+      else c.lineTo(p[0], p[1]);
+    });
+
+    c.strokeStyle = "#7dffff";
+    c.lineWidth = 2/s.scale;
+    c.stroke();
+
+    for (const p of s.draft) {
+      c.fillStyle = "#7dffff";
+      c.fillRect(
+        p[0]-4/s.scale, p[1]-4/s.scale,
+        8/s.scale, 8/s.scale
+      );
+    }
+  }
+
+  c.beginPath();
+  c.arc(player.x, player.y, 7, 0, Math.PI*2);
+  c.fillStyle = "white";
+  c.fill();
+
+  c.beginPath();
+  c.arc(player.x, player.y, 5, 0, Math.PI*2);
+  c.fillStyle = "#ed243b";
+  c.fill();
+
+  document.querySelectorAll("[data-layer]").forEach(b => {
+    b.classList.toggle("active", b.dataset.layer === s.layer);
+  });
+
+  document.querySelectorAll("[data-tool]").forEach(b => {
+    b.classList.toggle("active", b.dataset.tool === s.tool);
+  });
+
+  $("editorBase").disabled =
+    s.layer !== "depth" || s.selected < 0;
+
+  editorHelp();
+}
+
+/* ================================================================
+   [EDITOR 03] VISTA COMPLETA E ZOOM
+   ================================================================ */
+
+function resizeEditor(fit = false) {
+  if (!editorState.open) return;
+
+  editorCanvas.width = Math.max(
+    1, Math.round($("editorView").clientWidth)
+  );
+
+  editorCanvas.height = Math.max(
+    1, Math.round($("editorView").clientHeight)
+  );
+
+  if (fit) {
+    const s = editorState;
+
+    s.scale = Math.min(
+      editorCanvas.width/CONFIG.width,
+      editorCanvas.height/CONFIG.height
+    )*0.97;
+
+    s.x = (editorCanvas.width-CONFIG.width*s.scale)/2;
+    s.y = (editorCanvas.height-CONFIG.height*s.scale)/2;
+  }
+
+  paintEditor();
+}
+
+new ResizeObserver(() => {
+  resizeEditor();
+}).observe($("editorView"));
+
+function zoomEditor(factor) {
+  const s = editorState;
+  const x = editorCanvas.width/2;
+  const y = editorCanvas.height/2;
+
+  const wx = (x-s.x)/s.scale;
+  const wy = (y-s.y)/s.scale;
+
+  s.scale = clamp(s.scale*factor, 0.12, 6);
+
+  s.x = x-wx*s.scale;
+  s.y = y-wy*s.scale;
+
+  paintEditor();
+}
+
+/* ================================================================
+   [EDITOR 04] APERTURA E CHIUSURA
+   ================================================================ */
+
+$("editorOpen").onclick = () => {
+  if (!ready) return;
 
   resetInput();
 
-  loading.hidden = false;
+  editorState.open = true;
 
-  document.getElementById("loadingTitle").textContent =
-    "Unable to load the map";
+  $("editor").hidden = false;
+  game.inert = true;
 
-  document.getElementById("loadingText").textContent =
-    "Check your connection and try again.";
-
-  document.getElementById("retryLoad").hidden = false;
-
+  requestAnimationFrame(() => resizeEditor(true));
 };
 
-document.getElementById("retryLoad").onclick = function() {
+$("editorClose").onclick = () => {
+  if (editorState.draft.length) {
+    editorNotice(
+      "Chiudi la forma in corso oppure togli i punti con Annulla."
+    );
+    return;
+  }
 
-  document.getElementById("loadingTitle").textContent =
-    "Loading Seoul…";
+  if (!canStand(player.x, player.y)) {
+    editorNotice(
+      "Il punto rosso è dentro un ostacolo: correggi la forma."
+    );
+    return;
+  }
 
-  document.getElementById("loadingText").textContent =
-    "Please wait.";
+  saveWorld();
 
-  this.hidden = true;
+  editorState.open = false;
+  editorState.settingBase = false;
 
-  const separator = CONFIG.map.includes("?") ? "&" : "?";
+  $("editor").hidden = true;
+  game.inert = false;
 
-  mapImage.src =
-    CONFIG.map +
-    separator +
-    "retry=" +
-    Date.now();
+  resetInput();
+  lastTime = 0;
 
+  $("editorOpen").focus();
 };
 
 /* ================================================================
-   [JS 18] AVVIO
+   [EDITOR 05] CAMBIO LIVELLO E STRUMENTO
    ================================================================ */
 
-loadActorAssets();
+document.querySelectorAll("[data-layer]").forEach(button => {
+  button.onclick = () => {
+    if (editorState.draft.length) {
+      editorNotice("Termina o annulla prima la forma in corso.");
+      return;
+    }
+
+    editorState.layer = button.dataset.layer;
+    editorState.selected = -1;
+    editorState.settingBase = false;
+
+    paintEditor();
+  };
+});
+
+document.querySelectorAll("[data-tool]").forEach(button => {
+  button.onclick = () => {
+    editorState.tool = button.dataset.tool;
+    editorState.settingBase = false;
+    paintEditor();
+  };
+});
+
+$("editorPlus").onclick = () => zoomEditor(1.3);
+$("editorMinus").onclick = () => zoomEditor(1/1.3);
+$("editorFit").onclick = () => resizeEditor(true);
+
+/* ================================================================
+   [EDITOR 06] VALIDAZIONE DEI CONTORNI
+   ================================================================ */
+
+function shapeValid(polygon) {
+  if (!validPolygon(polygon)) return false;
+
+  const orient = (a,b,c) =>
+    (b[0]-a[0])*(c[1]-a[1]) -
+    (b[1]-a[1])*(c[0]-a[0]);
+
+  let area = 0;
+
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i];
+    const b = polygon[(i+1)%polygon.length];
+
+    area += a[0]*b[1] - b[0]*a[1];
+
+    if (a[0] === b[0] && a[1] === b[1]) return false;
+
+    for (let j = i+1; j < polygon.length; j++) {
+      if (
+        j === i+1 ||
+        (i === 0 && j === polygon.length-1)
+      ) continue;
+
+      const c = polygon[j];
+      const d = polygon[(j+1)%polygon.length];
+
+      const overlap =
+        Math.max(Math.min(a[0],b[0]),Math.min(c[0],d[0])) <=
+        Math.min(Math.max(a[0],b[0]),Math.max(c[0],d[0])) &&
+        Math.max(Math.min(a[1],b[1]),Math.min(c[1],d[1])) <=
+        Math.min(Math.max(a[1],b[1]),Math.max(c[1],d[1]));
+
+      if (
+        overlap &&
+        orient(a,b,c)*orient(a,b,d) <= 0 &&
+        orient(c,d,a)*orient(c,d,b) <= 0
+      ) return false;
+    }
+  }
+
+  return Math.abs(area)/2 > 3;
+}
+
+/* ================================================================
+   [EDITOR 07] NUOVE FORME, BASE, ANNULLA ED ELIMINA
+   ================================================================ */
+
+$("editorFinish").onclick = () => {
+  const s = editorState;
+
+  if (!shapeValid(s.draft)) {
+    editorNotice(
+      "Servono almeno tre punti. Il contorno non deve incrociarsi."
+    );
+    return;
+  }
+
+  pushHistory();
+
+  if (s.layer === "collision") {
+    world.collisions.push(clone(s.draft));
+  } else {
+    world.depth.push({
+      name: "Oggetto " + (world.depth.length+1),
+      baseY: Math.max(...s.draft.map(p => p[1])),
+      polygon: clone(s.draft)
+    });
+  }
+
+  s.selected = editorItems().length-1;
+  s.draft = [];
+  s.tool = "edit";
+
+  saveWorld();
+  paintEditor();
+};
+
+$("editorBase").onclick = () => {
+  if (
+    editorState.layer !== "depth" ||
+    editorState.selected < 0
+  ) return;
+
+  editorState.settingBase = true;
+  paintEditor();
+};
+
+$("editorUndo").onclick = () => {
+  const s = editorState;
+
+  s.settingBase = false;
+
+  if (s.draft.length) {
+    s.draft.pop();
+  } else if (s.history.length) {
+    world = JSON.parse(s.history.pop());
+    s.selected = -1;
+    saveWorld();
+  }
+
+  paintEditor();
+};
+
+$("editorDelete").onclick = () => {
+  if (editorState.selected < 0) return;
+
+  pushHistory();
+
+  editorItems().splice(editorState.selected, 1);
+
+  editorState.selected = -1;
+  editorState.settingBase = false;
+
+  saveWorld();
+  paintEditor();
+};
+
+/* ================================================================
+   [EDITOR 08] COORDINATE DEL TOCCO
+   ================================================================ */
+
+function editorPoint(event) {
+  const r = editorCanvas.getBoundingClientRect();
+
+  return {
+    x: (event.clientX-r.left)*editorCanvas.width/r.width,
+    y: (event.clientY-r.top)*editorCanvas.height/r.height
+  };
+}
+
+function editorWorldPoint(point) {
+  const s = editorState;
+
+  return [
+    Math.round(clamp((point.x-s.x)/s.scale, 0, CONFIG.width)),
+    Math.round(clamp((point.y-s.y)/s.scale, 0, CONFIG.height))
+  ];
+}
+
+/* ================================================================
+   [EDITOR 09] TOCCO E SELEZIONE
+   ================================================================ */
+
+editorCanvas.onpointerdown = event => {
+  const s = editorState;
+
+  if (s.drag) return;
+
+  event.preventDefault();
+  editorCanvas.setPointerCapture(event.pointerId);
+
+  const point = editorPoint(event);
+  const wp = editorWorldPoint(point);
+
+  if (s.settingBase && s.selected >= 0) {
+    pushHistory();
+
+    world.depth[s.selected].baseY = wp[1];
+
+    s.settingBase = false;
+
+    saveWorld();
+    paintEditor();
+    return;
+  }
+
+  if (s.tool === "draw") {
+    const previous = s.draft[s.draft.length-1];
+
+    if (
+      !previous ||
+      Math.hypot(wp[0]-previous[0], wp[1]-previous[1]) > 2
+    ) s.draft.push(wp);
+
+    paintEditor();
+    return;
+  }
+
+  if (s.tool === "pan") {
+    s.drag = {
+      id: event.pointerId,
+      kind: "pan",
+      point,
+      x: s.x,
+      y: s.y
+    };
+    return;
+  }
+
+  if (s.selected >= 0) {
+    const polygon = itemPolygon(editorItems()[s.selected]);
+
+    const vertex = polygon.findIndex(p =>
+      Math.hypot(p[0]-wp[0], p[1]-wp[1]) < 16/s.scale
+    );
+
+    if (vertex >= 0) {
+      s.drag = {
+        id: event.pointerId,
+        kind: "vertex",
+        vertex,
+        before: JSON.stringify(world)
+      };
+      return;
+    }
+  }
+
+  s.selected = -1;
+
+  const items = editorItems();
+
+  for (let i = items.length-1; i >= 0; i--) {
+    if (pointInPolygon(wp[0], wp[1], itemPolygon(items[i]))) {
+      s.selected = i;
+      break;
+    }
+  }
+
+  if (s.selected >= 0) {
+    s.drag = {
+      id: event.pointerId,
+      kind: "shape",
+      point: wp,
+      original: clone(itemPolygon(items[s.selected])),
+      originalBase: s.layer === "depth"
+        ? items[s.selected].baseY
+        : null,
+      before: JSON.stringify(world)
+    };
+  }
+
+  paintEditor();
+};
+
+/* ================================================================
+   [EDITOR 10] TRASCINAMENTO
+   ================================================================ */
+
+editorCanvas.onpointermove = event => {
+  const s = editorState;
+  const drag = s.drag;
+
+  if (!drag || drag.id !== event.pointerId) return;
+
+  const point = editorPoint(event);
+  const wp = editorWorldPoint(point);
+
+  if (drag.kind === "pan") {
+    s.x = drag.x + point.x-drag.point.x;
+    s.y = drag.y + point.y-drag.point.y;
+  } else if (drag.kind === "vertex") {
+    const polygon = itemPolygon(editorItems()[s.selected]);
+    polygon[drag.vertex] = wp;
+  } else {
+    const xs = drag.original.map(p => p[0]);
+    const ys = drag.original.map(p => p[1]);
+
+    const dx = clamp(
+      wp[0]-drag.point[0],
+      -Math.min(...xs),
+      CONFIG.width-Math.max(...xs)
+    );
+
+    const dy = clamp(
+      wp[1]-drag.point[1],
+      -Math.min(...ys),
+      CONFIG.height-Math.max(...ys)
+    );
+
+    setItemPolygon(
+      s.selected,
+      drag.original.map(p => [p[0]+dx, p[1]+dy])
+    );
+
+    if (s.layer === "depth") {
+      world.depth[s.selected].baseY = clamp(
+        drag.originalBase+dy, 0, CONFIG.height
+      );
+    }
+  }
+
+  paintEditor();
+};
+
+function finishEditorDrag(event) {
+  const s = editorState;
+  const drag = s.drag;
+
+  if (!drag || drag.id !== event.pointerId) return;
+
+  let invalid = false;
+
+  if (drag.before) {
+    invalid = !shapeValid(itemPolygon(editorItems()[s.selected]));
+
+    if (event.type === "pointercancel" || invalid) {
+      world = JSON.parse(drag.before);
+    } else if (drag.before !== JSON.stringify(world)) {
+      pushHistory(drag.before);
+      saveWorld();
+    }
+  }
+
+  s.drag = null;
+
+  paintEditor();
+
+  if (invalid) {
+    editorNotice("Contorno non valido: modifica annullata.");
+  }
+}
+
+editorCanvas.onpointerup = finishEditorDrag;
+editorCanvas.onpointercancel = finishEditorDrag;
+editorCanvas.onlostpointercapture = finishEditorDrag;
+
+/* ================================================================
+   [EDITOR 11] ESPORTAZIONE DI COLLISIONI E PROFONDITÀ
+
+   Esporta entrambi i livelli insieme.
+   Mandami il testo quando hai finito le correzioni.
+   ================================================================ */
+
+$("editorExport").onclick = () => {
+  if (editorState.draft.length) {
+    editorNotice("Termina prima la forma in corso.");
+    return;
+  }
+
+  saveWorld();
+
+  $("exportData").value = JSON.stringify({
+    map: CONFIG.map,
+    version: DATA_VERSION,
+    collisions: world.collisions,
+    depth: world.depth
+  }, null, 2);
+
+  $("exportPanel").hidden = false;
+  $("exportCopy").textContent = "Copia";
+};
+
+$("exportCopy").onclick = async function() {
+  try {
+    await navigator.clipboard.writeText($("exportData").value);
+    this.textContent = "Copiato!";
+  } catch (_) {
+    $("exportData").focus();
+    $("exportData").select();
+    this.textContent = "Seleziona e copia il testo";
+  }
+};
+
+$("exportClose").onclick = () => {
+  $("exportPanel").hidden = true;
+};
+
+/* ================================================================
+   [JS 09] CARICAMENTO MAPPA E AVVIO
+   ================================================================ */
+
+mapImage.onload = () => {
+  ready = true;
+  $("loading").hidden = true;
+
+  resize();
+  returnToStation();
+};
+
+mapImage.onerror = () => {
+  ready = false;
+  resetInput();
+
+  $("loading").hidden = false;
+  $("loadingTitle").textContent = "Unable to load the map";
+  $("loadingText").textContent =
+    "Check the filename and its location beside index.html.";
+
+  $("retryLoad").hidden = false;
+};
+
+$("retryLoad").onclick = function() {
+  $("loadingTitle").textContent = "Loading Seoul…";
+  $("loadingText").textContent = "Please wait.";
+  this.hidden = true;
+
+  mapImage.src = CONFIG.map + "?retry=" + Date.now();
+};
 
 resize();
 
 mapImage.src = CONFIG.map;
 
 requestAnimationFrame(tick);
-
 </script>
-
 </body>
 </html>
-<style>
-/* ================================================================
-   [EDITOR CSS 01] PULSANTE
-   ================================================================ */
-
-#collisionOpen {
-  position: absolute;
-  right: 16px;
-  bottom: 170px;
-  z-index: 6;
-  padding: 10px;
-  font-size: 11px;
-}
-
-/* [EDITOR CSS 02] SCHERMATA EDITOR */
-
-#collisionEditor {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  background: #10232d;
-  color: white;
-  font: 13px Arial, sans-serif;
-  touch-action: none;
-}
-
-#collisionEditor[hidden],
-#collisionExport[hidden] {
-  display: none !important;
-}
-
-#collisionToolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 8px;
-  background: #152f3c;
-}
-
-#collisionToolbar button {
-  padding: 7px;
-  min-height: 40px;
-  font-size: 11px;
-}
-
-#collisionToolbar button.active {
-  border: 2px solid #ffda77;
-  background: #526048;
-}
-
-#collisionHint {
-  padding: 8px 12px;
-  min-height: 44px;
-  line-height: 1.4;
-  background: #203c49;
-}
-
-/* [EDITOR CSS 03] MAPPA MODIFICABILE */
-
-#collisionView {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  overflow: hidden;
-}
-
-#collisionCanvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-  image-rendering: pixelated;
-}
-
-/* [EDITOR CSS 04] ESPORTAZIONE */
-
-#collisionExport {
-  position: absolute;
-  inset: 5%;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  background: #10232dfc;
-  border: 2px solid #ffda77;
-  border-radius: 12px;
-}
-
-#collisionExport textarea {
-  flex: 1;
-  width: 100%;
-  min-height: 80px;
-  resize: none;
-  background: #071820;
-  color: white;
-  font: 12px monospace;
-  touch-action: pan-y;
-}
-
-#collisionExport button {
-  padding: 10px;
-}
-</style>
-
-<script>
-/* ================================================================
-   [EDITOR 01] NUOVA MAPPA
-   Il file deve essere nella stessa cartella di index.html.
-   ================================================================ */
-
-CONFIG.map =
-  "file_00000000b7408209868184cc07238f4e.png";
-
-ready = false;
-loading.hidden = false;
-
-mapImage.src = CONFIG.map;
-
-/* ================================================================
-   [EDITOR 02] SALVATAGGIO SEPARATO PER QUESTA MAPPA
-
-   Non sovrascrive i dati locali della vecchia mappa.
-   ================================================================ */
-
-const EDITOR_STORAGE = "tarai-newmap-collisions-v1";
-
-try {
-
-  const saved = JSON.parse(
-    localStorage.getItem(EDITOR_STORAGE)
-  );
-
-  if (validCollisionData(saved)) {
-    colliderPolygons = saved;
-  }
-
-} catch (_) {}
-
-function saveColliders() {
-
-  try {
-
-    localStorage.setItem(
-      EDITOR_STORAGE,
-      JSON.stringify(colliderPolygons)
-    );
-
-  } catch (_) {
-
-    collisionHint.textContent =
-      "Salvataggio non disponibile: usa Copia collisioni.";
-
-  }
-
-}
-
-/* ================================================================
-   [EDITOR 03] INTERFACCIA
-   ================================================================ */
-
-game.insertAdjacentHTML(
-  "beforeend",
-  '<button id="collisionOpen" type="button">' +
-  'EDIT COLLISIONS</button>'
-);
-
-document.body.insertAdjacentHTML("beforeend", `
-<section
-  id="collisionEditor"
-  hidden
-  role="dialog"
-  aria-modal="true"
-  aria-label="Editor collisioni"
->
-
-  <div id="collisionToolbar">
-
-    <button type="button" data-editor-tool="pan">
-      Sposta mappa
-    </button>
-
-    <button type="button" data-editor-tool="edit">
-      Modifica
-    </button>
-
-    <button type="button" data-editor-tool="draw">
-      Nuovo ostacolo
-    </button>
-
-    <button type="button" id="collisionFinish">
-      Chiudi forma
-    </button>
-
-    <button type="button" id="collisionUndo">
-      Annulla
-    </button>
-
-    <button type="button" id="collisionDelete">
-      Elimina
-    </button>
-
-    <button type="button" id="collisionPlus">+</button>
-
-    <button type="button" id="collisionMinus">−</button>
-
-    <button type="button" id="collisionFit">
-      Mappa intera
-    </button>
-
-    <button type="button" id="collisionCopy">
-      Copia collisioni
-    </button>
-
-    <button type="button" id="collisionClose">
-      Gioca
-    </button>
-
-  </div>
-
-  <div id="collisionHint"></div>
-
-  <div id="collisionView">
-    <canvas id="collisionCanvas"></canvas>
-  </div>
-
-  <div id="collisionExport" hidden>
-
-    <strong>Collisioni aggiornate</strong>
-
-    <div>
-      Copia questo blocco e aggiungilo dopo lo script
-      dell’editor, prima di &lt;/body&gt;.
-    </div>
-
-    <textarea
-      id="collisionData"
-      readonly
-      aria-label="Codice delle collisioni"
-    ></textarea>
-
-    <button id="collisionClipboard" type="button">
-      Copia
-    </button>
-
-    <button id="collisionExportClose" type="button">
-      Indietro
-    </button>
-
-  </div>
-
-</section>
-`);
-
-/* ================================================================
-   [EDITOR 04] STATO
-   ================================================================ */
-
-const collisionEditor =
-  document.getElementById("collisionEditor");
-
-const collisionCanvas =
-  document.getElementById("collisionCanvas");
-
-const collisionContext =
-  collisionCanvas.getContext("2d");
-
-const collisionView =
-  document.getElementById("collisionView");
-
-const collisionHint =
-  document.getElementById("collisionHint");
-
-let collisionTool = "pan";
-let collisionSelected = -1;
-let collisionDraft = [];
-let collisionHistory = [];
-
-let collisionScale = 1;
-
-let collisionOffset = {
-  x: 0,
-  y: 0
-};
-
-let collisionDrag = null;
-let collisionWasReady = false;
-
-/* ================================================================
-   [EDITOR 05] STORICO DELLE MODIFICHE
-   ================================================================ */
-
-function rememberColliders() {
-
-  collisionHistory.push(
-    JSON.stringify(colliderPolygons)
-  );
-
-  if (collisionHistory.length > 40) {
-    collisionHistory.shift();
-  }
-
-}
-
-/* ================================================================
-   [EDITOR 06] DISEGNO DEGLI OSTACOLI
-   ================================================================ */
-
-function collisionPath(polygon) {
-
-  const c = collisionContext;
-
-  c.beginPath();
-
-  polygon.forEach(function(point, index) {
-
-    if (index === 0) {
-      c.moveTo(point[0], point[1]);
-    } else {
-      c.lineTo(point[0], point[1]);
-    }
-
-  });
-
-}
-
-function paintColliders() {
-
-  if (collisionEditor.hidden) {
-    return;
-  }
-
-  const c = collisionContext;
-  const w = collisionCanvas.width;
-  const h = collisionCanvas.height;
-
-  c.setTransform(1, 0, 0, 1, 0, 0);
-
-  c.clearRect(0, 0, w, h);
-  c.fillStyle = "#10232d";
-  c.fillRect(0, 0, w, h);
-
-  c.translate(
-    collisionOffset.x,
-    collisionOffset.y
-  );
-
-  c.scale(collisionScale, collisionScale);
-
-  c.imageSmoothingEnabled = false;
-
-  if (mapImage.complete && mapImage.naturalWidth) {
-
-    c.drawImage(
-      mapImage,
-      0,
-      0,
-      CONFIG.referenceWidth,
-      CONFIG.referenceHeight
-    );
-
-  }
-
-  colliderPolygons.forEach(function(polygon, index) {
-
-    const selected = index === collisionSelected;
-
-    collisionPath(polygon);
-    c.closePath();
-
-    c.fillStyle = selected
-      ? "#ffd66066"
-      : "#ff244866";
-
-    c.fill();
-
-    c.strokeStyle = selected
-      ? "#ffdd77"
-      : "#ff425c";
-
-    c.lineWidth = 1.5 / collisionScale;
-
-    c.stroke();
-
-    if (selected) {
-
-      polygon.forEach(function(point) {
-
-        const size = 10 / collisionScale;
-
-        c.fillStyle = "white";
-
-        c.fillRect(
-          point[0] - size / 2,
-          point[1] - size / 2,
-          size,
-          size
-        );
-
-      });
-
-    }
-
-  });
-
-  if (collisionDraft.length) {
-
-    collisionPath(collisionDraft);
-
-    c.strokeStyle = "#70ffff";
-    c.lineWidth = 2 / collisionScale;
-
-    c.stroke();
-
-    collisionDraft.forEach(function(point) {
-
-      const size = 8 / collisionScale;
-
-      c.fillStyle = "#70ffff";
-
-      c.fillRect(
-        point[0] - size / 2,
-        point[1] - size / 2,
-        size,
-        size
-      );
-
-    });
-
-  }
-
-  // Il punto rappresenta i piedi di Riccardo.
-
-  c.beginPath();
-  c.arc(player.x, player.y, 7, 0, Math.PI * 2);
-  c.fillStyle = "white";
-  c.fill();
-
-  c.beginPath();
-  c.arc(player.x, player.y, 5, 0, Math.PI * 2);
-  c.fillStyle = "#ed243b";
-  c.fill();
-
-  const help = {
-
-    pan:
-      "Trascina la mappa. Usa + e − per ingrandire.",
-
-    edit:
-      "Tocca un ostacolo rosso. Trascina i punti bianchi " +
-      "o trascina il suo interno per spostarlo.",
-
-    draw:
-      "Tocca gli angoli intorno all’ostacolo, " +
-      "poi premi Chiudi forma."
-
-  };
-
-  collisionHint.textContent =
-    help[collisionTool] +
-    " Ostacoli: " +
-    colliderPolygons.length;
-
-}
-
-/* ================================================================
-   [EDITOR 07] DIMENSIONI E ZOOM
-   ================================================================ */
-
-function resizeCollisionEditor(fit = false) {
-
-  if (collisionEditor.hidden) {
-    return;
-  }
-
-  collisionCanvas.width = Math.max(
-    1,
-    Math.round(collisionView.clientWidth)
-  );
-
-  collisionCanvas.height = Math.max(
-    1,
-    Math.round(collisionView.clientHeight)
-  );
-
-  if (fit) {
-
-    collisionScale = Math.min(
-      collisionCanvas.width / CONFIG.referenceWidth,
-      collisionCanvas.height / CONFIG.referenceHeight
-    ) * 0.97;
-
-    collisionOffset.x = (
-      collisionCanvas.width -
-      CONFIG.referenceWidth * collisionScale
-    ) / 2;
-
-    collisionOffset.y = (
-      collisionCanvas.height -
-      CONFIG.referenceHeight * collisionScale
-    ) / 2;
-
-  }
-
-  paintColliders();
-
-}
-
-new ResizeObserver(function() {
-  resizeCollisionEditor();
-}).observe(collisionView);
-
-function collisionZoom(factor) {
-
-  const x = collisionCanvas.width / 2;
-  const y = collisionCanvas.height / 2;
-
-  const worldX = (
-    x - collisionOffset.x
-  ) / collisionScale;
-
-  const worldY = (
-    y - collisionOffset.y
-  ) / collisionScale;
-
-  collisionScale = clamp(
-    collisionScale * factor,
-    0.12,
-    5
-  );
-
-  collisionOffset.x = x - worldX * collisionScale;
-  collisionOffset.y = y - worldY * collisionScale;
-
-  paintColliders();
-
-}
-
-/* ================================================================
-   [EDITOR 08] APERTURA E CHIUSURA
-
-   Durante le modifiche il gioco viene fermato.
-   ================================================================ */
-
-document.getElementById("collisionOpen").onclick = function() {
-
-  if (!ready) {
-    return;
-  }
-
-  collisionWasReady = ready;
-
-  ready = false;
-
-  resetInput();
-
-  collisionEditor.hidden = false;
-
-  game.inert = true;
-
-  requestAnimationFrame(function() {
-    resizeCollisionEditor(true);
-  });
-
-};
-
-document.getElementById("collisionClose").onclick = function() {
-
-  if (collisionDraft.length) {
-
-    collisionHint.textContent =
-      "Chiudi la forma in corso oppure usa Annulla " +
-      "per togliere i suoi punti.";
-
-    return;
-
-  }
-
-  if (!canStand(player.x, player.y)) {
-
-    collisionHint.textContent =
-      "Il punto di Riccardo è dentro un ostacolo. " +
-      "Correggi quell’ostacolo prima di giocare.";
-
-    return;
-
-  }
-
-  saveColliders();
-
-  collisionEditor.hidden = true;
-
-  game.inert = false;
-
-  ready = collisionWasReady;
-
-  lastTime = 0;
-
-  resetInput();
-
-  document.getElementById("collisionOpen").focus();
-
-};
-
-window.addEventListener("keydown", function(event) {
-
-  if (
-    !collisionEditor.hidden &&
-    movementKeys.has(event.key.toLowerCase())
-  ) {
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
-  }
-
-}, true);
-
-/* ================================================================
-   [EDITOR 09] SELEZIONE DEGLI STRUMENTI
-   ================================================================ */
-
-document.querySelectorAll(
-  "[data-editor-tool]"
-).forEach(function(button) {
-
-  button.onclick = function() {
-
-    collisionTool = button.dataset.editorTool;
-
-    document.querySelectorAll(
-      "[data-editor-tool]"
-    ).forEach(function(other) {
-
-      other.classList.toggle(
-        "active",
-        other === button
-      );
-
-    });
-
-    paintColliders();
-
-  };
-
-});
-
-document.querySelector(
-  '[data-editor-tool="pan"]'
-).classList.add("active");
-
-document.getElementById("collisionPlus").onclick = function() {
-  collisionZoom(1.3);
-};
-
-document.getElementById("collisionMinus").onclick = function() {
-  collisionZoom(1 / 1.3);
-};
-
-document.getElementById("collisionFit").onclick = function() {
-  resizeCollisionEditor(true);
-};
-
-/* ================================================================
-   [EDITOR 10] ANNULLAMENTO E CANCELLAZIONE
-   ================================================================ */
-
-document.getElementById("collisionUndo").onclick = function() {
-
-  if (collisionDraft.length) {
-
-    collisionDraft.pop();
-
-  } else if (collisionHistory.length) {
-
-    colliderPolygons = JSON.parse(
-      collisionHistory.pop()
-    );
-
-    collisionSelected = -1;
-
-    saveColliders();
-
-  }
-
-  paintColliders();
-
-};
-
-document.getElementById("collisionDelete").onclick = function() {
-
-  if (collisionSelected < 0) {
-    return;
-  }
-
-  rememberColliders();
-
-  colliderPolygons.splice(collisionSelected, 1);
-
-  collisionSelected = -1;
-
-  saveColliders();
-
-  paintColliders();
-
-};
-
-/* ================================================================
-   [EDITOR 11] CONTROLLO DELLE FORME
-
-   Impedisce di creare contorni incrociati o senza superficie.
-   ================================================================ */
-
-function collisionSelfIntersects(polygon) {
-
-  function orient(a, b, c) {
-
-    return (
-      (b[0] - a[0]) * (c[1] - a[1]) -
-      (b[1] - a[1]) * (c[0] - a[0])
-    );
-
-  }
-
-  for (let i = 0; i < polygon.length; i++) {
-
-    for (let j = i + 1; j < polygon.length; j++) {
-
-      if (
-        j === i + 1 ||
-        (i === 0 && j === polygon.length - 1)
-      ) {
-        continue;
-      }
-
-      const a = polygon[i];
-      const b = polygon[(i + 1) % polygon.length];
-
-      const c = polygon[j];
-      const d = polygon[(j + 1) % polygon.length];
-
-      const crossA = (
-        orient(a, b, c) * orient(a, b, d) <= 0
-      );
-
-      const crossB = (
-        orient(c, d, a) * orient(c, d, b) <= 0
-      );
-
-      const overlapX = (
-        Math.max(
-          Math.min(a[0], b[0]),
-          Math.min(c[0], d[0])
-        ) <=
-        Math.min(
-          Math.max(a[0], b[0]),
-          Math.max(c[0], d[0])
-        )
-      );
-
-      const overlapY = (
-        Math.max(
-          Math.min(a[1], b[1]),
-          Math.min(c[1], d[1])
-        ) <=
-        Math.min(
-          Math.max(a[1], b[1]),
-          Math.max(c[1], d[1])
-        )
-      );
-
-      if (crossA && crossB && overlapX && overlapY) {
-        return true;
-      }
-
-    }
-
-  }
-
-  return false;
-
-}
-
-function collisionValid(polygon) {
-
-  if (polygon.length < 3) {
-    return false;
-  }
-
-  const area = Math.abs(
-    polygon.reduce(function(total, point, index) {
-
-      const next = polygon[
-        (index + 1) % polygon.length
-      ];
-
-      return (
-        total +
-        point[0] * next[1] -
-        next[0] * point[1]
-      );
-
-    }, 0)
-  ) / 2;
-
-  return (
-    area > 3 &&
-    !collisionSelfIntersects(polygon)
-  );
-
-}
-
-/* ================================================================
-   [EDITOR 12] CHIUSURA DI UN NUOVO OSTACOLO
-   ================================================================ */
-
-document.getElementById("collisionFinish").onclick = function() {
-
-  if (!collisionValid(collisionDraft)) {
-
-    collisionHint.textContent =
-      "Servono almeno 3 punti. " +
-      "Il contorno non deve incrociarsi.";
-
-    return;
-
-  }
-
-  rememberColliders();
-
-  colliderPolygons.push(collisionDraft);
-
-  collisionSelected = colliderPolygons.length - 1;
-
-  collisionDraft = [];
-
-  saveColliders();
-
-  paintColliders();
-
-};
-
-/* ================================================================
-   [EDITOR 13] CONVERSIONE DELLE COORDINATE
-   ================================================================ */
-
-function collisionPointer(event) {
-
-  const rect = collisionCanvas.getBoundingClientRect();
-
-  return {
-
-    x:
-      (event.clientX - rect.left) *
-      collisionCanvas.width / rect.width,
-
-    y:
-      (event.clientY - rect.top) *
-      collisionCanvas.height / rect.height
-
-  };
-
-}
-
-function collisionWorld(point) {
-
-  return [
-
-    Math.round(clamp(
-      (point.x - collisionOffset.x) / collisionScale,
-      0,
-      CONFIG.referenceWidth
-    )),
-
-    Math.round(clamp(
-      (point.y - collisionOffset.y) / collisionScale,
-      0,
-      CONFIG.referenceHeight
-    ))
-
-  ];
-
-}
-
-/* ================================================================
-   [EDITOR 14] TOCCO: DISEGNO E SELEZIONE
-   ================================================================ */
-
-collisionCanvas.onpointerdown = function(event) {
-
-  if (collisionDrag) {
-    return;
-  }
-
-  event.preventDefault();
-
-  collisionCanvas.setPointerCapture(event.pointerId);
-
-  const point = collisionPointer(event);
-  const world = collisionWorld(point);
-
-  if (collisionTool === "draw") {
-
-    const previous = collisionDraft[
-      collisionDraft.length - 1
-    ];
-
-    if (
-      !previous ||
-      Math.hypot(
-        world[0] - previous[0],
-        world[1] - previous[1]
-      ) > 2
-    ) {
-      collisionDraft.push(world);
-    }
-
-    paintColliders();
-
-    return;
-
-  }
-
-  if (collisionTool === "pan") {
-
-    collisionDrag = {
-      id: event.pointerId,
-      kind: "pan",
-      point,
-      offset: {...collisionOffset}
-    };
-
-    return;
-
-  }
-
-  if (collisionSelected >= 0) {
-
-    const vertex = colliderPolygons[
-      collisionSelected
-    ].findIndex(function(value) {
-
-      return Math.hypot(
-        value[0] - world[0],
-        value[1] - world[1]
-      ) < 16 / collisionScale;
-
-    });
-
-    if (vertex >= 0) {
-
-      collisionDrag = {
-        id: event.pointerId,
-        kind: "vertex",
-        vertex,
-        before: JSON.stringify(colliderPolygons)
-      };
-
-      return;
-
-    }
-
-  }
-
-  collisionSelected = -1;
-
-  for (let i = colliderPolygons.length - 1; i >= 0; i--) {
-
-    if (
-      pointInPolygon(
-        world[0],
-        world[1],
-        colliderPolygons[i]
-      )
-    ) {
-
-      collisionSelected = i;
-
-      break;
-
-    }
-
-  }
-
-  if (collisionSelected >= 0) {
-
-    collisionDrag = {
-
-      id: event.pointerId,
-
-      kind: "shape",
-
-      point: world,
-
-      before: JSON.stringify(colliderPolygons),
-
-      original: colliderPolygons[
-        collisionSelected
-      ].map(value => [...value])
-
-    };
-
-  }
-
-  paintColliders();
-
-};
-
-/* ================================================================
-   [EDITOR 15] TRASCINAMENTO MAPPA, PUNTI E OSTACOLI
-   ================================================================ */
-
-collisionCanvas.onpointermove = function(event) {
-
-  const drag = collisionDrag;
-
-  if (!drag || drag.id !== event.pointerId) {
-    return;
-  }
-
-  const point = collisionPointer(event);
-  const world = collisionWorld(point);
-
-  if (drag.kind === "pan") {
-
-    collisionOffset.x =
-      drag.offset.x + point.x - drag.point.x;
-
-    collisionOffset.y =
-      drag.offset.y + point.y - drag.point.y;
-
-  } else if (drag.kind === "vertex") {
-
-    colliderPolygons[
-      collisionSelected
-    ][drag.vertex] = world;
-
-  } else {
-
-    const minX = Math.min(
-      ...drag.original.map(value => value[0])
-    );
-
-    const maxX = Math.max(
-      ...drag.original.map(value => value[0])
-    );
-
-    const minY = Math.min(
-      ...drag.original.map(value => value[1])
-    );
-
-    const maxY = Math.max(
-      ...drag.original.map(value => value[1])
-    );
-
-    const dx = clamp(
-      world[0] - drag.point[0],
-      -minX,
-      CONFIG.referenceWidth - maxX
-    );
-
-    const dy = clamp(
-      world[1] - drag.point[1],
-      -minY,
-      CONFIG.referenceHeight - maxY
-    );
-
-    colliderPolygons[collisionSelected] =
-      drag.original.map(function(value) {
-
-        return [
-          value[0] + dx,
-          value[1] + dy
-        ];
-
-      });
-
-  }
-
-  paintColliders();
-
-};
-
-/* ================================================================
-   [EDITOR 16] FINE DEL TRASCINAMENTO
-   ================================================================ */
-
-function endCollisionDrag(event) {
-
-  const drag = collisionDrag;
-
-  if (!drag || drag.id !== event.pointerId) {
-    return;
-  }
-
-  if (drag.before) {
-
-    const cancelled = event.type === "pointercancel";
-
-    const valid = collisionValid(
-      colliderPolygons[collisionSelected]
-    );
-
-    if (cancelled || !valid) {
-
-      colliderPolygons = JSON.parse(drag.before);
-
-    } else if (
-      drag.before !== JSON.stringify(colliderPolygons)
-    ) {
-
-      collisionHistory.push(drag.before);
-
-      if (collisionHistory.length > 40) {
-        collisionHistory.shift();
-      }
-
-      saveColliders();
-
-    }
-
-  }
-
-  collisionDrag = null;
-
-  paintColliders();
-
-}
-
-collisionCanvas.onpointerup = endCollisionDrag;
-
-collisionCanvas.onpointercancel = endCollisionDrag;
-
-collisionCanvas.onlostpointercapture = endCollisionDrag;
-
-/* ================================================================
-   [EDITOR 17] ESPORTAZIONE PER GITHUB
-
-   Genera un blocco pronto da incollare DOPO questo editor.
-   Non aggiorna GitHub automaticamente.
-   ================================================================ */
-
-document.getElementById("collisionCopy").onclick = function() {
-
-  document.getElementById("collisionData").value =
-    "<script>\n" +
-    "/* COLLISIONI AGGIORNATE DELLA NUOVA MAPPA */\n" +
-    "colliderPolygons = " +
-    JSON.stringify(colliderPolygons, null, 2) +
-    ";\n" +
-    "try {\n" +
-    '  localStorage.setItem("' +
-    EDITOR_STORAGE +
-    '", JSON.stringify(colliderPolygons));\n' +
-    "} catch (_) {}\n" +
-    "<" + "/script>";
-
-  document.getElementById("collisionExport").hidden = false;
-
-  document.getElementById("collisionClipboard").textContent =
-    "Copia";
-
-};
-
-document.getElementById("collisionClipboard").onclick =
-  async function() {
-
-    const field = document.getElementById("collisionData");
-
-    try {
-
-      await navigator.clipboard.writeText(field.value);
-
-      this.textContent = "Copiato!";
-
-    } catch (_) {
-
-      field.focus();
-      field.select();
-
-      this.textContent = "Seleziona e copia il testo";
-
-    }
-
-  };
-
-document.getElementById("collisionExportClose").onclick =
-  function() {
-
-    document.getElementById("collisionExport").hidden = true;
-
-  };
-
-  </script>
