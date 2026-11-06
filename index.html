@@ -390,7 +390,7 @@ function makeDepth(p,baseY){
  const xs=p.map(v=>v[0]),ys=p.map(v=>v[1]),x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys)),w=Math.ceil(Math.max(...xs))-x,h=Math.ceil(Math.max(...ys))-y;if(w<1||h<1)return;
  const c=document.createElement("canvas");c.className="depth-piece";c.width=w;c.height=h;
  Object.assign(c.style,{left:x+"px",top:y+"px",zIndex:Math.round(baseY*100+30)});
- const ctx=c.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.translate(-x,-y);polygonPath(ctx,p);ctx.clip();ctx.drawImage(mapImage,0,0,1024,1536);scene.appendChild(c);depthNodes.push(c);
+ const ctx=c.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.translate(-x,-y);polygonPath(ctx,p);ctx.clip();ctx.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);scene.appendChild(c);depthNodes.push(c);
 }
 function rebuildDepth(){depthNodes.forEach(n=>n.remove());depthNodes=[];for(const z of world.depth)makeDepth(z.polygon,z.baseY);makeDepth(rect(0,0,1024,55),145);makeDepth(rect(328,55,20,90),145);makeDepth(rect(660,55,28,90),145);makeDepth(rect(1003,55,21,90),145);}
 function setupTrain(){
@@ -606,7 +606,7 @@ function setPolygon(i,p){if(editor.layer==="collision")world.collisions[i]=p;els
 function remember(s=JSON.stringify(world)){editor.history.push(s);if(editor.history.length>40)editor.history.shift();}
 function notice(t){$("editorHint").textContent=t;}
 function paintEditor(){
- if(!editor.open||!ready)return;const c=editorCtx,s=editor;c.setTransform(1,0,0,1,0,0);c.fillStyle="#10232d";c.fillRect(0,0,editorCanvas.width,editorCanvas.height);c.translate(s.x,s.y);c.scale(s.scale,s.scale);c.imageSmoothingEnabled=false;c.drawImage(mapImage,0,0,1024,1536);
+ if(!editor.open||!ready)return;const c=editorCtx,s=editor;c.setTransform(1,0,0,1,0,0);c.fillStyle="#10232d";c.fillRect(0,0,editorCanvas.width,editorCanvas.height);c.translate(s.x,s.y);c.scale(s.scale,s.scale);c.imageSmoothingEnabled=false;c.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
  items().forEach((item,i)=>{const p=polygon(item),sel=i===s.selected;polygonPath(c,p);c.fillStyle=sel?"#ffde7966":s.layer==="collision"?"#ff34545c":"#40bfff60";c.fill();c.lineWidth=1.5/s.scale;c.strokeStyle=sel?"#ffe08a":"#ffffff88";c.stroke();if(!sel)return;for(const [x,y]of p){c.fillStyle="white";c.fillRect(x-5/s.scale,y-5/s.scale,10/s.scale,10/s.scale);}if(s.layer==="depth"){const xs=p.map(v=>v[0]);c.beginPath();c.moveTo(Math.min(...xs)-15,item.baseY);c.lineTo(Math.max(...xs)+15,item.baseY);c.strokeStyle="#ffdf59";c.lineWidth=2/s.scale;c.stroke();c.fillStyle="#ffdf59";c.font=12/s.scale+"px Arial";c.fillText(item.name+" · BASE "+Math.round(item.baseY),Math.min(...xs),item.baseY-7/s.scale);}});
  if(s.draft.length){c.beginPath();s.draft.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle="#7dffff";c.lineWidth=2/s.scale;c.stroke();for(const [x,y]of s.draft){c.fillStyle="#7dffff";c.fillRect(x-4/s.scale,y-4/s.scale,8/s.scale,8/s.scale);}}
  for(const n of npcs){if(n.route){c.beginPath();c.moveTo(...n.route[0]);c.lineTo(...n.route[1]);c.strokeStyle="#ffe199";c.lineWidth=2/s.scale;c.stroke();}for(const p of feet(n)){c.beginPath();c.arc(p.x,p.y,p.r,0,Math.PI*2);c.fillStyle="#ffcc69";c.fill();}}
@@ -614,7 +614,7 @@ function paintEditor(){
  document.querySelectorAll("[data-layer]").forEach(b=>b.classList.toggle("active",b.dataset.layer===s.layer));document.querySelectorAll("[data-tool]").forEach(b=>b.classList.toggle("active",b.dataset.tool===s.tool));$("editorBase").disabled=s.layer!=="depth"||s.selected<0;
  notice((s.base?"Tocca l’altezza della base.":s.tool==="pan"?"Trascina la mappa. Usa + e −.":s.tool==="draw"?"Tocca gli angoli, poi Chiudi forma.":"Seleziona e trascina una forma o i punti bianchi.")+(s.layer==="depth"?" Blu: ritagli. Giallo: base.":" Rosso: ostacoli. Arancione: NPC. Linee: percorsi.")+(storageFailed?" Esporta i dati: salvataggio non disponibile.":""));
 }
-function resizeEditor(fit=false){if(!editor.open)return;editorCanvas.width=Math.max(1,$("editorView").clientWidth);editorCanvas.height=Math.max(1,$("editorView").clientHeight);if(fit){editor.scale=Math.min(editorCanvas.width/1024,editorCanvas.height/1536)*.97;editor.x=(editorCanvas.width-1024*editor.scale)/2;editor.y=(editorCanvas.height-1536*editor.scale)/2;}paintEditor();}
+function resizeEditor(fit=false){if(!editor.open)return;editorCanvas.width=Math.max(1,$("editorView").clientWidth);editorCanvas.height=Math.max(1,$("editorView").clientHeight);if(fit){editor.scale=Math.min(editorCanvas.width/CONFIG.width,editorCanvas.height/CONFIG.height)*.97;editor.x=(editorCanvas.width-CONFIG.width*editor.scale)/2;editor.y=(editorCanvas.height-CONFIG.height*editor.scale)/2;}paintEditor();}
 new ResizeObserver(()=>resizeEditor()).observe($("editorView"));
 function zoomEditor(factor){const x=editorCanvas.width/2,y=editorCanvas.height/2,wx=(x-editor.x)/editor.scale,wy=(y-editor.y)/editor.scale;editor.scale=clamp(editor.scale*factor,.12,6);editor.x=x-wx*editor.scale;editor.y=y-wy*editor.scale;paintEditor();}
 /* 19 · EDITOR: APERTURA, STRUMENTI E VALIDAZIONE */
@@ -635,7 +635,7 @@ $("editorUndo").onclick=()=>{editor.base=false;if(editor.draft.length)editor.dra
 $("editorDelete").onclick=()=>{if(editor.selected<0)return;remember();items().splice(editor.selected,1);editor.selected=-1;editor.base=false;saveWorld();paintEditor();};
 /* 20 · EDITOR: TRASCINAMENTO ED ESPORTAZIONE */
 function screenPoint(e){const r=editorCanvas.getBoundingClientRect();return {x:(e.clientX-r.left)*editorCanvas.width/r.width,y:(e.clientY-r.top)*editorCanvas.height/r.height};}
-function worldPoint(p){return [Math.round(clamp((p.x-editor.x)/editor.scale,0,1024)),Math.round(clamp((p.y-editor.y)/editor.scale,0,1536))];}
+function worldPoint(p){return [Math.round(clamp((p.x-editor.x)/editor.scale,0,CONFIG.width)),Math.round(clamp((p.y-editor.y)/editor.scale,0,CONFIG.height))];}
 editorCanvas.onpointerdown=e=>{
  const s=editor;if(s.drag)return;e.preventDefault();editorCanvas.setPointerCapture(e.pointerId);const point=screenPoint(e),wp=worldPoint(point);
  if(s.base&&s.selected>=0){remember();world.depth[s.selected].baseY=wp[1];s.base=false;saveWorld();paintEditor();return;}
@@ -645,10 +645,10 @@ editorCanvas.onpointerdown=e=>{
  s.selected=-1;for(let i=items().length-1;i>=0;i--)if(pointInPolygon(wp[0],wp[1],polygon(items()[i]))){s.selected=i;break;}
  if(s.selected>=0)s.drag={id:e.pointerId,kind:"shape",point:wp,original:copy(polygon(items()[s.selected])),base:s.layer==="depth"?items()[s.selected].baseY:null,before:JSON.stringify(world)};paintEditor();
 };
-editorCanvas.onpointermove=e=>{const s=editor,d=s.drag;if(!d||d.id!==e.pointerId)return;const p=screenPoint(e),wp=worldPoint(p);if(d.kind==="pan"){s.x=d.x+p.x-d.point.x;s.y=d.y+p.y-d.point.y;}else if(d.kind==="vertex")polygon(items()[s.selected])[d.vertex]=wp;else{const xs=d.original.map(p=>p[0]),ys=d.original.map(p=>p[1]),dx=clamp(wp[0]-d.point[0],-Math.min(...xs),1024-Math.max(...xs)),dy=clamp(wp[1]-d.point[1],-Math.min(...ys),1536-Math.max(...ys));setPolygon(s.selected,d.original.map(p=>[p[0]+dx,p[1]+dy]));if(s.layer==="depth")world.depth[s.selected].baseY=clamp(d.base+dy,0,1536);}paintEditor();};
+editorCanvas.onpointermove=e=>{const s=editor,d=s.drag;if(!d||d.id!==e.pointerId)return;const p=screenPoint(e),wp=worldPoint(p);if(d.kind==="pan"){s.x=d.x+p.x-d.point.x;s.y=d.y+p.y-d.point.y;}else if(d.kind==="vertex")polygon(items()[s.selected])[d.vertex]=wp;else{const xs=d.original.map(p=>p[0]),ys=d.original.map(p=>p[1]),dx=clamp(wp[0]-d.point[0],-Math.min(...xs),CONFIG.width-Math.max(...xs)),dy=clamp(wp[1]-d.point[1],-Math.min(...ys),CONFIG.height-Math.max(...ys));setPolygon(s.selected,d.original.map(p=>[p[0]+dx,p[1]+dy]));if(s.layer==="depth")world.depth[s.selected].baseY=clamp(d.base+dy,0,CONFIG.height);}paintEditor();};
 function finishDrag(e){const s=editor,d=s.drag;if(!d||d.id!==e.pointerId)return;let invalid=false;if(d.before){invalid=!shapeValid(polygon(items()[s.selected]));if(e.type==="pointercancel"||invalid)world=JSON.parse(d.before);else if(d.before!==JSON.stringify(world)){remember(d.before);saveWorld();}}s.drag=null;paintEditor();if(invalid)notice("Contorno non valido: modifica annullata.");}
 editorCanvas.onpointerup=finishDrag;editorCanvas.onpointercancel=finishDrag;editorCanvas.onlostpointercapture=finishDrag;
-$("editorExport").onclick=()=>{if(editor.draft.length){notice("Termina prima la forma.");return;}saveWorld();$("exportData").value=JSON.stringify({map:locationId==="office"?OFFICE.map:CONFIG.map,version:WORLD_VERSION,collisions:world.collisions,depth:world.depth},null,2);$("exportPanel").hidden=false;$("exportCopy").textContent="Copia";};
+$("editorExport").onclick=()=>{if(editor.draft.length){notice("Termina prima la forma.");return;}saveWorld();$("exportData").value=JSON.stringify({map:locationId==="hongdeon"?HONGDEON.map:locationId==="office"?OFFICE.map:CONFIG.map,version:WORLD_VERSION,collisions:world.collisions,depth:world.depth},null,2);$("exportPanel").hidden=false;$("exportCopy").textContent="Copia";};
 $("exportCopy").onclick=async function(){try{await navigator.clipboard.writeText($("exportData").value);this.textContent="Copiato!";}catch(_){$("exportData").focus();$("exportData").select();this.textContent="Seleziona e copia il testo";}};$("exportClose").onclick=()=>$("exportPanel").hidden=true;
 /* 23 · UFFICIO: MAPPA, OSTACOLI INIZIALI E SETTE PERSONAGGI */
 const OFFICE_VIEW={zoom:CONFIG.zoom*CONFIG.spriteHeight/140,playerHeight:140,npcHeight:150,staffHeight:145,seatedHeight:145};
@@ -685,7 +685,7 @@ const originalHead=targetHead;targetHead=function(t){if(t.type==='door'){const p
 const originalNear=nearTarget;nearTarget=function(t){if(t.type==='door')return doorNearby();if(locationId==='office'&&t.owner?.fixedFacing){const n=t.owner;if(n.y<580)return Math.abs(player.x-n.x)<65&&player.y>=585&&player.y<660;return Math.hypot(player.x-n.x,player.y-n.y)<65;}return originalNear(t);};
 const originalInteract=interact;interact=function(t){if(locked()||intro||dialogue||!nearTarget(t))return;if(t.type==='door'){changeLocation(locationId==='city'?'office':'city');return;}if(t.owner?.id==='18_impiegata_principale'){startOfficeStory(t);return;}originalInteract(t);};
 // Porta dedicata: area di attivazione sul marciapiede, indipendente dagli NPC.
-function doorNearby(){return locationId==='city'?player.x>=660&&player.x<=850&&player.y>=1468&&player.y<=1536:player.x>=400&&player.x<=620&&player.y>=1235&&player.y<=1348;}
+function doorNearby(){if(locationId==='hongdeon')return false;return locationId==='city'?player.x>=660&&player.x<=850&&player.y>=1468&&player.y<=1536:player.x>=400&&player.x<=620&&player.y>=1235&&player.y<=1348;}
 const doorButton=document.createElement('button'),doorIcon=document.createElement('img');doorButton.id='doorInteraction';doorButton.className='marker object';doorButton.hidden=true;doorIcon.src=UI_ASSETS.exclamation;doorIcon.alt='!';doorButton.appendChild(doorIcon);$('interactions').appendChild(doorButton);
 doorIcon.onerror=()=>{doorIcon.hidden=true;doorButton.textContent='!';Object.assign(doorButton.style,{color:'#d92532',fontWeight:'900',fontSize:'30px',background:'#fff6df',border:'2px solid #68757f',borderRadius:'6px'});};
 doorButton.onclick=e=>{e.preventDefault();e.stopPropagation();if(ready&&!intro&&!dialogue&&!editor.open&&!locked()&&doorNearby())changeLocation(locationId==='city'?'office':'city');};
@@ -733,7 +733,7 @@ async function runAutomaticMenu(){const epoch=sceneEpoch;openMenu(true);autoMenu
 const originalSave=saveWorld;saveWorld=function(){if(locationId==='city')originalSave();else{officeWorld=world;try{localStorage.setItem('tarai-office-world-v2',JSON.stringify(world));storageFailed=false;}catch(_){storageFailed=true;}}};
 try{const saved=JSON.parse(localStorage.getItem('tarai-office-world-v2'));if(validWorld(saved))officeWorld=saved;}catch(_){}
 const originalLoadCharacters=loadCharacters;loadCharacters=async function(){await originalLoadCharacters();cityNpcs.push(...npcs);cityWorld=world;};
-const originalBegin=beginIntro;beginIntro=function(){sceneEpoch++;menuUnlocked=false;jobAssigned=false;destinationOpen=false;travelScene=null;inventory={};selectedItem=null;$('destinations').hidden=true;$('inventoryPage').hidden=true;game.classList.remove('travel-ending');$('fade').style.transition='';officeSequence=null;dialogue=null;ending=false;transitioning=false;autoMenu=false;menuOpen=false;language='ko';won=50000;Object.assign(partyMembers.riccardo,{level:1,hp:250,maxHp:250,ep:100,maxEp:100});$('rpgMenu').hidden=true;$('rpgMenu').classList.remove('auto');$('fade').classList.remove('black');$('speech').classList.remove('thought','narration');if(locationId==='office')showLocation('city');for(const n of [...cityNpcs,...officeNpcs])n.talking=false;renderMenu();originalBegin();};
+const originalBegin=beginIntro;beginIntro=function(){sceneEpoch++;menuUnlocked=false;jobAssigned=false;destinationOpen=false;travelScene=null;inventory={};selectedItem=null;$('destinations').hidden=true;$('inventoryPage').hidden=true;game.classList.remove('travel-ending');$('fade').style.transition='';officeSequence=null;dialogue=null;ending=false;transitioning=false;autoMenu=false;menuOpen=false;language='ko';won=50000;Object.assign(partyMembers.riccardo,{level:1,hp:250,maxHp:250,ep:100,maxEp:100});$('rpgMenu').hidden=true;$('rpgMenu').classList.remove('auto');$('fade').classList.remove('black');$('speech').classList.remove('thought','narration');if(locationId!=='city')showLocation('city');for(const n of [...cityNpcs,...officeNpcs])n.talking=false;renderMenu();originalBegin();};
 const originalStatus=updateStatus;updateStatus=function(){if(ending){$('status').textContent='To be continued · ↺ Restart';return;}if(locationId==='office'){$('status').textContent=missing.size?'Missing image: '+[...missing][0]:'Job Center';return;}originalStatus();};
 // Il reset rimane l'unico controllo disponibile alla fine della prova.
 for(const id of ['editorOpen','zoomIn','zoomOut']){const fn=$(id).onclick;$(id).onclick=()=>{if(!locked())fn();};}
@@ -748,7 +748,7 @@ const ENGLISH_SCENE=[
  ['npc','Yes. Can we get back to finding you a job now?'],
  ['thought','And I spent the whole flight studying Korean…'],
  ['player','Right, sorry! You mentioned a restaurant looking for a cook?'],
- ['npc','Yes, in Hongdeon. I’ve reviewed your résumé, and I think you’d be a good fit.'],
+ ['npc','The restaurant is called Cucchiaio. It’s in Hongdeon. I’ve reviewed your résumé, and I think you’d be a good fit.'],
  ['npc','I’ve arranged an interview for you. Take the bus from the stop outside Seoul Station, next to the map board.'],
  ['player','Hongdeon. Bus stop. Interview. Got it!'],
  ['npc','And try not to get lost. Changing the language won’t help with that.'],
@@ -786,7 +786,7 @@ const advanceBeforeEnglish=advanceSpeech;advanceSpeech=function(){if(!dialogue?.
 const interactBeforeTranslation=interact;interact=function(t){
  if(!ready||intro||dialogue||editor.open||locked()||!nearTarget(t))return;
  if(t.type==='sign'&&jobAssigned){openDestinations();return;}
- if(t.owner?.id==='18_impiegata_principale'&&jobAssigned){t.owner.talking=true;openSpeech(['Take the bus to Hongdeon from the stop outside Seoul Station, next to the map board. Good luck with your interview!'],{type:'npc',target:t});return;}
+ if(t.owner?.id==='18_impiegata_principale'&&jobAssigned){t.owner.talking=true;openSpeech(['Cucchiaio is in Hongdeon. Take the bus from the stop outside Seoul Station, next to the map board. Good luck with your interview!'],{type:'npc',target:t});return;}
  interactBeforeTranslation(t);
  if(language==='en'&&dialogue?.type==='npc'&&!dialogue.officeStory){dialogue.lines=[t.dog?'Woof! Woof!':NPC_EN[t.owner.id]||'Hello!'];dialogue.index=0;$('speechText').textContent=dialogue.lines[0];}
 };
@@ -825,16 +825,64 @@ function openDestinations(){
  for(const d of DESTINATIONS){const b=document.createElement('button');b.textContent=(d.unlocked?'▸  ':'🔒  ')+d.name;b.disabled=!d.unlocked;b.onclick=()=>{if(d.id==='hongdeon')startBusDeparture();};$('destinationList').appendChild(b);}
 }
 $('destinationBack').onclick=()=>{destinationOpen=false;$('destinations').hidden=true;resetInput();updateInteractionUI();};
-function startBusDeparture(){
- if(!destinationOpen||!jobAssigned)return;destinationOpen=false;$('destinations').hidden=true;resetInput();player.moving=false;reactionTime=0;clearMarkers();doorButton.hidden=true;game.classList.add('travel-ending');
- travelScene={time:0};$('fade').style.transition='opacity 3s linear';$('fade').classList.add('black');
+async function startBusDeparture(){
+ if(!destinationOpen||!jobAssigned||transitioning)return;
+ destinationOpen=false;$('destinations').hidden=true;resetInput();reactionTime=0;clearMarkers();doorButton.hidden=true;transitioning=true;
+ const epoch=sceneEpoch;let arrived=false;
+ $('fade').style.transition='opacity 3s ease-in-out';$('fade').classList.add('black');
+ try{
+  await Promise.all([wait(3100),loadHongdeonMap()]);if(epoch!==sceneEpoch)return;
+  showLocation('hongdeon');Object.assign(player,HONGDEON.start,{direction:'up',moving:false});zoom=CONFIG.zoom;drawPlayer();updateCamera();arrived=true;
+  await wait(150);if(epoch!==sceneEpoch)return;$('fade').classList.remove('black');await wait(3100);if(epoch!==sceneEpoch)return;
+ }catch(error){
+  if(epoch!==sceneEpoch)return;$('fade').classList.remove('black');$('status').textContent='Unable to load Hongdeon. Please try again.';await wait(3100);
+ }finally{
+  if(epoch===sceneEpoch){transitioning=false;ending=false;$('fade').style.transition='';resetInput();if(arrived)openSpeech(['Hongdeon… Now, let’s find Cucchiaio.'],{type:'arrival'});updateInteractionUI();}
+ }
 }
-function updateTravel(dt){
- if(!travelScene)return;travelScene.time+=dt;
- if(travelScene.time>=3.1){travelScene=null;ending=true;}
-}
+function updateTravel(dt){}
 const openBeforeInventory=openMenu;openMenu=function(scripted=false){openBeforeInventory(scripted);if(menuOpen)$('inventoryPage').hidden=true;};
 $('menuOpen').onclick=()=>openMenu();$('menuClose').onclick=()=>closeMenu();
+
+
+/* 31 · HONGDEON: QUARTIERE ESTESO, ARRIVO E DATI SEPARATI */
+const HONGDEON={map:'Map/file_00000000c2a8821197ce604d3dd4ea41.png',width:4096,height:3072,start:{x:1100,y:2940}};
+// Contorni iniziali sulla tavola 1448 × 1086; l'editor esporta coordinate del mondo.
+const HONGDEON_BLOCKS=[
+ [0,0,191,273],[192,5,359,225],[362,0,548,224],[555,0,715,187],
+ [209,197,376,347],[0,286,207,510],[249,353,381,519],[439,350,575,516],
+ [0,527,127,650],[0,653,98,796],[104,553,328,766],[108,783,329,989],
+ [0,796,101,988],[416,549,659,802],[430,807,672,988],
+ [606,190,774,325],[664,340,800,513],[724,550,823,990],
+ [774,0,949,190],[968,0,1107,201],[1110,0,1448,151],
+ [801,213,947,427],[946,276,1045,426],[1105,157,1448,321],
+ [1136,334,1355,630],[1362,326,1448,630],
+ [820,661,963,995],[965,680,1131,994],[1145,655,1395,993],[1406,647,1448,995],
+ [847,462,1059,623]
+];
+const hongScale=4096/1448;
+let hongdeonWorld={collisions:HONGDEON_BLOCKS.map(([x,y,w,h])=>rect(x*hongScale,y*hongScale,(w-x)*hongScale,(h-y)*hongScale)),depth:[]};
+let hongdeonMapPromise=null;
+function loadHongdeonMap(){return hongdeonMapPromise||(hongdeonMapPromise=new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>{hongdeonMapPromise=null;reject(Error('Unable to load Hongdeon'));};image.src=HONGDEON.map;}));}
+const showBeforeHongdeon=showLocation;
+showLocation=function(id){
+ if(locationId==='hongdeon')hongdeonWorld=world;
+ CONFIG.width=id==='hongdeon'?HONGDEON.width:1024;CONFIG.height=id==='hongdeon'?HONGDEON.height:1536;
+ scene.style.width=CONFIG.width+'px';scene.style.height=CONFIG.height+'px';mapImage.style.width=CONFIG.width+'px';mapImage.style.height=CONFIG.height+'px';
+ if(id!=='hongdeon'){showBeforeHongdeon(id);return;}
+ for(const n of npcs)n.actor.node.hidden=true;if(locationId==='city')cityWorld=world;else if(locationId==='office')officeWorld=world;
+ locationId=id;world=hongdeonWorld;npcs.splice(0);player.actor.height=CONFIG.spriteHeight;player.actor.active=null;
+ clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();doorButton.hidden=true;
+ for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;
+ depthNodes.forEach(n=>n.remove());depthNodes=[];mapImage.onload=()=>{if(locationId==='hongdeon')rebuildDepth();};mapImage.src=HONGDEON.map;
+ $('objective').textContent='Find Cucchiaio';
+};
+const targetsBeforeHongdeon=allTargets;allTargets=function(){return locationId==='hongdeon'?[]:targetsBeforeHongdeon();};
+const depthBeforeHongdeon=rebuildDepth;rebuildDepth=function(){if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}depthNodes.forEach(n=>n.remove());depthNodes=[];for(const z of world.depth)makeDepth(z.polygon,z.baseY);};
+const saveBeforeHongdeon=saveWorld;saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}hongdeonWorld=world;try{localStorage.setItem('tarai-hongdeon-world-v1',JSON.stringify(world));storageFailed=false;}catch(_){storageFailed=true;}};
+try{const saved=JSON.parse(localStorage.getItem('tarai-hongdeon-world-v1'));if(validWorld(saved))hongdeonWorld=saved;}catch(_){}
+const statusBeforeHongdeon=updateStatus;updateStatus=function(){if(locationId==='hongdeon'){$('status').textContent='Hongdeon';return;}statusBeforeHongdeon();};
+DESTINATIONS[0].map=HONGDEON.map;
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
