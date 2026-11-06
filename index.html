@@ -281,7 +281,7 @@ function createActor(height=54,width=null){
  return {node,height,width,images:new Map(),active:null,paused:false,visibleHeight:height};
 }
 function setAsset(actor,asset,paused=false){
- if(!asset)return;if(actor.active===asset&&actor.paused===paused)return;
+ if(!asset)return;if(actor.active===asset&&actor.paused===paused){actor.node.hidden=false;return;}
  const key=asset.key+(paused&&asset.freeze?"|pause":"");let image=actor.images.get(key);
  if(!image){image=document.createElement("img");image.src=paused&&asset.freeze?asset.freeze:asset.file;image.alt="";image.draggable=false;actor.images.set(key,image);actor.node.appendChild(image);}
  for(const im of actor.images.values())im.hidden=im!==image;
@@ -827,15 +827,12 @@ function openDestinations(){
 $('destinationBack').onclick=()=>{destinationOpen=false;$('destinations').hidden=true;resetInput();updateInteractionUI();};
 function startBusDeparture(){
  if(!destinationOpen||!jobAssigned)return;destinationOpen=false;$('destinations').hidden=true;resetInput();player.moving=false;reactionTime=0;clearMarkers();doorButton.hidden=true;game.classList.add('travel-ending');
- const asset=vehicleAssets.bus[Math.floor(Math.random()*vehicleAssets.bus.length)],actor=createActor(1,CONFIG.bus.width);
- setAsset(actor,asset);actor.node.style.zIndex='999999';travelScene={actor,x:Math.max(1024,player.x+600),y:player.y+22,time:0,fading:false};place(actor,travelScene.x,travelScene.y);
+ travelScene={time:0};$('fade').style.transition='opacity 3s linear';$('fade').classList.add('black');
 }
 function updateTravel(dt){
- if(!travelScene)return;const t=travelScene;t.time+=dt;t.x-=180*dt;place(t.actor,t.x,t.y);t.actor.node.style.zIndex='999999';
- if(!t.fading&&(t.x<=player.x+CONFIG.bus.width/2||t.time>8)){t.fading=true;t.time=0;$('fade').style.transition='opacity 3s linear';$('fade').classList.add('black');}
- if(t.fading&&t.time>=3.1){t.actor.node.remove();travelScene=null;ending=true;}
+ if(!travelScene)return;travelScene.time+=dt;
+ if(travelScene.time>=3.1){travelScene=null;ending=true;}
 }
-const beginBeforeTravel=beginIntro;beginIntro=function(){if(travelScene)travelScene.actor.node.remove();beginBeforeTravel();};
 const openBeforeInventory=openMenu;openMenu=function(scripted=false){openBeforeInventory(scripted);if(menuOpen)$('inventoryPage').hidden=true;};
 $('menuOpen').onclick=()=>openMenu();$('menuClose').onclick=()=>closeMenu();
 
