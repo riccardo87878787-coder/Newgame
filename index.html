@@ -55,6 +55,18 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #partySlots{position:absolute;left:2%;top:4%;width:65%;height:92%;display:grid;grid-template-rows:repeat(4,minmax(0,1fr))}.party-slot{min-height:0;position:relative;padding:2% 0}.member-card{position:absolute;inset:3% 0;background:#f5e8cf;border:1px solid #bc9853;border-radius:8px;overflow:hidden}.member-card>img{width:100%;height:100%;object-fit:fill}.member-data{position:absolute;left:45%;right:4%;top:9%;bottom:8%;display:flex;flex-direction:column;justify-content:space-evenly;font-size:clamp(10px,2.7vw,15px)}.member-data strong{font-size:1.3em}.stat-row{white-space:nowrap}.meter{height:5px;background:#d6cbb8;border-radius:5px;overflow:hidden}.meter span{display:block;height:100%;background:#326368}.meter.ep span{background:#b28233}
 #menuNav{position:absolute;left:69%;right:2%;top:7%;bottom:20%;display:flex;flex-direction:column;justify-content:space-evenly}#menuNav button{background:none;border:0;color:#f5ead5;font-weight:800;font-size:clamp(13px,3.8vw,21px);padding:5px 0}#wallet{position:absolute;left:69%;right:2%;bottom:6%;text-align:center;color:#f5ead5;font-size:clamp(13px,3.5vw,20px);font-variant-numeric:tabular-nums}#menuClose{position:absolute;right:3%;bottom:1%;background:none;color:#f5ead5;border:0;font-weight:800}
 #languagePage{position:absolute;inset:2%;background:#252727;border:1px solid #bf9953;padding:10% 5%;color:#f5ead5}#languagePage h2{text-align:center;font-size:28px}#languageChoices{background:#f5e8cf;border-radius:10px;padding:25px 12px;margin-top:30px;display:grid;gap:20px}#languageChoices button,#languageBack{background:#f5e8cf;color:#242725;border:1px solid #977747;font-size:22px;font-weight:800;min-height:65px}#languageChoices button[aria-pressed='true']{outline:3px solid #b48b43}#languageBack{display:block;margin:30px auto 0;padding:8px 30px}#rpgMenu.auto button{pointer-events:none}.auto-focus{box-shadow:0 0 0 3px #caa55b!important}#speech.thought{border-image-source:url('icons/file_000000006f608209b1c6d6380111193e.png');border-bottom-width:40px;border-image-width:14px 20px 40px}#speech.narration{border-image:none;background:#fff5df;border:2px solid #8b9297;border-radius:8px;padding:18px}
+
+/* 28 · INVENTARIO E DESTINAZIONI: DATI E TESTI DINAMICI */
+#inventoryPage{position:absolute;inset:2%;padding:22px;background:#f5e8cf;color:#252727;border:2px solid #bd9853;display:flex;flex-direction:column;gap:16px;font-weight:800}
+#inventoryPage h2{margin:0;text-align:center}#inventoryBody{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}#itemList{overflow:auto;touch-action:pan-y}#itemList button{display:block;width:100%;margin-bottom:8px;background:#fff4de;color:#252727;font-weight:800;border-color:#b99a60}
+#itemDetail{padding:12px;border-left:1px solid #b99a60;overflow:auto;touch-action:pan-y}#itemTargets{display:grid;gap:8px}#inventoryPage button{font-weight:800}#inventoryBack,#useItem,#itemTargets button{background:#292c2c;color:#fff4de}
+#destinations{position:absolute;inset:0;z-index:18;background:#0008;display:grid;place-items:center}
+#destinationPanel{position:relative;width:90%;height:78%;background:#f4e8ce;border:2px solid #b68e41;border-radius:16px;overflow:hidden;color:#272727;font-weight:800}
+#destinationSkin{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#destinationTitle{position:absolute;left:7%;right:7%;top:5%;margin:0;text-align:center;color:#fff4de;font-size:clamp(18px,5vw,27px)}
+#destinationList{position:absolute;left:9%;right:9%;top:19%;bottom:17%;display:flex;flex-direction:column;gap:10px;overflow:auto;touch-action:pan-y}
+#destinationList button{flex:1;min-height:46px;border:1px solid #b99a60;background:#fff5dfdd;color:#252727;font-weight:800;font-size:18px;text-align:left;padding:10px 16px}#destinationList button:disabled{opacity:.65;color:#6f6e66}
+#destinationBack{position:absolute;bottom:5.5%;left:15%;width:70%;height:7%;border:0;background:#272929;color:#fff4de;font-size:20px;font-weight:800}
+#game.travel-ending #resetButton{position:relative;z-index:41}#game.travel-ending #hud{z-index:41}#game.travel-ending .panel{visibility:hidden}
 </style>
 </head>
 <body>
@@ -75,6 +87,7 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
   <div id="joystick" hidden><div id="stick"></div></div>
   <button id="menuOpen" hidden>메뉴</button>
   <section id="rpgMenu" hidden aria-label="Game menu"><div id="partySlots"></div><nav id="menuNav"></nav><div id="wallet"></div><button id="menuClose"></button><div id="languagePage" hidden><h2 id="languageTitle"></h2><div id="languageChoices"><button data-language="ko">한국어</button><button data-language="en">English</button></div><button id="languageBack"></button></div></section><div id="fade"></div>
+<section id="destinations" hidden role="dialog" aria-modal="true" aria-label="Bus destinations"><div id="destinationPanel"><img id="destinationSkin" src="Menu/file_0000000058f08209bf1a209d9e6b9d3c.png" alt="" onerror="this.hidden=true"><h2 id="destinationTitle">DESTINATIONS</h2><div id="destinationList"></div><button id="destinationBack">BACK</button></div></section>
   <div id="loading"><strong id="loadingTitle">Loading Seoul…</strong><p id="loadingText">Please wait.</p><button id="retryLoad" hidden>Retry</button></div>
 </main>
 <section id="editor" hidden role="dialog" aria-modal="true" aria-label="Editor mappa">
@@ -496,7 +509,7 @@ function closeDialogue(question=true){
  const previous=dialogue;dialogue=null;$("speech").hidden=true;
  if(previous.target?.owner){const n=previous.target.owner;n.talking=false;n.direction=n.previousDirection||n.direction;drawNpc(n);}
  if(previous.type==="intro"){intro=false;film.phase="play";zoom=CONFIG.zoom;}
- if(question&&previous.type==="npc")reactionTime=2;
+ if(question&&language!=="en"&&previous.type==="npc")reactionTime=2;
  resetInput();
 }
 function advanceSpeech(){
@@ -580,7 +593,7 @@ function tick(now){
    if(!dialogue&&!locked()){const d=currentDirection();if(d){player.direction=d;const v=VECTORS[d];moveEntity(player,v.x*CONFIG.speed*dt,v.y*CONFIG.speed*dt);}}
    player.moving=Math.hypot(player.x-x,player.y-y)>.0001;
   }
-  updateOfficeSequence(dt);if(!locked()){updateNpcs(dt);if(locationId==="city")updateTraffic(dt);}drawPlayer();updateCamera();updateInteractionUI();updateStatus();
+  updateOfficeSequence(dt);updateTravel(dt);if(!locked()){updateNpcs(dt);if(locationId==="city")updateTraffic(dt);}drawPlayer();updateCamera();updateInteractionUI();updateStatus();
  }
  requestAnimationFrame(tick);
 }
@@ -647,7 +660,7 @@ Object.assign(NPC_LINES,{'19_impiegato_occhiali':'번호표 뽑고 잠시만 기
 let locationId='city',transitioning=false,menuOpen=false,autoMenu=false,ending=false,officeLoaded=false,sceneEpoch=0,officeSequence=null;
 const cityNpcs=[],officeNpcs=[];let cityWorld=null,officeWorld={collisions:copy(OFFICE.collisions),depth:copy(OFFICE.depth)};
 const cityMap=new Image(),officeMap=new Image();let officeMapPromise=null;
-function locked(){return transitioning||menuOpen||autoMenu||ending||!!officeSequence;}
+function locked(){return transitioning||menuOpen||autoMenu||ending||destinationOpen||!!travelScene||!!officeSequence;}
 function loadOfficeMap(){return officeMapPromise||(officeMapPromise=new Promise((resolve,reject)=>{officeMap.onload=resolve;officeMap.onerror=()=>{officeMapPromise=null;reject(Error('Unable to load '+OFFICE.map));};officeMap.src=OFFICE.map;}));}
 async function loadOfficeNpcs(){if(officeLoaded)return;const jobs=[];for(const [id,name,x,y,direction,fixedFacing]of OFFICE_DATA){const n={...npc(id,name,x,y,direction),fixedFacing,height:id.startsWith('18_')||id.startsWith('19_')?OFFICE_VIEW.staffHeight:id.startsWith('20_')||id.startsWith('22_')?OFFICE_VIEW.seatedHeight:OFFICE_VIEW.npcHeight,radius:12,actor:null,animation:null,idleAssets:{},walkAssets:{},moving:false,talking:false};n.actor=createActor(n.height);officeNpcs.push(n);for(const d of fixedFacing?[direction]:Object.keys(IT))jobs.push(loadAsset(n.idle[d],true).then(a=>n.idleAssets[d]=a));}await Promise.all(jobs);officeLoaded=true;for(const n of officeNpcs)n.actor.node.hidden=true;}
 function showLocation(id){
@@ -656,7 +669,7 @@ function showLocation(id){
  locationId=id;player.actor.height=id==='office'?OFFICE_VIEW.playerHeight:CONFIG.spriteHeight;player.actor.active=null;npcs.splice(0,npcs.length,...(id==='city'?cityNpcs:officeNpcs));world=id==='city'?cityWorld:officeWorld;
  mapImage.src=id==='city'?CONFIG.map:OFFICE.map;clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();
  for(const v of vehicles)v.actor.node.hidden=id!=='city';$('trainWindow').hidden=id!=='city';
- if(mapImage.complete)rebuildDepth();else mapImage.onload=()=>rebuildDepth();for(const n of npcs)drawNpc(n);$('objective').textContent=id==='office'?'Speak to the receptionist':'Find the Job Center';
+ if(mapImage.complete)rebuildDepth();else mapImage.onload=()=>rebuildDepth();for(const n of npcs)drawNpc(n);$('objective').textContent=jobAssigned?'Take the bus to Hongdeon':id==='office'?'Speak to the receptionist':'Find the Job Center';
 }
 const originalDepth=rebuildDepth;rebuildDepth=function(){if(locationId==='city')originalDepth();else{depthNodes.forEach(n=>n.remove());depthNodes=[];for(const z of world.depth)makeDepth(z.polygon,z.baseY);}};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -677,7 +690,7 @@ const doorButton=document.createElement('button'),doorIcon=document.createElemen
 doorIcon.onerror=()=>{doorIcon.hidden=true;doorButton.textContent='!';Object.assign(doorButton.style,{color:'#d92532',fontWeight:'900',fontSize:'30px',background:'#fff6df',border:'2px solid #68757f',borderRadius:'6px'});};
 doorButton.onclick=e=>{e.preventDefault();e.stopPropagation();if(ready&&!intro&&!dialogue&&!editor.open&&!locked()&&doorNearby())changeLocation(locationId==='city'?'office':'city');};
 function updateDoorMarker(){const show=ready&&!intro&&!dialogue&&!editor.open&&!locked()&&doorNearby();if(!show){doorButton.hidden=true;return;}const anchor=locationId==='city'?{x:755,y:1438}:{x:510,y:1260},p=screenPosition(anchor);doorButton.style.left=clamp(p.x,24,Math.max(24,viewWidth-24))+'px';doorButton.style.top=clamp(p.y,52,Math.max(52,viewHeight-25))+'px';doorButton.setAttribute('aria-label',locationId==='city'?'Enter Job Center':'Exit Job Center');setVisible(doorButton,true,doorIcon);}
-const originalUI=updateInteractionUI;updateInteractionUI=function(){originalUI();updateDoorMarker();$('menuOpen').hidden=!ready||intro||dialogue||locked();};
+const originalUI=updateInteractionUI;updateInteractionUI=function(){originalUI();updateDoorMarker();$('menuOpen').hidden=!menuUnlocked||!ready||intro||dialogue||locked();};
 /* 24 · DIALOGO PRINCIPALE, PENSIERO E CONSEGNA */
 UI_ASSETS.thought='icons/file_000000006f608209b1c6d6380111193e.png';
 const OFFICE_STORY=[
@@ -707,23 +720,124 @@ window.TaraiParty={members:partyMembers,slots:partySlots,updateMember,assignMemb
 const MENU_TEXT={ko:['아이템','스킬','장비','상태','대형','저장','설정','언어'],en:['Item','Skills','Equip','Status','Form','Save','Options','Language']};
 function renderMenu(){
  $('partySlots').replaceChildren();for(const id of partySlots){const slot=document.createElement('div');slot.className='party-slot';$('partySlots').appendChild(slot);if(!id)continue;const m=partyMembers[id],card=document.createElement('div');card.className='member-card';const img=document.createElement('img');img.src=m.card;img.alt='';card.appendChild(img);const data=document.createElement('div');data.className='member-data';const name=document.createElement('strong');name.textContent=m.name[language];data.appendChild(name);for(const value of [(language==='ko'?'레벨 ':'Lv ')+m.level,'HP '+m.hp+'/'+m.maxHp,'EP '+m.ep+'/'+m.maxEp]){const row=document.createElement('div');row.className='stat-row';row.textContent=value;data.appendChild(row);if(value.startsWith('HP')||value.startsWith('EP')){const meter=document.createElement('div'),fill=document.createElement('span'),ep=value.startsWith('EP');meter.className='meter'+(ep?' ep':'');fill.style.width=(ep?(m.maxEp?m.ep/m.maxEp:0):m.hp/m.maxHp)*100+'%';meter.appendChild(fill);data.appendChild(meter);}}card.appendChild(data);slot.appendChild(card);}
- $('menuNav').replaceChildren();MENU_TEXT[language].forEach((text,index)=>{const b=document.createElement('button');b.textContent=text;b.dataset.menuIndex=index;b.onclick=()=>{if(autoMenu)return;if(index===7)openLanguage();else if(index===5){try{localStorage.setItem('tarai-party-v1',JSON.stringify({members:partyMembers,slots:partySlots,won,language}));b.textContent=language==='ko'?'저장 완료':'Saved';}catch(_){b.textContent=language==='ko'?'저장 실패':'Save failed';}}};$('menuNav').appendChild(b);});
+ $('menuNav').replaceChildren();MENU_TEXT[language].forEach((text,index)=>{const b=document.createElement('button');b.textContent=text;b.dataset.menuIndex=index;b.onclick=()=>{if(autoMenu)return;if(index===0)openInventory();else if(index===7)openLanguage();else if(index===5){try{localStorage.setItem('tarai-party-v1',JSON.stringify({members:partyMembers,slots:partySlots,won,language,inventory,jobAssigned,menuUnlocked}));b.textContent=language==='ko'?'저장 완료':'Saved';}catch(_){b.textContent=language==='ko'?'저장 실패':'Save failed';}}};$('menuNav').appendChild(b);});
  $('wallet').textContent=new Intl.NumberFormat(language==='ko'?'ko-KR':'en-US').format(won)+' ₩';$('menuClose').textContent=language==='ko'?'닫기':'Close';$('languageTitle').textContent=language==='ko'?'언어':'Language';$('languageBack').textContent=language==='ko'?'뒤로':'Back';$('menuOpen').textContent=language==='ko'?'메뉴':'Menu';document.querySelectorAll('[data-language]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.language===language)));
 }
-function openMenu(){if(ending||transitioning||intro||dialogue)return;resetInput();menuOpen=true;renderMenu();$('rpgMenu').hidden=false;$('languagePage').hidden=true;clearMarkers();}
+function openMenu(scripted=false){if((!menuUnlocked&&!scripted)||ending||transitioning||intro||dialogue||destinationOpen)return;resetInput();menuOpen=true;renderMenu();$('rpgMenu').hidden=false;$('languagePage').hidden=true;clearMarkers();}
 function closeMenu(){if(autoMenu)return;menuOpen=false;$('rpgMenu').hidden=true;resetInput();}
 function openLanguage(){$('languagePage').hidden=false;renderMenu();}
 $('menuOpen').onclick=openMenu;$('menuClose').onclick=closeMenu;$('languageBack').onclick=()=>{if(!autoMenu)$('languagePage').hidden=true;};
 document.querySelectorAll('[data-language]').forEach(b=>b.onclick=()=>{if(!autoMenu){language=b.dataset.language;renderMenu();}});
-async function runAutomaticMenu(){const epoch=sceneEpoch;openMenu();autoMenu=true;$('rpgMenu').classList.add('auto');const step=async ms=>{await wait(ms);return epoch===sceneEpoch;};if(!await step(900))return;$('menuNav').lastElementChild.classList.add('auto-focus');if(!await step(850))return;openLanguage();if(!await step(950))return;document.querySelector('[data-language="en"]').classList.add('auto-focus');if(!await step(650))return;language='en';renderMenu();if(!await step(1000))return;document.querySelector('[data-language="en"]').classList.remove('auto-focus');autoMenu=false;closeMenu();ending=true;officeNpcs.forEach(n=>n.talking=false);$('status').textContent='To be continued · ↺ Restart';resetInput();clearMarkers();}
+async function runAutomaticMenu(){const epoch=sceneEpoch;openMenu(true);autoMenu=true;$('rpgMenu').classList.add('auto');const step=async ms=>{await wait(ms);return epoch===sceneEpoch;};if(!await step(900))return;$('menuNav').lastElementChild.classList.add('auto-focus');if(!await step(850))return;openLanguage();if(!await step(950))return;document.querySelector('[data-language="en"]').classList.add('auto-focus');if(!await step(650))return;language='en';renderMenu();if(!await step(1000))return;document.querySelector('[data-language="en"]').classList.remove('auto-focus');autoMenu=false;closeMenu();ending=false;startEnglishConversation();}
 /* 26 · RESET COMPLETO E SALVATAGGI DISTINTI PER MAPPA */
 const originalSave=saveWorld;saveWorld=function(){if(locationId==='city')originalSave();else{officeWorld=world;try{localStorage.setItem('tarai-office-world-v2',JSON.stringify(world));storageFailed=false;}catch(_){storageFailed=true;}}};
 try{const saved=JSON.parse(localStorage.getItem('tarai-office-world-v2'));if(validWorld(saved))officeWorld=saved;}catch(_){}
 const originalLoadCharacters=loadCharacters;loadCharacters=async function(){await originalLoadCharacters();cityNpcs.push(...npcs);cityWorld=world;};
-const originalBegin=beginIntro;beginIntro=function(){sceneEpoch++;officeSequence=null;dialogue=null;ending=false;transitioning=false;autoMenu=false;menuOpen=false;language='ko';won=50000;Object.assign(partyMembers.riccardo,{level:1,hp:250,maxHp:250,ep:100,maxEp:100});$('rpgMenu').hidden=true;$('rpgMenu').classList.remove('auto');$('fade').classList.remove('black');$('speech').classList.remove('thought','narration');if(locationId==='office')showLocation('city');for(const n of [...cityNpcs,...officeNpcs])n.talking=false;renderMenu();originalBegin();};
+const originalBegin=beginIntro;beginIntro=function(){sceneEpoch++;menuUnlocked=false;jobAssigned=false;destinationOpen=false;travelScene=null;inventory={};selectedItem=null;$('destinations').hidden=true;$('inventoryPage').hidden=true;game.classList.remove('travel-ending');$('fade').style.transition='';officeSequence=null;dialogue=null;ending=false;transitioning=false;autoMenu=false;menuOpen=false;language='ko';won=50000;Object.assign(partyMembers.riccardo,{level:1,hp:250,maxHp:250,ep:100,maxEp:100});$('rpgMenu').hidden=true;$('rpgMenu').classList.remove('auto');$('fade').classList.remove('black');$('speech').classList.remove('thought','narration');if(locationId==='office')showLocation('city');for(const n of [...cityNpcs,...officeNpcs])n.talking=false;renderMenu();originalBegin();};
 const originalStatus=updateStatus;updateStatus=function(){if(ending){$('status').textContent='To be continued · ↺ Restart';return;}if(locationId==='office'){$('status').textContent=missing.size?'Missing image: '+[...missing][0]:'Job Center';return;}originalStatus();};
 // Il reset rimane l'unico controllo disponibile alla fine della prova.
 for(const id of ['editorOpen','zoomIn','zoomOut']){const fn=$(id).onclick;$(id).onclick=()=>{if(!locked())fn();};}
+
+/* 27 · DOPO IL CAMBIO LINGUA: RICCARDO CAPISCE */
+
+const ENGLISH_SCENE=[
+ ['npc','There we go. Now, about that cooking job…'],
+ ['player','Wait… I can understand you!'],
+ ['npc','Of course. I changed the language to English.'],
+ ['player','You mean… that was all I had to do?'],
+ ['npc','Yes. Can we get back to finding you a job now?'],
+ ['thought','And I spent the whole flight studying Korean…'],
+ ['player','Right, sorry! You mentioned a restaurant looking for a cook?'],
+ ['npc','Yes, in Hongdeon. I’ve reviewed your résumé, and I think you’d be a good fit.'],
+ ['npc','I’ve arranged an interview for you. Take the bus from the stop outside Seoul Station, next to the map board.'],
+ ['player','Hongdeon. Bus stop. Interview. Got it!'],
+ ['npc','And try not to get lost. Changing the language won’t help with that.'],
+ ['player','No promises… but thanks for your help!']
+];
+let menuUnlocked=false,jobAssigned=false,destinationOpen=false,travelScene=null;
+const NPC_EN={
+ '01_amico_piazzale':'We’re having a private conversation. Could you give us some space?',
+ '02_amica_piazzale':'Sorry, this is just between us… Would you mind leaving us alone?',
+ '03_uomo_panchina':'Take the 402. I ride it every day.',
+ '04_donna_panchina':'Don’t listen to him. Last time, he went the wrong way.',
+ '05_signora_fermata':'Oh dear, why is the bus taking so long… Young man, what time is it?',
+ '06_persona_cane':'Isn’t my dog adorable? His name is Dubu!',
+ '07_impiegato_borsa':'Oh no, oh no… Where is it? I can’t find it anywhere!',
+ '08_ragazza_cuffie':'Sorry? Just a moment, I couldn’t hear you over my music.',
+ '09_negoziante_mart':'Welcome! Let me know if you need anything.',
+ '10_cliente_gimbap':'The gimbap here is delicious. You have to try the tuna one!',
+ '11_bimba_smartphone':'Have you ever played Tarai Rush? It’s fantastic!',
+ '12_anziano_giornale':'Looking for work? Try the Job Center down the street.',
+ '13_rider':'The food isn’t ready, but the delivery app keeps rushing me.',
+ '14_universitario':'My exam is tomorrow and I haven’t studied at all. This is my third coffee.',
+ '15_universitaria':'He says he hasn’t studied, but he spent all night gaming again. Hopeless, isn’t he?',
+ '16_signora_spesa':'I bought so many things at the market. These bags are terribly heavy.',
+ '17_amica_spesa':'I told you not to buy so much. Now I’ll have to help carry it all again.',
+ '19_impiegato_occhiali':'Please take a number and wait a moment.',
+ '20_ragazzo_attesa':'They want experience, but nobody gives me a chance to get any.',
+ '21_donna_cartellina':'I really hope I can find a good job this time.',
+ '22_signore_computer':'Oh dear… What was my password again?',
+ '23_giovane_colloquio':'It’s my first interview today… Does my tie look all right?',
+ '24_cliente_sportello':'I’m in the middle of my appointment. Please wait a moment.'
+};
+function showEnglishPage(){const [speaker,text]=ENGLISH_SCENE[dialogue.index];dialogue.type=speaker==='npc'?'npc':'translation';$('speech').classList.toggle('thought',speaker==='thought');$('speechText').textContent=text;pop($('speech'));updateCamera();updateInteractionUI();}
+function startEnglishConversation(){reactionTime=0;const owner=officeNpcs.find(n=>n.id==='18_impiegata_principale');officeNpcs.forEach(n=>n.talking=false);const target=owner?{type:'npc',key:owner.id,owner,dog:false}:null;if(owner)owner.talking=true;openSpeech(ENGLISH_SCENE.map(p=>p[1]),{type:'translation',target});dialogue.englishScene=true;showEnglishPage();}
+const advanceBeforeEnglish=advanceSpeech;advanceSpeech=function(){if(!dialogue?.englishScene){advanceBeforeEnglish();return;}if(dialogue.index<ENGLISH_SCENE.length-1){dialogue.index++;showEnglishPage();}else{closeDialogue(false);$('speech').classList.remove('thought');menuUnlocked=true;jobAssigned=true;$('rpgMenu').classList.remove('auto');$('objective').textContent='Take the bus to Hongdeon';updateInteractionUI();}};
+const interactBeforeTranslation=interact;interact=function(t){
+ if(!ready||intro||dialogue||editor.open||locked()||!nearTarget(t))return;
+ if(t.type==='sign'&&jobAssigned){openDestinations();return;}
+ if(t.owner?.id==='18_impiegata_principale'&&jobAssigned){t.owner.talking=true;openSpeech(['Take the bus to Hongdeon from the stop outside Seoul Station, next to the map board. Good luck with your interview!'],{type:'npc',target:t});return;}
+ interactBeforeTranslation(t);
+ if(language==='en'&&dialogue?.type==='npc'&&!dialogue.officeStory){dialogue.lines=[t.dog?'Woof! Woof!':NPC_EN[t.owner.id]||'Hello!'];dialogue.index=0;$('speechText').textContent=dialogue.lines[0];}
+};
+/* 29 · INVENTARIO CON CATALOGO ESPANDIBILE E OGGETTI CONSUMABILI */
+let inventory={},selectedItem=null;
+const ITEM_CATALOG={}; // id: {name,description,icon,hp,ep}; nessun oggetto iniziale.
+const inventoryPage=document.createElement('section');inventoryPage.id='inventoryPage';inventoryPage.hidden=true;
+inventoryPage.innerHTML='<h2>INVENTORY</h2><div id="inventoryBody"><div id="itemList"></div><div id="itemDetail"></div></div><div id="itemTargets"></div><button id="useItem" hidden>Use</button><button id="inventoryBack">Back</button>';
+$('rpgMenu').appendChild(inventoryPage);
+function renderInventory(){
+ $('itemList').replaceChildren();$('itemTargets').replaceChildren();const ids=Object.keys(inventory).filter(id=>inventory[id]>0&&ITEM_CATALOG[id]);
+ if(!ids.includes(selectedItem))selectedItem=ids[0]||null;
+ if(!ids.length){$('itemList').textContent='No items';$('itemDetail').textContent='Your inventory is empty.';$('useItem').hidden=true;return;}
+ for(const id of ids){const item=ITEM_CATALOG[id],b=document.createElement('button');if(item.icon){const icon=document.createElement('img');icon.src=item.icon;icon.alt='';icon.width=24;icon.height=24;b.appendChild(icon);}b.appendChild(document.createTextNode(item.name+' ×'+inventory[id]));b.setAttribute('aria-pressed',String(selectedItem===id));b.onclick=()=>{selectedItem=id;renderInventory();};$('itemList').appendChild(b);}
+ const item=ITEM_CATALOG[selectedItem];$('itemDetail').textContent=item.description||'';$('useItem').hidden=!(item.hp>0||item.ep>0);
+}
+function openInventory(){$('languagePage').hidden=true;$('inventoryPage').hidden=false;renderInventory();}
+$('inventoryBack').onclick=()=>{$('inventoryPage').hidden=true;};
+$('useItem').onclick=()=>{
+ $('itemTargets').replaceChildren();
+ for(const id of partySlots.filter(Boolean)){const m=partyMembers[id],b=document.createElement('button');b.textContent=m.name[language]+' · HP '+m.hp+'/'+m.maxHp+' · EP '+m.ep+'/'+m.maxEp;b.onclick=()=>useInventoryItem(selectedItem,id);$('itemTargets').appendChild(b);}
+};
+function useInventoryItem(itemId,memberId){
+ const item=ITEM_CATALOG[itemId],member=partyMembers[memberId];if(!item||!member||!(inventory[itemId]>0))return false;
+ const hp=Math.min(member.maxHp,member.hp+(item.hp||0)),ep=Math.min(member.maxEp,member.ep+(item.ep||0));
+ if(hp===member.hp&&ep===member.ep){$('itemDetail').textContent='This item would have no effect.';return false;}
+ updateMember(memberId,{hp,ep});inventory[itemId]--;renderInventory();return true;
+}
+window.TaraiInventory={catalog:ITEM_CATALOG,getItems:()=>({...inventory}),addItem(id,quantity=1){if(!ITEM_CATALOG[id]||!Number.isInteger(quantity)||quantity<=0)return false;inventory[id]=Math.min(999,Math.max(0,inventory[id]||0)+quantity);renderInventory();return true;},useItem:useInventoryItem};
+const closeBeforeInventory=closeMenu;closeMenu=function(){if(autoMenu)return;$('inventoryPage').hidden=true;closeBeforeInventory();};
+/* 30 · DESTINAZIONI E PARTENZA CINEMATOGRAFICA */
+const DESTINATIONS=[{id:'hongdeon',name:'Hongdeon',unlocked:true,map:null},...Array.from({length:4},(_,i)=>({id:'locked-'+i,name:'???',unlocked:false,map:null}))];
+window.TaraiDestinations={items:DESTINATIONS,add(destination){if(!destination?.id||DESTINATIONS.some(d=>d.id===destination.id))return false;DESTINATIONS.push({...destination});return true;},unlock(id){const d=DESTINATIONS.find(d=>d.id===id);if(d)d.unlocked=true;}};
+function openDestinations(){
+ if(!jobAssigned||locked()||dialogue)return;resetInput();destinationOpen=true;clearMarkers();$('destinations').hidden=false;$('destinationList').replaceChildren();
+ for(const d of DESTINATIONS){const b=document.createElement('button');b.textContent=(d.unlocked?'▸  ':'🔒  ')+d.name;b.disabled=!d.unlocked;b.onclick=()=>{if(d.id==='hongdeon')startBusDeparture();};$('destinationList').appendChild(b);}
+}
+$('destinationBack').onclick=()=>{destinationOpen=false;$('destinations').hidden=true;resetInput();updateInteractionUI();};
+function startBusDeparture(){
+ if(!destinationOpen||!jobAssigned)return;destinationOpen=false;$('destinations').hidden=true;resetInput();player.moving=false;reactionTime=0;clearMarkers();doorButton.hidden=true;game.classList.add('travel-ending');
+ const asset=vehicleAssets.bus[Math.floor(Math.random()*vehicleAssets.bus.length)],actor=createActor(1,CONFIG.bus.width);
+ setAsset(actor,asset);actor.node.style.zIndex='999999';travelScene={actor,x:Math.max(1024,player.x+600),y:player.y+22,time:0,fading:false};place(actor,travelScene.x,travelScene.y);
+}
+function updateTravel(dt){
+ if(!travelScene)return;const t=travelScene;t.time+=dt;t.x-=180*dt;place(t.actor,t.x,t.y);t.actor.node.style.zIndex='999999';
+ if(!t.fading&&(t.x<=player.x+CONFIG.bus.width/2||t.time>8)){t.fading=true;t.time=0;$('fade').style.transition='opacity 3s linear';$('fade').classList.add('black');}
+ if(t.fading&&t.time>=3.1){t.actor.node.remove();travelScene=null;ending=true;}
+}
+const beginBeforeTravel=beginIntro;beginIntro=function(){if(travelScene)travelScene.actor.node.remove();beginBeforeTravel();};
+const openBeforeInventory=openMenu;openMenu=function(scripted=false){openBeforeInventory(scripted);if(menuOpen)$('inventoryPage').hidden=true;};
+$('menuOpen').onclick=()=>openMenu();$('menuClose').onclick=()=>closeMenu();
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
