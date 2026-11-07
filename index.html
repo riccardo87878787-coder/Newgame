@@ -130,19 +130,6 @@ window.addEventListener('pointerup',handleDestinationActivation,true);
 window.addEventListener('click',handleDestinationActivation,true);
 
 
-// Le uscite di Hongdeon funzionano anche con il tocco, prima dei gesti globali.
-function handleHongGateActivation(event){
- const button=event.target?.closest?.('button[data-hong-gate]');
- if(!button||button.disabled||locationId!=='hongdeon'||intro||dialogue||editor.open||locked())return;
- event.preventDefault();event.stopImmediatePropagation();
- const gate=hongGates().find(g=>g.direction===button.dataset.hongGate);
- if(!gate||Math.hypot(player.x-gate.x,player.y-gate.y)>95)return;
- dialogueGesture=null;void changeHongZone(gate);
- suppressDialogClickUntil=performance.now()+500;
-}
-window.addEventListener('pointerup',handleHongGateActivation,true);
-window.addEventListener('click',handleHongGateActivation,true);
-
 /* 06 · CONFIGURAZIONE */
 const CONFIG={
   map:"file_0000000011348209b4f72c4afa5f7456.png",width:1024,height:1536,
@@ -876,7 +863,7 @@ async function startBusDeparture(){
   showLocation('hongdeon');Object.assign(player,HONGDEON.start,{direction:'up',moving:false});zoom=HONGDEON.zoom;drawPlayer();updateCamera();arrived=true;
   await wait(150);if(epoch!==sceneEpoch)return;$('fade').classList.remove('black');await wait(3100);if(epoch!==sceneEpoch)return;
  }catch(error){
-  if(epoch!==sceneEpoch)return;$('fade').classList.remove('black');$('status').textContent='Unable to load Hongdeon. Please try again.';await wait(3100);
+  if(epoch!==sceneEpoch)return;$('fade').classList.remove('black');hongTravelError=error.message;$('status').textContent=hongTravelError;await wait(3100);
  }finally{
   if(epoch===sceneEpoch){transitioning=false;ending=false;$('fade').style.transition='';resetInput();if(arrived)openSpeech(['Hongdeon… Now, let’s find Cucchiaio.'],{type:'arrival'});updateInteractionUI();}
  }
@@ -886,101 +873,99 @@ const openBeforeInventory=openMenu;openMenu=function(scripted=false){openBeforeI
 $('menuOpen').onclick=()=>openMenu();$('menuClose').onclick=()=>closeMenu();
 
 
-/* 31 · HONGDEON: OTTO ZONE, IMMAGINI NATIVE E USCITE */
-// La griglia indica i collegamenti, non il montaggio dei bordi grafici.
-const HONG_ZONES=[
- {id:1,name:'Cucchiaio · Park',road:1340,blocks:[[0,0,480,670],[0,735,490,1290],[550,485,930,880],[590,900,930,1290]]},
- {id:2,name:'Laundry · Playground',road:1340,blocks:[[50,75,470,565],[580,470,1010,825],[210,630,540,1285],[630,865,1000,1280],[30,645,90,855]]},
- {id:3,name:'Basketball Square',road:850,blocks:[[0,0,370,800],[520,0,1024,810],[245,1010,735,1400],[0,940,140,1536],[825,940,1024,1536]]},
- {id:4,name:'Gardens · Construction',road:1120,blocks:[[0,0,365,855],[570,0,1024,1020],[40,1230,490,1536],[620,1230,1024,1536]]},
- {id:5,name:'Bakery Street',road:1290,blocks:[[0,0,145,1160],[340,0,735,650],[300,730,815,1220],[0,1400,1024,1536]]},
- {id:6,name:'Bus Stop · Mart',road:1270,blocks:[[0,80,122,670],[330,110,740,690],[835,60,1024,690],[300,750,830,1210],[870,810,1024,1210],[0,805,100,1210],[175,1330,335,1365],[355,1330,420,1370],[460,1310,1010,1415],[0,1390,1024,1425]]},
- {id:7,name:'Residential Alleys',road:1350,blocks:[[100,0,400,450],[650,0,1024,450],[0,650,320,1250],[620,680,1024,1250],[0,1450,1024,1536]]},
- {id:8,name:'Scooter Workshop',road:1390,blocks:[[0,0,400,580],[520,0,1024,580],[0,700,400,1330],[520,680,1024,1330],[0,1490,1024,1536]]}
-].map(z=>({...z,map:`Map/hongdeon_${String(z.id).padStart(2,'0')}.png`}));
-const HONG_WORLD_VERSION='hongdeon-eight-zones-1';
-let hongZoneId=6,hongTravelError='',hongGateCooldown=0;
-const HONGDEON={width:1024,height:1536,playerHeight:80,zoom:CONFIG.zoom*CONFIG.spriteHeight/80,
- get map(){return hongZone().map;},start:{x:130,y:1360}};
-function hongZone(id=hongZoneId){return HONG_ZONES.find(z=>z.id===id);}
-const hongWorlds=new Map(HONG_ZONES.map(z=>[z.id,{collisions:z.blocks.map(([x,y,r,b])=>rect(x,y,r-x,b-y)),depth:[]}]));
-for(const z of HONG_ZONES){try{const s=JSON.parse(localStorage.getItem('tarai-hong-zone-'+z.id));if(s?.version===HONG_WORLD_VERSION&&validWorld(s.world))hongWorlds.set(z.id,s.world);}catch(_){}}
-const hongImages=new Map();
-function loadHongdeonMap(id=hongZoneId){
- if(hongImages.has(id))return hongImages.get(id);
- const promise=new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{if(im.naturalWidth!==1024||im.naturalHeight!==1536){hongImages.delete(id);reject(Error('Wrong map size: '+hongZone(id).map));return;}resolve(im);};im.onerror=()=>{hongImages.delete(id);reject(Error('Missing '+hongZone(id).map));};im.src=hongZone(id).map;});hongImages.set(id,promise);return promise;
+/* 31 · HONGDEON: MAPPA UNICA CONTINUA IN ALTA RISOLUZIONE */
+// Le coordinate di gioco sono indipendenti dai pixel della fotografia.
+// La grafica 6400 × 9600 viene mostrata in un mondo 2048 × 3072.
+// Riccardo conserva altezza, velocità e zoom di Seoul Station.
+const HONGDEON={map:'Map/hongdeon_hd.jpg',width:2048,height:3072,
+ playerHeight:CONFIG.spriteHeight,zoom:CONFIG.zoom,start:{x:900,y:2800}};
+const HONG_WORLD_VERSION='hongdeon-continuous-hd-1';
+const hongPoly=p=>p.map(([x,y])=>[x*2,y*2]);
+const hongRect=(x,y,w,h)=>hongPoly(rect(x,y,w,h));
+// Sagome riferite alla composizione originale 1024 × 1536, poi scalate ×2.
+let hongWorld={collisions:[
+ hongRect(0,0,1024,20),hongRect(0,0,8,1536),hongRect(1016,0,8,1536),
+ hongRect(0,1528,1024,8),
+ hongPoly([[65,25],[285,25],[285,145],[252,175],[120,175],[120,110],[65,110]]),
+ hongRect(0,175,116,165),hongRect(125,140,127,207),
+ hongRect(275,110,168,157),hongRect(465,35,229,252),
+ hongPoly([[720,58],[895,58],[895,128],[1016,128],[1016,246],[740,246]]),
+ hongRect(289,293,154,146),hongRect(321,465,155,189),
+ hongRect(620,326,109,143),hongRect(576,485,148,170),
+ hongRect(887,456,129,186),hongRect(936,652,80,230),
+ hongRect(854,633,36,62),
+ hongRect(0,670,192,181),hongRect(203,739,182,169),
+ hongRect(0,916,198,123),hongRect(204,1017,213,275),
+ hongRect(0,1062,182,231),hongRect(0,841,59,75),
+ hongPoly([[588,713],[790,713],[790,838],[831,866],[831,1016],[558,1016],[558,840],[588,840]]),
+ hongPoly([[571,1047],[753,1047],[753,1124],[807,1124],[807,1162],[837,1162],[837,1294],[560,1294],[560,1148],[571,1148]]),
+ hongRect(896,1003,120,298),
+ // Barriere dei due parchi: ingressi aperti verso strada e marciapiede.
+ hongRect(13,400,10,219),hongRect(20,629,123,12),hongRect(195,629,63,12),
+ hongRect(250,452,10,174),hongRect(748,260,10,140),
+ hongRect(757,405,155,12),hongRect(952,405,64,12),
+ hongRect(1002,258,14,145),
+ // Arredi dei parchi, fioriere e pensilina; i vialetti restano percorribili.
+ hongRect(81,448,100,62),hongRect(88,540,47,17),hongRect(177,524,41,14),
+ hongRect(799,282,78,62),hongRect(900,282,72,54),hongRect(901,349,79,40),
+ hongRect(473,1360,100,49),hongRect(592,1355,27,54),
+ hongRect(0,1430,390,17),hongRect(454,1430,562,17)
+],depth:[
+ {name:'Pensilina Hongdeon',baseY:2820,polygon:hongRect(465,1332,119,82)},
+ {name:'Tabellone fermata',baseY:2820,polygon:hongRect(589,1345,35,66)}
+]};
+try{const saved=JSON.parse(localStorage.getItem('hongdeon-continuous-world'));if(saved?.version===HONG_WORLD_VERSION&&validWorld(saved.world))hongWorld=saved.world;}catch(_){}
+let hongMapPromise=null,hongTravelError='';
+function loadHongdeonMap(){
+ if(hongMapPromise)return hongMapPromise;
+ hongMapPromise=new Promise((resolve,reject)=>{
+  const im=new Image();
+  im.onload=()=>{if(im.naturalWidth<2048||Math.abs(im.naturalWidth/im.naturalHeight-2/3)>.01){hongMapPromise=null;reject(Error('Hongdeon: use the high-resolution 2:3 map.'));return;}resolve(im);};
+  im.onerror=()=>{hongMapPromise=null;reject(Error('Missing '+HONGDEON.map));};
+  im.src=HONGDEON.map;
+ });return hongMapPromise;
 }
 const showBeforeHongdeon=showLocation;
 showLocation=function(id){
- if(locationId==='hongdeon')hongWorlds.set(hongZoneId,world);
- CONFIG.width=1024;CONFIG.height=1536;
- scene.style.width='1024px';scene.style.height='1536px';mapImage.style.width='1024px';mapImage.style.height='1536px';
- hongGateLayer.hidden=id!=='hongdeon';
+ if(locationId==='hongdeon')hongWorld=world;
+ CONFIG.width=id==='hongdeon'?HONGDEON.width:1024;
+ CONFIG.height=id==='hongdeon'?HONGDEON.height:1536;
+ scene.style.width=mapImage.style.width=CONFIG.width+'px';
+ scene.style.height=mapImage.style.height=CONFIG.height+'px';
+ // HD raster uses smooth reduction; sprites keep their existing pixel rendering.
+ mapImage.style.imageRendering=id==='hongdeon'?'auto':'';
  if(id!=='hongdeon'){showBeforeHongdeon(id);return;}
  for(const n of npcs)n.actor.node.hidden=true;
  if(locationId==='city')cityWorld=world;else if(locationId==='office')officeWorld=world;
- locationId='hongdeon';world=hongWorlds.get(hongZoneId);npcs.splice(0);
+ locationId='hongdeon';world=hongWorld;npcs.splice(0);
  player.actor.height=HONGDEON.playerHeight;player.actor.active=null;
  clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();doorButton.hidden=true;
  for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;
  depthNodes.forEach(n=>n.remove());depthNodes=[];
- mapImage.onload=()=>{if(locationId==='hongdeon'&&mapImage.getAttribute('src')===HONGDEON.map)rebuildDepth();};mapImage.src=HONGDEON.map;
- $('objective').textContent='Find Cucchiaio';buildHongGates();
+ mapImage.onload=()=>{if(locationId==='hongdeon')rebuildDepth();};mapImage.src=HONGDEON.map;
+ $('objective').textContent='Find Cucchiaio';
 };
 const targetsBeforeHongdeon=allTargets;allTargets=function(){return locationId==='hongdeon'?[]:targetsBeforeHongdeon();};
-const depthBeforeHongdeon=rebuildDepth;rebuildDepth=function(){if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}depthNodes.forEach(n=>n.remove());depthNodes=[];for(const z of world.depth)makeDepth(z.polygon,z.baseY);};
-const saveBeforeHongdeon=saveWorld;saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}hongWorlds.set(hongZoneId,world);try{localStorage.setItem('tarai-hong-zone-'+hongZoneId,JSON.stringify({version:HONG_WORLD_VERSION,world}));storageFailed=false;}catch(_){storageFailed=true;}};
-const statusBeforeHongdeon=updateStatus;updateStatus=function(){if(locationId==='hongdeon'){$('status').textContent=hongTravelError||`Hongdeon · ${hongZoneId}/8 · ${hongZone().name}`;return;}statusBeforeHongdeon();};
-const moveBeforeHongdeon=moveEntity;moveEntity=function(subject,dx,dy){const ratio=locationId==='hongdeon'&&subject===player?HONGDEON.playerHeight/CONFIG.spriteHeight:1;return moveBeforeHongdeon(subject,dx*ratio,dy*ratio);};
-const HONG_OPPOSITE={west:'east',east:'west',north:'south',south:'north'};
-const HONG_ARROW={west:'←',east:'→',north:'↑',south:'↓'};
-function hongGates(id=hongZoneId){
- const z=hongZone(id),col=(id-1)%4,row=Math.floor((id-1)/4),g=[];
- if(col>0)g.push({direction:'west',to:id-1,x:55,y:z.road});
- if(col<3)g.push({direction:'east',to:id+1,x:970,y:z.road});
- if(row>0)g.push({direction:'north',to:id-4,x:420,y:z.road});
- if(row<1)g.push({direction:'south',to:id+4,x:650,y:z.road});
- return g;
-}
-// Le uscite si attivano avvicinandosi e toccando la freccia: niente cambi involontari.
-const hongGateLayer=document.createElement('div');hongGateLayer.id='hongGateLayer';hongGateLayer.hidden=true;scene.appendChild(hongGateLayer);
-const hongStyle=document.createElement('style');hongStyle.textContent=`#hongGateLayer{position:absolute;inset:0;pointer-events:none;z-index:200000}.hong-gate{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;border:2px solid #f5d98e;border-radius:8px;background:#102631eb;color:#fff7dd;min-width:40px;min-height:40px;padding:3px 8px;font-size:24px;font-weight:900;line-height:1.1;opacity:.5}.hong-gate:disabled{cursor:default}.hong-gate.near{opacity:1;box-shadow:0 0 0 3px #f7d58055}.hong-gate small{display:block;font-size:9px;white-space:nowrap;font-weight:700}`;document.head.appendChild(hongStyle);
-function buildHongGates(){hongGateLayer.replaceChildren();for(const g of hongGates()){const b=document.createElement('button');b.className='hong-gate';b.style.left=g.x+'px';b.style.top=g.y+'px';b.setAttribute('aria-label','Go to '+hongZone(g.to).name);b.append(document.createTextNode(HONG_ARROW[g.direction]));const label=document.createElement('small');label.textContent=hongZone(g.to).name.split(' · ')[0];b.append(label);b.onclick=e=>{e.stopPropagation();if(Math.hypot(player.x-g.x,player.y-g.y)<=95)changeHongZone(g);};b.dataset.direction=g.direction;b.dataset.hongGate=g.direction;hongGateLayer.append(b);}}
-function hongSpawn(id,direction){const g=hongGates(id).find(g=>g.direction===direction);if(!g)throw Error('Invalid zone connection');const offset=direction==='west'?80:direction==='east'?-80:0;const p={x:g.x+offset,y:g.y+(direction==='north'?-50:direction==='south'?50:0)};return p;}
-async function changeHongZone(g){
- if(locationId!=='hongdeon'||locked()||dialogue||editor.open||Date.now()<hongGateCooldown)return;
- const epoch=sceneEpoch,previous=hongZoneId;resetInput();transitioning=true;hongTravelError='';$('fade').style.transition='opacity .45s ease-in-out';$('fade').classList.add('black');
- try{
-  await Promise.all([wait(470),loadHongdeonMap(g.to)]);if(epoch!==sceneEpoch)return;
-  const spawn=hongSpawn(g.to,HONG_OPPOSITE[g.direction]);const nextWorld=hongWorlds.get(g.to);
-  if(nextWorld.collisions.some(p=>hitsPolygon(spawn.x,spawn.y,player.radius,p)))throw Error('This exit is blocked. Check the map editor.');
-  saveWorld();hongWorlds.set(previous,world);hongZoneId=g.to;world=nextWorld;showLocation('hongdeon');
-  Object.assign(player,spawn,{direction:g.direction==='west'?'left':g.direction==='east'?'right':g.direction==='north'?'up':'down',moving:false});zoom=HONGDEON.zoom;drawPlayer();updateCamera();await wait(70);
- }catch(error){if(epoch===sceneEpoch)hongTravelError=error.message;}
- finally{if(epoch===sceneEpoch){$('fade').classList.remove('black');await wait(470);if(epoch===sceneEpoch){transitioning=false;hongGateCooldown=Date.now()+600;$('fade').style.transition='';resetInput();}}}
-}
-const travelBeforeHongdeon=updateTravel;
-updateTravel=function(dt){
- travelBeforeHongdeon(dt);
- const available=locationId==='hongdeon'&&!intro&&!dialogue&&!editor.open&&!locked();
- hongGateLayer.hidden=!available;
- if(!available)return;
- const gates=hongGates();
- for(const g of gates){
-  const b=hongGateLayer.querySelector(`[data-direction="${g.direction}"]`);if(!b)continue;
-  const distance=Math.hypot(player.x-g.x,player.y-g.y),near=distance<=95;
-  b.disabled=!near;b.classList.toggle('near',near);
-  b.title=near?'Walk onto the arrow or tap to travel':'Walk closer to this exit';
- }
- // Il passaggio parte camminando sulla freccia, anche mantenendo premuta la levetta.
- // Il punto di arrivo e la pausa impediscono il ritorno automatico nella zona precedente.
- if(player.moving&&Date.now()>=hongGateCooldown){
-  const gate=gates.find(g=>Math.hypot(player.x-g.x,player.y-g.y)<=28);
-  if(gate)void changeHongZone(gate);
+const depthBeforeHongdeon=rebuildDepth;
+rebuildDepth=function(){
+ if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}
+ depthNodes.forEach(n=>n.remove());depthNodes=[];
+ if(!mapImage.complete||!mapImage.naturalWidth)return;
+ for(const z of world.depth){
+  const p=z.polygon,x=Math.floor(Math.min(...p.map(v=>v[0]))),y=Math.floor(Math.min(...p.map(v=>v[1])));
+  const w=Math.ceil(Math.max(...p.map(v=>v[0])))-x,h=Math.ceil(Math.max(...p.map(v=>v[1])))-y;
+  if(w<1||h<1)continue;
+  const c=document.createElement('canvas'),density=2;c.className='depth-piece';c.width=w*density;c.height=h*density;
+  Object.assign(c.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px',imageRendering:'auto',zIndex:Math.round(z.baseY*100+30)});
+  const ctx=c.getContext('2d');ctx.scale(density,density);ctx.translate(-x,-y);polygonPath(ctx,p);ctx.clip();ctx.imageSmoothingEnabled=true;ctx.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);scene.appendChild(c);depthNodes.push(c);
  }
 };
-const beginBeforeHongZones=beginIntro;beginIntro=function(){beginBeforeHongZones();hongZoneId=6;hongTravelError='';hongGateCooldown=0;hongGateLayer.hidden=true;};
-DESTINATIONS[0].map=hongZone(6).map;
+const saveBeforeHongdeon=saveWorld;
+saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}hongWorld=world;try{localStorage.setItem('hongdeon-continuous-world',JSON.stringify({version:HONG_WORLD_VERSION,world}));storageFailed=false;}catch(_){storageFailed=true;}};
+const statusBeforeHongdeon=updateStatus;
+updateStatus=function(){if(locationId==='hongdeon'){$('status').textContent=hongTravelError||'Hongdeon';return;}statusBeforeHongdeon();};
+const beginBeforeHongdeon=beginIntro;beginIntro=function(){beginBeforeHongdeon();hongTravelError='';};
+DESTINATIONS[0].map=HONGDEON.map;
 
 /* 32 · ACCESSO TEMPORANEO PER COLLAUDO */
 const testHongButton=document.createElement('button');
@@ -999,7 +984,7 @@ async function jumpToHongdeonTest(){
  $('rpgMenu').classList.remove('auto');game.classList.remove('travel-ending');
  for(const n of [...cityNpcs,...officeNpcs])n.talking=false;
  menuUnlocked=true;jobAssigned=true;language='en';renderMenu();
- hongZoneId=6;hongTravelError='';destinationOpen=true;
+ hongTravelError='';destinationOpen=true;
  await startBusDeparture();
  testHongButton.disabled=!ready||transitioning;
 }
@@ -1020,5 +1005,6 @@ $("retryLoad").onclick=()=>startGame(true);resize();startGame();requestAnimation
 </script>
 </body>
 </html>
+
 
 
