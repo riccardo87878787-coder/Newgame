@@ -102,6 +102,18 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 </section>
 <script>
 "use strict";
+// Temporaneo: impostare false per rimuovere il salto di prova.
+const ENABLE_HONGDEON_TEST=true;
+function handleHongTestTap(event){
+ const button=event.target?.closest?.('#testHongdeonButton');
+ if(!button||button.disabled||!ENABLE_HONGDEON_TEST)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ dialogueGesture=null;void jumpToHongdeonTest();
+ suppressDialogClickUntil=performance.now()+500;
+}
+window.addEventListener('pointerup',handleHongTestTap,true);
+window.addEventListener('click',handleHongTestTap,true);
+
 // Destinazioni: il gesto viene gestito prima dei listener globali dei dialoghi.
 function handleDestinationActivation(event){
  const panel=document.getElementById('destinations');
@@ -116,6 +128,20 @@ function handleDestinationActivation(event){
 }
 window.addEventListener('pointerup',handleDestinationActivation,true);
 window.addEventListener('click',handleDestinationActivation,true);
+
+
+// Le uscite di Hongdeon funzionano anche con il tocco, prima dei gesti globali.
+function handleHongGateActivation(event){
+ const button=event.target?.closest?.('button[data-hong-gate]');
+ if(!button||button.disabled||locationId!=='hongdeon'||intro||dialogue||editor.open||locked())return;
+ event.preventDefault();event.stopImmediatePropagation();
+ const gate=hongGates().find(g=>g.direction===button.dataset.hongGate);
+ if(!gate||Math.hypot(player.x-gate.x,player.y-gate.y)>95)return;
+ dialogueGesture=null;void changeHongZone(gate);
+ suppressDialogClickUntil=performance.now()+500;
+}
+window.addEventListener('pointerup',handleHongGateActivation,true);
+window.addEventListener('click',handleHongGateActivation,true);
 
 /* 06 · CONFIGURAZIONE */
 const CONFIG={
@@ -919,7 +945,7 @@ function hongGates(id=hongZoneId){
 // Le uscite si attivano avvicinandosi e toccando la freccia: niente cambi involontari.
 const hongGateLayer=document.createElement('div');hongGateLayer.id='hongGateLayer';hongGateLayer.hidden=true;scene.appendChild(hongGateLayer);
 const hongStyle=document.createElement('style');hongStyle.textContent=`#hongGateLayer{position:absolute;inset:0;pointer-events:none;z-index:200000}.hong-gate{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;border:2px solid #f5d98e;border-radius:8px;background:#102631eb;color:#fff7dd;min-width:40px;min-height:40px;padding:3px 8px;font-size:24px;font-weight:900;line-height:1.1;opacity:.5}.hong-gate:disabled{cursor:default}.hong-gate.near{opacity:1;box-shadow:0 0 0 3px #f7d58055}.hong-gate small{display:block;font-size:9px;white-space:nowrap;font-weight:700}`;document.head.appendChild(hongStyle);
-function buildHongGates(){hongGateLayer.replaceChildren();for(const g of hongGates()){const b=document.createElement('button');b.className='hong-gate';b.style.left=g.x+'px';b.style.top=g.y+'px';b.setAttribute('aria-label','Go to '+hongZone(g.to).name);b.append(document.createTextNode(HONG_ARROW[g.direction]));const label=document.createElement('small');label.textContent=hongZone(g.to).name.split(' · ')[0];b.append(label);b.onclick=e=>{e.stopPropagation();if(Math.hypot(player.x-g.x,player.y-g.y)<=95)changeHongZone(g);};b.dataset.direction=g.direction;hongGateLayer.append(b);}}
+function buildHongGates(){hongGateLayer.replaceChildren();for(const g of hongGates()){const b=document.createElement('button');b.className='hong-gate';b.style.left=g.x+'px';b.style.top=g.y+'px';b.setAttribute('aria-label','Go to '+hongZone(g.to).name);b.append(document.createTextNode(HONG_ARROW[g.direction]));const label=document.createElement('small');label.textContent=hongZone(g.to).name.split(' · ')[0];b.append(label);b.onclick=e=>{e.stopPropagation();if(Math.hypot(player.x-g.x,player.y-g.y)<=95)changeHongZone(g);};b.dataset.direction=g.direction;b.dataset.hongGate=g.direction;hongGateLayer.append(b);}}
 function hongSpawn(id,direction){const g=hongGates(id).find(g=>g.direction===direction);if(!g)throw Error('Invalid zone connection');const offset=direction==='west'?80:direction==='east'?-80:0;const p={x:g.x+offset,y:g.y+(direction==='north'?-50:direction==='south'?50:0)};return p;}
 async function changeHongZone(g){
  if(locationId!=='hongdeon'||locked()||dialogue||editor.open||Date.now()<hongGateCooldown)return;
@@ -933,9 +959,52 @@ async function changeHongZone(g){
  }catch(error){if(epoch===sceneEpoch)hongTravelError=error.message;}
  finally{if(epoch===sceneEpoch){$('fade').classList.remove('black');await wait(470);if(epoch===sceneEpoch){transitioning=false;hongGateCooldown=Date.now()+600;$('fade').style.transition='';resetInput();}}}
 }
-const travelBeforeHongdeon=updateTravel;updateTravel=function(dt){travelBeforeHongdeon(dt);hongGateLayer.hidden=locationId!=='hongdeon'||!!intro||!!dialogue||editor.open||locked();if(locationId!=='hongdeon')return;for(const g of hongGates()){const b=hongGateLayer.querySelector(`[data-direction="${g.direction}"]`);if(!b)continue;const near=Math.hypot(player.x-g.x,player.y-g.y)<=95;b.disabled=!near;b.classList.toggle('near',near);}};
+const travelBeforeHongdeon=updateTravel;
+updateTravel=function(dt){
+ travelBeforeHongdeon(dt);
+ const available=locationId==='hongdeon'&&!intro&&!dialogue&&!editor.open&&!locked();
+ hongGateLayer.hidden=!available;
+ if(!available)return;
+ const gates=hongGates();
+ for(const g of gates){
+  const b=hongGateLayer.querySelector(`[data-direction="${g.direction}"]`);if(!b)continue;
+  const distance=Math.hypot(player.x-g.x,player.y-g.y),near=distance<=95;
+  b.disabled=!near;b.classList.toggle('near',near);
+  b.title=near?'Walk onto the arrow or tap to travel':'Walk closer to this exit';
+ }
+ // Il passaggio parte camminando sulla freccia, anche mantenendo premuta la levetta.
+ // Il punto di arrivo e la pausa impediscono il ritorno automatico nella zona precedente.
+ if(player.moving&&Date.now()>=hongGateCooldown){
+  const gate=gates.find(g=>Math.hypot(player.x-g.x,player.y-g.y)<=28);
+  if(gate)void changeHongZone(gate);
+ }
+};
 const beginBeforeHongZones=beginIntro;beginIntro=function(){beginBeforeHongZones();hongZoneId=6;hongTravelError='';hongGateCooldown=0;hongGateLayer.hidden=true;};
 DESTINATIONS[0].map=hongZone(6).map;
+
+/* 32 · ACCESSO TEMPORANEO PER COLLAUDO */
+const testHongButton=document.createElement('button');
+testHongButton.id='testHongdeonButton';testHongButton.textContent='TEST HONGDEON';
+testHongButton.disabled=true;testHongButton.hidden=!ENABLE_HONGDEON_TEST;
+testHongButton.setAttribute('aria-label','Salta subito a Hongdeon per il test');
+Object.assign(testHongButton.style,{position:'absolute',right:'12px',top:'125px',zIndex:'21',fontSize:'11px',fontWeight:'900',borderColor:'#f7d580',color:'#f7d580'});
+game.appendChild(testHongButton);
+async function jumpToHongdeonTest(){
+ if(!ENABLE_HONGDEON_TEST||!ready||transitioning||editor.open||locationId==='hongdeon')return;
+ testHongButton.disabled=true;sceneEpoch++;resetInput();trainRun++;
+ dialogue=null;reactionTime=0;officeSequence=null;travelScene=null;
+ intro=false;film.phase='play';menuOpen=false;autoMenu=false;ending=false;
+ $('speech').hidden=true;$('reaction').hidden=true;$('trainWindow').hidden=true;
+ $('rpgMenu').hidden=true;$('inventoryPage').hidden=true;$('destinations').hidden=true;
+ $('rpgMenu').classList.remove('auto');game.classList.remove('travel-ending');
+ for(const n of [...cityNpcs,...officeNpcs])n.talking=false;
+ menuUnlocked=true;jobAssigned=true;language='en';renderMenu();
+ hongZoneId=6;hongTravelError='';destinationOpen=true;
+ await startBusDeparture();
+ testHongButton.disabled=!ready||transitioning;
+}
+const travelBeforeHongTest=updateTravel;
+updateTravel=function(dt){travelBeforeHongTest(dt);testHongButton.hidden=!ENABLE_HONGDEON_TEST||locationId==='hongdeon'||editor.open;testHongButton.disabled=!ready||transitioning;};
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
@@ -951,4 +1020,5 @@ $("retryLoad").onclick=()=>startGame(true);resize();startGame();requestAnimation
 </script>
 </body>
 </html>
+
 
