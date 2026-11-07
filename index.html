@@ -102,6 +102,21 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 </section>
 <script>
 "use strict";
+// Destinazioni: il gesto viene gestito prima dei listener globali dei dialoghi.
+function handleDestinationActivation(event){
+ const panel=document.getElementById('destinations');
+ if(!panel||panel.hidden)return;
+ const button=event.target?.closest?.('button[data-destination-id]');
+ if(!button||!panel.contains(button)||button.disabled)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ if(button.dataset.destinationId!=='hongdeon'||transitioning)return;
+ dialogueGesture=null;suppressDialogClickUntil=0;destinationOpen=true;
+ void startBusDeparture();
+ suppressDialogClickUntil=performance.now()+500;
+}
+window.addEventListener('pointerup',handleDestinationActivation,true);
+window.addEventListener('click',handleDestinationActivation,true);
+
 /* 06 · CONFIGURAZIONE */
 const CONFIG={
   map:"file_0000000011348209b4f72c4afa5f7456.png",width:1024,height:1536,
@@ -822,7 +837,7 @@ const DESTINATIONS=[{id:'hongdeon',name:'Hongdeon',unlocked:true,map:null},...Ar
 window.TaraiDestinations={items:DESTINATIONS,add(destination){if(!destination?.id||DESTINATIONS.some(d=>d.id===destination.id))return false;DESTINATIONS.push({...destination});return true;},unlock(id){const d=DESTINATIONS.find(d=>d.id===id);if(d)d.unlocked=true;}};
 function openDestinations(){
  if(!jobAssigned||locked()||dialogue)return;resetInput();destinationOpen=true;clearMarkers();$('destinations').hidden=false;$('destinationList').replaceChildren();
- for(const d of DESTINATIONS){const b=document.createElement('button');b.textContent=(d.unlocked?'▸  ':'🔒  ')+d.name;b.disabled=!d.unlocked;b.onclick=()=>{if(d.id==='hongdeon')startBusDeparture();};$('destinationList').appendChild(b);}
+ for(const d of DESTINATIONS){const b=document.createElement('button');b.dataset.destinationId=d.id;b.textContent=(d.unlocked?'▸  ':'🔒  ')+d.name;b.disabled=!d.unlocked;b.onclick=()=>{if(d.id==='hongdeon')startBusDeparture();};$('destinationList').appendChild(b);}
 }
 $('destinationBack').onclick=()=>{destinationOpen=false;$('destinations').hidden=true;resetInput();updateInteractionUI();};
 async function startBusDeparture(){
@@ -936,3 +951,4 @@ $("retryLoad").onclick=()=>startGame(true);resize();startGame();requestAnimation
 </script>
 </body>
 </html>
+
