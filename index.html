@@ -995,13 +995,12 @@ hongWorld.collisions.push(hongPoly([[588,714],[791,714],[791,837],[831,867],[831
 try{const saved=JSON.parse(localStorage.getItem('hongdeon-continuous-world'));if(saved?.version===HONG_WORLD_VERSION&&validWorld(saved.world))hongWorld=saved.world;}catch(_){}
 let hongMapPromise=null,hongTravelError='';
 function loadHongdeonMap(){
- if(hongMapPromise)return hongMapPromise;
- hongMapPromise=new Promise((resolve,reject)=>{
-  const im=new Image();
-  im.onload=()=>{if(im.naturalWidth<2048||Math.abs(im.naturalWidth/im.naturalHeight-2/3)>.01){hongMapPromise=null;reject(Error('Hongdeon: use the high-resolution 2:3 map.'));return;}resolve(im);};
-  im.onerror=()=>{hongMapPromise=null;reject(Error('Missing '+HONGDEON.map));};
-  im.src=HONGDEON.map;
- });return hongMapPromise;
+ for(const e of [...hongTileCache.values()])if(e.status==='error')releaseHongTile(e.key);
+ if(!hongMapPromise)hongMapPromise=new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>{hongMapPromise=null;reject(Error('Upload Map/HongdeonTiles before using this index.'));};im.src=hongPreview;});
+ const w=viewWidth/HONGDEON.zoom,h=viewHeight/HONGDEON.zoom;
+ const x=clamp(HONGDEON.start.x-w/2,0,Math.max(0,HONGDEON.width-w)),y=clamp(HONGDEON.start.y-h/2,0,Math.max(0,HONGDEON.height-h));
+ hongWanted=new Set(hongTileKeys(x,y,w,h));
+ return Promise.all([hongMapPromise,...[...hongWanted].map(requestHongTile)]);
 }
 const showBeforeHongdeon=showLocation;
 showLocation=function(id){
@@ -1012,7 +1011,7 @@ showLocation=function(id){
  scene.style.height=mapImage.style.height=CONFIG.height+'px';
  // HD raster uses smooth reduction; sprites keep their existing pixel rendering.
  mapImage.style.imageRendering=id==='hongdeon'?'auto':'';
- if(id!=='hongdeon'){showBeforeHongdeon(id);return;}
+ if(id!=='hongdeon'){clearHongTextures();showBeforeHongdeon(id);return;}
  for(const n of npcs)n.actor.node.hidden=true;
  if(locationId==='city')cityWorld=world;else if(locationId==='office')officeWorld=world;
  locationId='hongdeon';world=hongWorld;npcs.splice(0);
@@ -1020,30 +1019,108 @@ showLocation=function(id){
  clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();doorButton.hidden=true;
  for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;
  depthNodes.forEach(n=>n.remove());depthNodes=[];
- mapImage.onload=()=>{if(locationId==='hongdeon')rebuildDepth();};mapImage.src=HONGDEON.map;
+ mapImage.onload=null;mapImage.src=hongPreview;rebuildDepth();
  $('objective').textContent='Find Cucchiaio';
 };
 const targetsBeforeHongdeon=allTargets;allTargets=function(){return locationId==='hongdeon'?[]:targetsBeforeHongdeon();};
 const depthBeforeHongdeon=rebuildDepth;
-rebuildDepth=function(){
- if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}
- depthNodes.forEach(n=>n.remove());depthNodes=[];
- if(!mapImage.complete||!mapImage.naturalWidth)return;
- for(const z of world.depth){
-  const p=z.polygon,x=Math.floor(Math.min(...p.map(v=>v[0]))),y=Math.floor(Math.min(...p.map(v=>v[1])));
-  const w=Math.ceil(Math.max(...p.map(v=>v[0])))-x,h=Math.ceil(Math.max(...p.map(v=>v[1])))-y;
-  if(w<1||h<1)continue;
-  const c=document.createElement('canvas'),density=2;c.className='depth-piece';c.width=w*density;c.height=h*density;
-  Object.assign(c.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px',imageRendering:'auto',zIndex:Math.round(z.baseY*100+10)});
-  const ctx=c.getContext('2d');ctx.scale(density,density);ctx.translate(-x,-y);polygonPath(ctx,p);ctx.clip();ctx.imageSmoothingEnabled=true;ctx.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);scene.appendChild(c);depthNodes.push(c);
- }
-};
+rebuildDepth=function(){if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}resetHongDepth();};
 const saveBeforeHongdeon=saveWorld;
-saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}hongWorld=world;try{localStorage.setItem('hongdeon-continuous-world',JSON.stringify({version:HONG_WORLD_VERSION,world}));storageFailed=false;}catch(_){storageFailed=true;}};
+saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}hongWorld=world;hongBoundsCache=new WeakMap();try{localStorage.setItem('hongdeon-continuous-world',JSON.stringify({version:HONG_WORLD_VERSION,world}));storageFailed=false;}catch(_){storageFailed=true;}};
 const statusBeforeHongdeon=updateStatus;
 updateStatus=function(){if(locationId==='hongdeon'){$('status').textContent=hongTravelError||'Hongdeon';return;}statusBeforeHongdeon();};
 const beginBeforeHongdeon=beginIntro;beginIntro=function(){beginBeforeHongdeon();hongTravelError='';};
 DESTINATIONS[0].map=HONGDEON.map;
+
+/* Hongdeon: local texture streaming; the world and collision coordinates stay continuous. */
+const HONG_TEXTURE={folder:'Map/HongdeonTiles/',tile:512,cols:4,rows:6,maxCache:16,parallel:3};
+const hongTileLayer=document.createElement('div');hongTileLayer.hidden=true;
+Object.assign(hongTileLayer.style,{position:'absolute',inset:'0',zIndex:'1',pointerEvents:'none'});scene.appendChild(hongTileLayer);
+const hongTileCache=new Map();let hongTileQueue=[],hongTileActive=0,hongTileClock=0,hongWanted=new Set(),hongTileEpoch=0;
+let hongDepthRecords=[],hongDepthRevision=0,hongBoundsCache=new WeakMap();
+const hongPreview=HONG_TEXTURE.folder+'preview.jpg';
+function hongTileKeys(x,y,w,h,margin=64){
+ const keys=[];for(let r=Math.max(0,Math.floor((y-margin)/512));r<=Math.min(5,Math.floor((y+h+margin)/512));r++)
+ for(let c=Math.max(0,Math.floor((x-margin)/512));c<=Math.min(3,Math.floor((x+w+margin)/512));c++)keys.push(c+','+r);
+ return keys;
+}
+function hongRectVisible(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function hongObjectBounds(p){const xs=p.map(v=>v[0]),ys=p.map(v=>v[1]);return{x:Math.floor(Math.min(...xs)),y:Math.floor(Math.min(...ys)),w:Math.ceil(Math.max(...xs))-Math.floor(Math.min(...xs)),h:Math.ceil(Math.max(...ys))-Math.floor(Math.min(...ys))};}
+function requestHongTile(key){
+ let entry=hongTileCache.get(key);if(entry){entry.used=++hongTileClock;return entry.promise;}
+ const [c,r]=key.split(',').map(Number);let resolve,reject;
+ entry={key,c,r,status:'queued',used:++hongTileClock,epoch:hongTileEpoch,promise:new Promise((a,b)=>{resolve=a;reject=b;}),resolve:null,reject:null};
+ entry.resolve=resolve;entry.reject=reject;entry.promise.catch(()=>{});hongTileCache.set(key,entry);hongTileQueue.push(entry);pumpHongTiles();return entry.promise;
+}
+function pumpHongTiles(){
+ while(hongTileActive<HONG_TEXTURE.parallel&&hongTileQueue.length){
+  const e=hongTileQueue.shift();if(hongTileCache.get(e.key)!==e)continue;
+  hongTileActive++;e.status='loading';const im=new Image();e.image=im;im.alt='';im.draggable=false;im.decoding='async';
+  Object.assign(im.style,{position:'absolute',left:e.c*512+'px',top:e.r*512+'px',width:'512px',height:'512px',imageRendering:'auto',pointerEvents:'none'});
+  let finished=false;const finish=(error)=>{if(finished)return;finished=true;hongTileActive--;im.onload=im.onerror=null;
+   if(e.epoch!==hongTileEpoch||hongTileCache.get(e.key)!==e){e.resolve(null);}
+   else if(error){e.status='error';e.reject(error);}
+   else{e.status='ready';e.resolve(im);if(locationId==='hongdeon'&&hongWanted.has(e.key)){hongTileLayer.appendChild(im);hongDepthRevision++;}}
+   pumpHongTiles();
+  };
+  im.onload=()=>finish();im.onerror=()=>finish(Error('Missing '+HONG_TEXTURE.folder+'tile_'+e.r+'_'+e.c+'.jpg'));
+  im.src=HONG_TEXTURE.folder+'tile_'+e.r+'_'+e.c+'.jpg';
+ }
+}
+function releaseHongTile(key){const e=hongTileCache.get(key);if(!e)return;hongTileCache.delete(key);if(e.image){e.image.remove();if(e.status!=='loading')e.image.removeAttribute('src');}if(e.status==='queued')e.resolve(null);}
+function clearHongTextures(){
+ hongTileEpoch++;hongWanted.clear();hongTileQueue=[];
+ for(const key of [...hongTileCache.keys()])releaseHongTile(key);
+ for(const d of hongDepthRecords)if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;d.canvas=null;}
+ depthNodes=[];hongTileLayer.replaceChildren();hongTileLayer.hidden=true;
+}
+function hongView(){return{x:camera.x,y:camera.y,w:viewWidth/zoom,h:viewHeight/zoom};}
+function syncHongTiles(){
+ if(locationId!=='hongdeon')return;
+ const v=hongView(),keys=hongTileKeys(v.x,v.y,v.w,v.h);keys.sort((a,b)=>{const [ax,ay]=a.split(',').map(Number),[bx,by]=b.split(',').map(Number),cx=v.x+v.w/2,cy=v.y+v.h/2;return Math.hypot(ax*512+256-cx,ay*512+256-cy)-Math.hypot(bx*512+256-cx,by*512+256-cy);});const wanted=new Set(keys.slice(0,HONG_TEXTURE.maxCache));hongWanted=wanted;hongTileLayer.hidden=false;
+ for(const key of wanted){void requestHongTile(key);const e=hongTileCache.get(key);if(e?.status==='ready'&&!hongTileLayer.contains(e.image))hongTileLayer.appendChild(e.image);}
+ for(const e of hongTileCache.values())if(!wanted.has(e.key)&&e.image)e.image.remove();
+ // Drop queued work that the camera has already left; only three requests can be in flight.
+ hongTileQueue=hongTileQueue.filter(e=>{if(wanted.has(e.key))return true;releaseHongTile(e.key);return false;});
+ const old=[...hongTileCache.values()].filter(e=>!wanted.has(e.key)).sort((a,b)=>a.used-b.used);
+ while(hongTileCache.size>HONG_TEXTURE.maxCache&&old.length)releaseHongTile(old.shift().key);
+ syncHongDepth(v);
+}
+function resetHongDepth(){
+ for(const d of hongDepthRecords)if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;}
+ depthNodes.forEach(n=>n.remove());depthNodes=[];
+ hongDepthRecords=world.depth.map(z=>({zone:z,box:hongObjectBounds(z.polygon),canvas:null,signature:''}));hongDepthRevision++;
+ hongBoundsCache=new WeakMap();
+}
+function syncHongDepth(v){
+ const expanded={x:v.x-80,y:v.y-100,w:v.w+160,h:v.h+200};
+ for(const d of hongDepthRecords){
+  const {box:b,zone:z}=d;
+  if(!hongRectVisible(b,expanded)){if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;d.canvas=null;d.signature='';}continue;}
+  const entries=hongTileKeys(b.x,b.y,b.w,b.h,0).map(k=>hongTileCache.get(k)).filter(e=>e?.status==='ready');
+  const signature=entries.map(e=>e.key).join('|');if(!entries.length)continue;
+  if(d.canvas&&d.signature===signature)continue;
+  let canvas=d.canvas;if(!canvas){canvas=document.createElement('canvas');canvas.className='depth-piece';d.canvas=canvas;scene.appendChild(canvas);}
+  const density=1.5;canvas.width=Math.max(1,Math.ceil(b.w*density));canvas.height=Math.max(1,Math.ceil(b.h*density));
+  Object.assign(canvas.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px',imageRendering:'auto',zIndex:Math.round(z.baseY*100+10)});
+  const ctx=canvas.getContext('2d');ctx.scale(density,density);ctx.translate(-b.x,-b.y);polygonPath(ctx,z.polygon);ctx.clip();ctx.imageSmoothingEnabled=true;
+  for(const e of entries)ctx.drawImage(e.image,e.c*512,e.r*512,512,512);
+  d.signature=signature;
+ }
+ depthNodes=hongDepthRecords.filter(d=>d.canvas).map(d=>d.canvas);
+}
+const originalHongCamera=updateCamera;
+updateCamera=function(){originalHongCamera();if(locationId==='hongdeon'&&!editor.open)syncHongTiles();};
+const originalHongStaticFree=staticFree;
+staticFree=function(x,y,r=CONFIG.radius){
+ if(locationId!=='hongdeon')return originalHongStaticFree(x,y,r);
+ if(x<r||y<r||x>CONFIG.width-r||y>CONFIG.height-r)return false;
+ for(const p of world.collisions){let b=hongBoundsCache.get(p);if(!b){b=hongObjectBounds(p);hongBoundsCache.set(p,b);}
+  if(x+r<b.x||x-r>b.x+b.w||y+r<b.y||y-r>b.y+b.h)continue;
+  if(hitsPolygon(x,y,r,p))return false;
+ }return true;
+};
+window.HongdeonPerformance={stats:()=>({tiles:hongTileCache.size,inFlight:hongTileActive,depthCanvases:depthNodes.length}),refresh:()=>{if(locationId==='hongdeon'){resetHongDepth();syncHongTiles();}}};
 
 /* 32 · ACCESSO TEMPORANEO PER COLLAUDO */
 const testHongButton=document.createElement('button');
@@ -1083,6 +1160,7 @@ $("retryLoad").onclick=()=>startGame(true);resize();startGame();requestAnimation
 </script>
 </body>
 </html>
+
 
 
 
