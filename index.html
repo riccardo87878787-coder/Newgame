@@ -634,7 +634,7 @@ function setPolygon(i,p){if(editor.layer==="collision")world.collisions[i]=p;els
 function remember(s=JSON.stringify(world)){editor.history.push(s);if(editor.history.length>40)editor.history.shift();}
 function notice(t){$("editorHint").textContent=t;}
 function paintEditor(){
- if(!editor.open||!ready)return;const c=editorCtx,s=editor;c.setTransform(1,0,0,1,0,0);c.fillStyle="#10232d";c.fillRect(0,0,editorCanvas.width,editorCanvas.height);c.translate(s.x,s.y);c.scale(s.scale,s.scale);c.imageSmoothingEnabled=false;c.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
+ if(!editor.open||!ready)return;const c=editorCtx,s=editor;c.setTransform(1,0,0,1,0,0);c.fillStyle="#10232d";c.fillRect(0,0,editorCanvas.width,editorCanvas.height);c.translate(s.x,s.y);c.scale(s.scale,s.scale);c.imageSmoothingEnabled=locationId==='hongdeon';c.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);
  items().forEach((item,i)=>{const p=polygon(item),sel=i===s.selected;polygonPath(c,p);c.fillStyle=sel?"#ffde7966":s.layer==="collision"?"#ff34545c":"#40bfff60";c.fill();c.lineWidth=1.5/s.scale;c.strokeStyle=sel?"#ffe08a":"#ffffff88";c.stroke();if(!sel)return;for(const [x,y]of p){c.fillStyle="white";c.fillRect(x-5/s.scale,y-5/s.scale,10/s.scale,10/s.scale);}if(s.layer==="depth"){const xs=p.map(v=>v[0]);c.beginPath();c.moveTo(Math.min(...xs)-15,item.baseY);c.lineTo(Math.max(...xs)+15,item.baseY);c.strokeStyle="#ffdf59";c.lineWidth=2/s.scale;c.stroke();c.fillStyle="#ffdf59";c.font=12/s.scale+"px Arial";c.fillText(item.name+" · BASE "+Math.round(item.baseY),Math.min(...xs),item.baseY-7/s.scale);}});
  if(s.draft.length){c.beginPath();s.draft.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle="#7dffff";c.lineWidth=2/s.scale;c.stroke();for(const [x,y]of s.draft){c.fillStyle="#7dffff";c.fillRect(x-4/s.scale,y-4/s.scale,8/s.scale,8/s.scale);}}
  for(const n of npcs){if(n.route){c.beginPath();c.moveTo(...n.route[0]);c.lineTo(...n.route[1]);c.strokeStyle="#ffe199";c.lineWidth=2/s.scale;c.stroke();}for(const p of feet(n)){c.beginPath();c.arc(p.x,p.y,p.r,0,Math.PI*2);c.fillStyle="#ffcc69";c.fill();}}
@@ -873,135 +873,95 @@ const openBeforeInventory=openMenu;openMenu=function(scripted=false){openBeforeI
 $('menuOpen').onclick=()=>openMenu();$('menuClose').onclick=()=>closeMenu();
 
 
-/* HONGDEON · BASE E OGGETTI INDIPENDENTI */
-const HONGDEON={map:'Map/hongdeon_base.jpg',width:2048,height:3072,playerHeight:CONFIG.spriteHeight*1.25,zoom:CONFIG.zoom,start:{x:900,y:2800}};
-const OBJECT_VERSION='hongdeon-objects-1',OBJECT_KEY='hongdeon-object-layout-v1';
-const OBJECT_TYPES=[
- {id:'cucchiaio',name:'Cucchiaio',file:'file_00000000d1f882098280f0012574f8c8.png',crop:[89,29,1022,1255],height:420,foot:[[.06,.63],[.94,.63],[.94,.98],[.06,.98]]},
- {id:'mart',name:'MART',file:'file_00000000c11482099490fa2f6e027e56.png',crop:[6,8,1300,1188],height:330,foot:[[.04,.55],[.96,.55],[.96,.99],[.04,.99]]},
- {id:'casa',name:'Casa',file:'file_00000000da6482098f8812e6a16b63e4.png',crop:[43,57,1228,1112],height:330,foot:[[.04,.53],[.96,.53],[.96,.99],[.04,.99]]},
- {id:'albero',name:'Albero',file:'file_00000000456481faa60274539c504f23.png',crop:[8,7,1215,1262],height:245,foot:[[.44,.83],[.57,.83],[.59,.98],[.41,.98]]},
- {id:'cespuglio',name:'Cespuglio',file:'file_0000000064288209862e290c189f75b2.png',crop:[27,78,1478,885],height:65,foot:[[.12,.55],[.88,.55],[.94,.92],[.06,.92]]},
- {id:'panchina',name:'Panchina',file:'file_00000000f7a082098377e586da278389.png',crop:[31,37,1712,826],height:64,foot:[[.04,.67],[.96,.67],[.96,.98],[.04,.98]]},
- {id:'lampione',name:'Lampione',file:'file_0000000021f481f8a97acf72c083f86d.png',crop:[394,13,429,1509],height:175,foot:[[.035,.93],[.17,.93],[.19,1],[.015,1]]}
-].map(d=>({...d,path:'Map/Oggetti/'+d.file}));
-const objectType=id=>OBJECT_TYPES.find(d=>d.id===id);
-let hongTerrain={collisions:[],depth:[]},hongObjects=[],hongWorld={collisions:[],depth:[]};
-let hongMapPromise=null,hongBaseImage=null,hongTravelError='',objectSerial=0,objectStorageFailed=false;
-const objectImages=new Map(),objectNodes=new Map();
-const cloneLayout=()=>JSON.parse(JSON.stringify(hongObjects));
-function objectPoint(o,u,v){const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3],a=o.angle*Math.PI/180;
- const x=(u-.5)*w*(o.mirror?-1:1),y=(v-1)*h;
- return[o.x+x*Math.cos(a)-y*Math.sin(a),o.y+x*Math.sin(a)+y*Math.cos(a)];}
-function objectFoot(o){return objectType(o.type).foot.map(([u,v])=>objectPoint(o,u,v));}
-function objectOutline(o){return[[0,0],[1,0],[1,1],[0,1]].map(([u,v])=>objectPoint(o,u,v));}
-function objectLocal(o,x,y){const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3],a=-o.angle*Math.PI/180,dx=x-o.x,dy=y-o.y;
- return[(dx*Math.cos(a)-dy*Math.sin(a))*(o.mirror?-1:1)/w+.5,(dx*Math.sin(a)+dy*Math.cos(a))/h+1];}
-function validObject(o){return !!o&&!!objectType(o.type)&&typeof o.id==='string'&&o.id.length<100&&['x','y','scale','angle'].every(k=>Number.isFinite(o[k]))&&o.x>=0&&o.x<=2048&&o.y>=0&&o.y<=3072&&o.scale>=.15&&o.scale<=4&&Math.abs(o.angle)<=360;}
-try{const a=JSON.parse(localStorage.getItem(OBJECT_KEY));if(a?.version===OBJECT_VERSION&&Array.isArray(a.objects)&&a.objects.length<=500&&a.objects.every(validObject)){hongObjects=a.objects.map(o=>({...o,mirror:!!o.mirror}));if(validWorld(a.terrain))hongTerrain=a.terrain;}}catch(_){}
-function saveObjects(){try{localStorage.setItem(OBJECT_KEY,JSON.stringify({version:OBJECT_VERSION,objects:hongObjects,terrain:hongTerrain}));objectStorageFailed=false;}catch(_){objectStorageFailed=true;}}
-function combineObjectWorld(){hongWorld={collisions:[...hongTerrain.collisions,...hongObjects.map(objectFoot)],depth:hongTerrain.depth};if(locationId==='hongdeon')world=hongWorld;}
-combineObjectWorld();
-function getObjectImage(type){if(objectImages.has(type))return objectImages.get(type);const d=objectType(type),im=new Image();im.decoding='async';
- const entry={image:im,ready:false,error:false,promise:null};entry.promise=new Promise((resolve,reject)=>{im.onload=()=>{entry.ready=true;entry.error=false;resolve(im);paintObjects();};im.onerror=()=>{entry.error=true;objectImages.delete(type);reject(Error('Immagine non caricata: '+d.path));paintObjects();};im.src=d.path;});entry.promise.catch(()=>{});objectImages.set(type,entry);return entry;}
-function renderObjects(){
- const wanted=new Set(hongObjects.map(o=>o.id));for(const [id,node]of objectNodes)if(!wanted.has(id)){node.remove();objectNodes.delete(id);}
- for(const o of hongObjects){const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3];let n=objectNodes.get(o.id);
-  if(!n){n=document.createElement('div');n.className='map-object';const clip=document.createElement('div'),im=document.createElement('img');im.src=d.path;im.alt='';im.draggable=false;clip.appendChild(im);n.appendChild(clip);scene.appendChild(n);objectNodes.set(o.id,n);}
-  n.hidden=locationId!=='hongdeon';Object.assign(n.style,{left:o.x+'px',top:o.y+'px',transform:'rotate('+o.angle+'deg) scaleX('+(o.mirror?-1:1)+')',zIndex:String(Math.round(o.y*100+10))});
-  const clip=n.firstChild,im=clip.firstChild,s=h/d.crop[3];Object.assign(clip.style,{left:-w/2+'px',top:-h+'px',width:w+'px',height:h+'px'});
-  Object.assign(im.style,{left:-d.crop[0]*s+'px',top:-d.crop[1]*s+'px',width:(d.crop[0]+d.crop[2])*s+'px',height:'auto'});
-  // Width uses the complete source image, not the cropped canvas.
-  const entry=objectImages.get(o.type);if(entry?.ready)im.style.width=entry.image.naturalWidth*s+'px';
-  else getObjectImage(o.type).promise.then(source=>{im.style.width=source.naturalWidth*s+'px';}).catch(()=>{});
- }
-}
-function commitObjects(){combineObjectWorld();saveObjects();renderObjects();paintObjects();}
-function loadHongdeonMap(){
- if(!hongMapPromise)hongMapPromise=new Promise((resolve,reject)=>{const im=new Image();im.decoding='async';im.onload=()=>{hongBaseImage=im;resolve(im);};im.onerror=()=>{hongMapPromise=null;reject(Error('Manca '+HONGDEON.map));};im.src=HONGDEON.map;});
- return Promise.all([hongMapPromise,...[...new Set(hongObjects.map(o=>o.type))].map(t=>getObjectImage(t).promise)]);
-}
+/* HONGDEON · MAPPA UNICA, COLLISIONI E PROFONDITÀ */
+const HONGDEON={map:'Map/hongdeon_hd.jpg',width:2048,height:3072,playerHeight:CONFIG.spriteHeight*1.25,zoom:CONFIG.zoom,start:{x:900,y:2800}};
+const HONG_WORLD_VERSION='hongdeon-courtyard-map-2026-11-08-v1',HONG_WORLD_KEY='hongdeon-courtyard-collisions-depth';
+const hongPoly=p=>p.map(([x,y])=>[x*2,y*2]);
+const hongRect=(x,y,w,h)=>hongPoly(rect(x,y,w,h));
+let hongWorld={collisions:[],depth:[]};
+function hongObstacle(name,baseY,p,collision){hongWorld.depth.push({name,baseY:baseY*2,polygon:hongPoly(p)});if(collision)hongWorld.collisions.push(hongPoly(collision));}
+// Edifici: sagoma visibile separata dall'impronta a terra.
+hongObstacle('Case nord-ovest',291,[[17,195],[132,195],[132,142],[151,100],[231,97],[245,65],[338,65],[338,223],[416,223],[416,263],[240,263],[240,312],[120,312],[120,291],[17,291]],rect(17,224,220,68));
+hongWorld.collisions.push(hongRect(135,192,102,116),hongRect(240,224,178,38));
+hongObstacle('Casa nord centrale',285,[[459,60],[680,60],[680,285],[459,285]],rect(459,199,221,85));
+hongObstacle('Case nord-est',264,[[733,105],[785,105],[785,74],[944,74],[944,264],[733,264]],rect(733,196,211,68));
+hongObstacle('Casa isolato alto',438,[[312,326],[428,326],[428,311],[478,311],[495,357],[495,438],[312,438]],rect(319,387,178,51));
+hongObstacle('Casa sopra lavanderia',475,[[586,339],[610,329],[685,329],[708,354],[708,475],[586,475]],rect(586,417,122,58));
+hongObstacle('Casa destra parco',622,[[842,477],[873,449],[931,449],[1004,485],[1004,622],[842,622]],rect(847,550,157,71));
+hongObstacle('Panetteria',659,[[328,489],[426,489],[426,478],[464,478],[464,659],[328,659]],rect(327,579,137,79));
+hongObstacle('Lavanderia',660,[[570,490],[722,490],[722,515],[772,541],[772,660],[570,660]],rect(571,575,203,84));
+hongObstacle('Palazzo bordo sinistro',923,[[8,711],[154,711],[154,923],[8,923]],rect(9,819,145,104));
+hongObstacle('Casa centro sinistra',978,[[220,794],[251,749],[399,749],[430,782],[430,978],[197,978],[197,891],[220,891]],rect(216,884,214,94));
+hongObstacle('Ristorante Cucchiaio',961,[[555,786],[581,750],[608,732],[748,732],[779,751],[808,785],[808,961],[555,961]],rect(558,875,247,82));
+hongObstacle('Casa destra centrale',994,[[902,751],[942,718],[997,718],[1011,744],[1011,994],[902,994]],rect(903,866,108,126));
+hongObstacle('Casa sud-ovest',1310,[[160,1111],[201,1071],[360,1071],[411,1105],[411,1310],[160,1310]],rect(164,1198,247,110));
+hongObstacle('MART',1315,[[560,1094],[608,1094],[608,1073],[797,1073],[844,1113],[844,1315],[560,1315]],rect(562,1210,280,104));
+hongObstacle('Casa sud-est',1311,[[902,1104],[939,1067],[993,1067],[1013,1095],[1013,1311],[902,1311]],rect(903,1211,110,99));
+// Limiti, muri e recinzioni: gli ingressi dei parchi e delle scale restano liberi.
+hongWorld.collisions.push(hongRect(0,0,1024,23),hongRect(0,0,5,1536),hongRect(1019,0,5,1536),hongRect(0,1531,1024,5),
+ hongRect(0,314,79,30),hongRect(116,314,121,30),hongRect(0,633,142,33),hongRect(186,633,77,33),
+ hongRect(0,409,8,224),hongRect(255,443,9,190),hongRect(745,275,273,8),hongRect(1011,280,9,140),
+ hongRect(815,416,203,31),hongRect(748,290,10,124),hongRect(757,416,20,28),
+ hongRect(6,1033,106,15),hongRect(81,919,35,115),hongRect(139,1017,254,18),
+ hongRect(8,1297,151,16),hongRect(162,1300,103,13),hongRect(295,1300,119,13));
+// Arredi e alberi: solo tronco o base bloccano il movimento.
+function hongTree(name,x,y,w,h,bx,by,bw,bh){const top=y,left=x;hongObstacle(name,by+bh,[[left+w*.3,top],[left+w*.7,top],[left+w,top+h*.35],[left+w*.87,top+h*.62],[left+w*.6,top+h*.69],[left+w*.61,by+bh],[left+w*.4,by+bh],[left+w*.4,top+h*.69],[left+w*.13,top+h*.6],[left,top+h*.32]],rect(bx,by,bw,bh));}
+const treeDefs=[['Albero fermata sinistra',25,1339,95,99,65,1415,16,21],['Albero fermata centro',302,1335,99,104,341,1415,16,22],['Albero fermata destra',905,1336,98,104,945,1415,16,22],['Albero parco ingresso',13,507,83,115,48,595,14,25],['Albero parco alto',7,375,76,117,38,461,14,28],['Albero davanti Bakery',275,568,55,89,297,635,10,23],['Albero davanti Laundry',527,567,63,91,551,634,11,24],['Albero tra case sinistra',112,929,49,113,133,1011,9,28],['Albero fioriera sud sinistra',1,918,49,124,20,1015,10,25],['Albero nord centrale',372,65,62,111,399,146,10,26],['Albero nord piazza',313,19,55,105,335,97,10,25]];
+for(const t of treeDefs)hongTree(...t);
+function hongLamp(name,x,top,bottom,w=11){hongObstacle(name,bottom,[[x+2,top],[x+w-2,top],[x+w,top+10],[x+w-4,top+20],[x+w-4,bottom-5],[x+w-1,bottom],[x+1,bottom],[x+4,bottom-5],[x+4,top+20],[x,top+10]],rect(x+3,bottom-8,Math.max(4,w-6),8));}
+[['Lampione alto sinistro',428,163,246],['Lampione alto destro',705,197,280],['Lampione curva est',719,437,517],['Lampione Bakery',273,560,658],['Lampione Laundry',833,558,658],['Lampione incrocio sinistro',177,698,782],['Lampione Cucchiaio est',873,800,899],['Lampione sud-ovest',56,1180,1285],['Lampione fermata sinistro',146,1344,1441],['Lampione fermata destro',738,1342,1441],['Lampione parco nord',96,434,479],['Lampione parco sud',137,555,616]].forEach(v=>hongLamp(...v));
+hongObstacle('Pensilina fermata',1417,[[550,1341],[692,1341],[702,1361],[696,1367],[696,1417],[686,1417],[686,1367],[561,1367],[561,1417],[552,1417],[552,1367],[545,1364]],null);
+hongWorld.collisions.push(hongRect(552,1408,9,11),hongRect(686,1408,9,11),hongRect(581,1401,68,18),hongRect(656,1380,34,35));
+hongObstacle('Panchina parco ingresso',599,rect(82,573,49,26),rect(85,590,44,9));
+hongObstacle('Panchina parco curva',506,[[173,484],[204,498],[199,508],[169,497]],rect(173,497,26,8));
+hongObstacle('Panchina parco sinistra',497,[[26,473],[67,483],[62,497],[23,486]],rect(28,487,35,9));
+hongObstacle('Pergolato',470,[[77,421],[114,391],[175,401],[195,426],[180,431],[180,471],[174,471],[174,431],[95,427],[95,470],[88,470],[88,427]],null);
+hongWorld.collisions.push(hongRect(88,457,8,14),hongRect(173,457,8,14));
+for(const [x,y,w,h]of [[527,1002,39,24],[775,1001,42,25],[529,930,28,41],[785,930,28,41],[563,975,62,34],[718,975,65,34],[264,1405,55,32],[509,1402,38,33],[760,1405,54,32]])hongObstacle('Fioriera o tavolino',y+h,rect(x,y,w,h),rect(x,y+h*.5,w,h*.5));
+for(const [x,y,w,h]of [[821,289,67,49],[884,290,100,100],[912,367,64,32],[794,345,71,47]])hongObstacle('Gioco parco',y+h,rect(x,y,w,h),rect(x+6,y+h*.6,w-12,h*.4));
+try{const saved=JSON.parse(localStorage.getItem(HONG_WORLD_KEY));if(saved?.version===HONG_WORLD_VERSION&&validWorld(saved.world))hongWorld=saved.world;}catch(_){}
+let hongMapPromise=null,hongMapImage=null,hongTravelError='';
+function loadHongdeonMap(){if(!hongMapPromise)hongMapPromise=new Promise((resolve,reject)=>{const im=new Image();im.decoding='async';im.onload=()=>{hongMapImage=im;resolve(im);};im.onerror=()=>{hongMapPromise=null;reject(Error('Impossibile caricare '+HONGDEON.map));};im.src=HONGDEON.map+'?v=20261108-courtyard';});return hongMapPromise;}
 const showBeforeHongdeon=showLocation;
 showLocation=function(id){
- for(const n of objectNodes.values())n.hidden=true;
+ if(locationId==='hongdeon')hongWorld=world;
  CONFIG.width=id==='hongdeon'?HONGDEON.width:1024;CONFIG.height=id==='hongdeon'?HONGDEON.height:1536;
  scene.style.width=mapImage.style.width=CONFIG.width+'px';scene.style.height=mapImage.style.height=CONFIG.height+'px';mapImage.style.imageRendering=id==='hongdeon'?'auto':'';
- if(id!=='hongdeon'){showBeforeHongdeon(id);return;}
+ clearHongDepth();if(id!=='hongdeon'){showBeforeHongdeon(id);return;}
  for(const n of npcs)n.actor.node.hidden=true;
  if(locationId==='city')cityWorld=world;else if(locationId==='office')officeWorld=world;
- locationId='hongdeon';combineObjectWorld();npcs.splice(0);player.actor.height=HONGDEON.playerHeight;player.actor.active=null;
+ locationId='hongdeon';world=hongWorld;npcs.splice(0);player.actor.height=HONGDEON.playerHeight;player.actor.active=null;
  clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();doorButton.hidden=true;
  for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;depthNodes.forEach(n=>n.remove());depthNodes=[];
- mapImage.onload=()=>{if(locationId==='hongdeon')rebuildDepth();};mapImage.src=HONGDEON.map;rebuildDepth();$('objective').textContent='Find Cucchiaio';
+ mapImage.onload=()=>{if(locationId==='hongdeon')rebuildDepth();};mapImage.src=hongMapImage?.src||HONGDEON.map+'?v=20261108-courtyard';rebuildDepth();$('objective').textContent='Find Cucchiaio';
 };
 const targetsBeforeHongdeon=allTargets;allTargets=function(){return locationId==='hongdeon'?[]:targetsBeforeHongdeon();};
+// Si creano solo i ritagli visibili alla telecamera; nessuna copia intera HD per oggetto.
+let hongDepthRecords=[];
+function clearHongDepth(){for(const d of hongDepthRecords)if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;}hongDepthRecords=[];}
+function boundsHong(p){const xs=p.map(v=>v[0]),ys=p.map(v=>v[1]),x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));return{x,y,w:Math.ceil(Math.max(...xs))-x,h:Math.ceil(Math.max(...ys))-y};}
+function syncHongDepth(){if(locationId!=='hongdeon'||editor.open||!hongMapImage)return;const v={x:camera.x-80,y:camera.y-100,w:viewWidth/zoom+160,h:viewHeight/zoom+200};
+ for(const d of hongDepthRecords){const b=d.box,visible=b.x<v.x+v.w&&b.x+b.w>v.x&&b.y<v.y+v.h&&b.y+b.h>v.y;
+  if(!visible){if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;d.canvas=null;}continue;}
+  if(d.canvas)continue;const c=document.createElement('canvas');c.className='depth-piece';const density=1.5;c.width=Math.max(1,Math.ceil(b.w*density));c.height=Math.max(1,Math.ceil(b.h*density));Object.assign(c.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px',zIndex:String(Math.round(d.zone.baseY*100+10)),imageRendering:'auto'});
+  const ctx=c.getContext('2d');ctx.scale(density,density);ctx.translate(-b.x,-b.y);polygonPath(ctx,d.zone.polygon);ctx.clip();ctx.imageSmoothingEnabled=true;const sx=hongMapImage.naturalWidth/2048,sy=hongMapImage.naturalHeight/3072;ctx.drawImage(hongMapImage,b.x*sx,b.y*sy,b.w*sx,b.h*sy,b.x,b.y,b.w,b.h);scene.appendChild(c);d.canvas=c;
+ }
+ depthNodes=hongDepthRecords.filter(d=>d.canvas).map(d=>d.canvas);
+}
 const depthBeforeHongdeon=rebuildDepth;
-rebuildDepth=function(){if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}depthNodes.forEach(n=>n.remove());depthNodes=[];for(const z of hongTerrain.depth)makeDepth(z.polygon,z.baseY);renderObjects();};
+rebuildDepth=function(){if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}clearHongDepth();depthNodes.forEach(n=>n.remove());depthNodes=[];hongDepthRecords=world.depth.map(zone=>({zone,box:boundsHong(zone.polygon),canvas:null}));syncHongDepth();};
+const cameraBeforeHongdeon=updateCamera;updateCamera=function(){cameraBeforeHongdeon();if(locationId==='hongdeon')syncHongDepth();};
 const saveBeforeHongdeon=saveWorld;
-saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}if(terrainEditing){hongTerrain=copy(world);saveObjects();}else saveObjects();};
+saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}hongWorld=world;try{localStorage.setItem(HONG_WORLD_KEY,JSON.stringify({version:HONG_WORLD_VERSION,world}));storageFailed=false;}catch(_){storageFailed=true;}};
 const statusBeforeHongdeon=updateStatus;
 updateStatus=function(){if(locationId==='hongdeon'){$('status').textContent=hongTravelError||'Hongdeon';return;}statusBeforeHongdeon();};
 const beginBeforeHongdeon=beginIntro;beginIntro=function(){beginBeforeHongdeon();hongTravelError='';};
 DESTINATIONS[0].map=HONGDEON.map;
-
-/* EDITOR OGGETTI · touch, trasformazioni e esportazione */
-const objectStyle=document.createElement('style');objectStyle.textContent=`
-.map-object{position:absolute;width:0;height:0;transform-origin:0 0;pointer-events:none}.map-object>div{position:absolute;overflow:hidden}.map-object img{position:absolute;max-width:none;max-height:none;image-rendering:auto}
-#objectEditor{position:fixed;inset:0;z-index:110;background:#10232d;display:flex;flex-direction:column;font:12px Arial,sans-serif}#objectTools{display:flex;flex-wrap:wrap;gap:4px;padding:7px;background:#122d38}#objectTools button{font-weight:700;min-height:36px;font-size:12px;padding:6px 9px}#objectCatalog{display:flex;gap:7px;padding:7px;overflow-x:auto;flex:none;touch-action:pan-x;background:#203a46}#objectCatalog button{flex:0 0 77px;padding:4px;font-size:11px;font-weight:700;min-height:74px}#objectCatalog img{width:60px;height:48px;object-fit:contain;display:block;margin:auto;pointer-events:none}#objectInfo{padding:6px 9px;background:#203a46;min-height:29px;color:#f6d78e}#objectView{flex:1;min-height:0;position:relative;overflow:hidden}#objectCanvas{width:100%;height:100%;display:block;touch-action:none}#objectProps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px;background:#122d38}#objectProps input{width:68px;background:#071820;color:white;border:1px solid #839da7;border-radius:5px;font-weight:700;padding:7px;touch-action:manipulation}#objectProps label{display:flex;gap:3px;align-items:center}#objectProps button{font-size:12px;min-height:34px;padding:5px 8px}#objectDataPanel{position:absolute;inset:4%;z-index:5;background:#10232dfc;border:2px solid #f6d78e;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}#objectData{flex:1;min-height:90px;background:#071820;color:white;resize:none;width:100%;font:12px monospace;user-select:text;touch-action:pan-y}#objectDataPanel p{margin:0;line-height:1.4}#objectDataActions{display:flex;flex-wrap:wrap;gap:5px}
-`;document.head.appendChild(objectStyle);
-const objectPanel=document.createElement('section');objectPanel.id='objectEditor';objectPanel.hidden=true;
-objectPanel.innerHTML=`<div id="objectTools"><button id="objectSelect">Seleziona</button><button id="objectPan">Sposta mappa</button><button id="objectUndo">Annulla</button><button id="objectPlus">Zoom +</button><button id="objectMinus">Zoom −</button><button id="objectFit">Mappa intera</button><button id="objectTerrain">Terreno</button><button id="objectExport">Copia tutto</button><button id="objectPlay">Gioca</button></div><div id="objectCatalog"></div><div id="objectInfo" role="status">Scegli un oggetto dal catalogo.</div><div id="objectProps"><strong id="objectName">Nessun oggetto</strong><label>Scala % <input id="objectScale" type="number" min="15" max="400" step="5"></label><button id="objectSmaller">−</button><button id="objectBigger">+</button><label>Rotazione ° <input id="objectAngle" type="number" min="-360" max="360" step="5"></label><button id="objectRotateLeft">↶ 15°</button><button id="objectRotateRight">↷ 15°</button><button id="objectMirror">Specchio</button><button id="objectDuplicate">Duplica</button><button id="objectDelete">Elimina</button><button id="objectFeet">Riccardo qui</button></div><div id="objectView"><canvas id="objectCanvas"></canvas></div><div id="objectDataPanel" hidden><strong>Disposizione Hongdeon</strong><p>Copia tutto il testo e mandamelo. Il salvataggio su questo dispositivo non modifica GitHub. Puoi anche incollare una disposizione e premere Importa.</p><textarea id="objectData" spellcheck="false" aria-label="Dati disposizione"></textarea><div id="objectDataActions"><button id="objectCopy">Copia</button><button id="objectDownload">Scarica JSON</button><button id="objectImport">Importa</button><button id="objectDataClose">Indietro</button></div></div>`;
-document.body.appendChild(objectPanel);
-const oe={open:false,selected:null,mode:'select',history:[],scale:1,x:0,y:0,drag:null};let terrainEditing=false;
-const oc=$('objectCanvas'),ox=oc.getContext('2d');
-function objectMessage(t){$('objectInfo').textContent=t+(objectStorageFailed?' · Salvataggio pieno: usa Copia tutto.':'');}
-function selectedObject(){return hongObjects.find(o=>o.id===oe.selected);}
-function rememberObjects(){oe.history.push(JSON.stringify({objects:hongObjects,terrain:hongTerrain}));if(oe.history.length>50)oe.history.shift();}
-function updateObjectProps(){const o=selectedObject();$('objectName').textContent=o?objectType(o.type).name:'Nessun oggetto';$('objectScale').value=o?Math.round(o.scale*100):'';$('objectAngle').value=o?o.angle:'';for(const id of ['objectScale','objectAngle','objectSmaller','objectBigger','objectRotateLeft','objectRotateRight','objectMirror','objectDuplicate','objectDelete'])$(id).disabled=!o;$('objectSelect').classList.toggle('active',oe.mode==='select');$('objectPan').classList.toggle('active',oe.mode==='pan');}
-function drawObjectCanvas(c,o){const e=objectImages.get(o.type);if(!e?.ready)return;const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3];c.save();c.translate(o.x,o.y);c.rotate(o.angle*Math.PI/180);c.scale(o.mirror?-1:1,1);c.drawImage(e.image,...d.crop,-w/2,-h,w,h);c.restore();}
-function paintObjects(){if(!oe?.open)return;const c=ox;c.setTransform(1,0,0,1,0,0);c.fillStyle='#091920';c.fillRect(0,0,oc.width,oc.height);c.translate(oe.x,oe.y);c.scale(oe.scale,oe.scale);c.imageSmoothingEnabled=true;if(hongBaseImage)c.drawImage(hongBaseImage,0,0,2048,3072);
- const layers=hongObjects.map(o=>({y:o.y,o}));layers.push({y:player.y,player:true});layers.sort((a,b)=>a.y-b.y||(a.player?1:-1));
- for(const layer of layers){if(layer.o)drawObjectCanvas(c,layer.o);else{c.save();const asset=player.actor.active;if(asset){const b=asset.b,scale=player.actor.height/(asset.fixed?asset.body:b.h),origin=asset.fixed?asset.image.naturalWidth/2:b.x+b.w/2;c.imageSmoothingEnabled=false;c.drawImage(asset.image,player.x-origin*scale,player.y-asset.foot*scale,asset.image.naturalWidth*scale,asset.image.naturalHeight*scale);}c.fillStyle='#f8df75';c.strokeStyle='#111';c.lineWidth=2/oe.scale;c.beginPath();c.arc(player.x,player.y,7/oe.scale,0,Math.PI*2);c.fill();c.stroke();c.font='bold '+12/oe.scale+'px Arial';c.fillText('Riccardo',player.x+10/oe.scale,player.y);c.restore();}}
- for(const p of hongTerrain.collisions){polygonPath(c,p);c.strokeStyle='#f07578aa';c.lineWidth=1/oe.scale;c.stroke();}
- for(const o of hongObjects){const selected=o.id===oe.selected;polygonPath(c,objectFoot(o));c.fillStyle=selected?'#ff5f5f66':'#ff5f5f22';c.fill();c.lineWidth=(selected?2:1)/oe.scale;c.strokeStyle=selected?'#ff8f8f':'#ff8f8f66';c.stroke();if(selected){polygonPath(c,objectOutline(o));c.strokeStyle='#ffdf69';c.lineWidth=2/oe.scale;c.stroke();c.beginPath();c.moveTo(o.x-35,o.y);c.lineTo(o.x+35,o.y);c.strokeStyle='#44e6ff';c.stroke();c.beginPath();c.arc(o.x,o.y,5/oe.scale,0,Math.PI*2);c.fillStyle='#44e6ff';c.fill();}}
-}
-function fitObjects(){oe.scale=Math.min(oc.width/2048,oc.height/3072)*.97;oe.x=(oc.width-2048*oe.scale)/2;oe.y=(oc.height-3072*oe.scale)/2;paintObjects();}
-function resizeObjects(fit=false){if(!oe.open)return;oc.width=Math.max(1,$('objectView').clientWidth);oc.height=Math.max(1,$('objectView').clientHeight);if(fit)fitObjects();else paintObjects();}
-new ResizeObserver(()=>resizeObjects()).observe($('objectView'));
-function zoomObjects(factor,cx=oc.width/2,cy=oc.height/2){const wx=(cx-oe.x)/oe.scale,wy=(cy-oe.y)/oe.scale;oe.scale=clamp(oe.scale*factor,.06,4);oe.x=cx-wx*oe.scale;oe.y=cy-wy*oe.scale;paintObjects();}
-function openObjectEditor(fit=true){resetInput();editor.open=true;oe.open=true;oe.drag=null;oe.mode='select';objectPanel.hidden=false;game.inert=true;updateObjectProps();requestAnimationFrame(()=>resizeObjects(fit));objectMessage('Tocca un oggetto per aggiungerlo. Trascinalo; sullo sfondo sposti la mappa. Rosso: collisione. Azzurro: base profondità.');for(const t of new Set(hongObjects.map(o=>o.type)))getObjectImage(t);}
-function objectChanged(fn){const o=selectedObject();if(!o)return;rememberObjects();fn(o);commitObjects();updateObjectProps();objectMessage(objectType(o.type).name+' · x '+Math.round(o.x)+' · y '+Math.round(o.y));}
-for(const d of OBJECT_TYPES){const b=document.createElement('button'),im=document.createElement('img');im.src=d.path;im.alt='';im.loading='lazy';b.append(im,document.createTextNode(d.name));b.onclick=()=>{rememberObjects();const id='obj-'+Date.now().toString(36)+'-'+(++objectSerial),o={id,type:d.id,x:clamp((oc.width/2-oe.x)/oe.scale,0,2048),y:clamp((oc.height*.7-oe.y)/oe.scale,0,3072),scale:1,angle:0,mirror:false};hongObjects.push(o);oe.selected=id;oe.mode='select';getObjectImage(d.id).promise.then(()=>renderObjects()).catch(e=>objectMessage(e.message));commitObjects();updateObjectProps();objectMessage(d.name+' aggiunto. Trascinalo nel punto desiderato.');};$('objectCatalog').appendChild(b);}
-$('objectSelect').onclick=()=>{oe.mode='select';updateObjectProps();};$('objectPan').onclick=()=>{oe.mode='pan';updateObjectProps();};
-$('objectPlus').onclick=()=>zoomObjects(1.3);$('objectMinus').onclick=()=>zoomObjects(1/1.3);$('objectFit').onclick=fitObjects;
-$('objectScale').onchange=e=>{const v=Number(e.target.value);if(!Number.isFinite(v)){updateObjectProps();return;}objectChanged(o=>o.scale=clamp(v/100,.15,4));};
-$('objectAngle').onchange=e=>{const v=Number(e.target.value);if(!Number.isFinite(v)){updateObjectProps();return;}objectChanged(o=>o.angle=clamp(v,-360,360));};
-$('objectSmaller').onclick=()=>objectChanged(o=>o.scale=clamp(o.scale/1.1,.15,4));$('objectBigger').onclick=()=>objectChanged(o=>o.scale=clamp(o.scale*1.1,.15,4));
-$('objectRotateLeft').onclick=()=>objectChanged(o=>o.angle=(o.angle-15+360)%360);$('objectRotateRight').onclick=()=>objectChanged(o=>o.angle=(o.angle+15+360)%360);$('objectMirror').onclick=()=>objectChanged(o=>o.mirror=!o.mirror);
-$('objectDuplicate').onclick=()=>{const o=selectedObject();if(!o)return;rememberObjects();const n={...o,id:'obj-'+Date.now().toString(36)+'-'+(++objectSerial),x:clamp(o.x+35,0,2048),y:clamp(o.y+25,0,3072)};hongObjects.push(n);oe.selected=n.id;commitObjects();updateObjectProps();};
-$('objectDelete').onclick=()=>{if(!selectedObject())return;rememberObjects();hongObjects=hongObjects.filter(o=>o.id!==oe.selected);oe.selected=null;commitObjects();updateObjectProps();};
-$('objectUndo').onclick=()=>{if(!oe.history.length)return;const a=JSON.parse(oe.history.pop());hongObjects=a.objects;hongTerrain=a.terrain;oe.selected=null;commitObjects();updateObjectProps();};
-$('objectFeet').onclick=()=>{const p={x:clamp((oc.width/2-oe.x)/oe.scale,10,2038),y:clamp((oc.height/2-oe.y)/oe.scale,10,3062)};Object.assign(player,p);if(!nearestFree(player))objectMessage('Qui non c’è un passaggio libero: sposta qualche oggetto.');paintObjects();};
-function objectScreen(e){const r=oc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
-function objectWorldPoint(p){return{x:(p.x-oe.x)/oe.scale,y:(p.y-oe.y)/oe.scale};}
-oc.onpointerdown=e=>{if(e.button&&e.pointerType==='mouse')return;if(oe.drag)return;e.preventDefault();const p=objectScreen(e),q=objectWorldPoint(p);oc.setPointerCapture(e.pointerId);let o=null;if(oe.mode==='select')o=[...hongObjects].sort((a,b)=>b.y-a.y).find(o=>{const [u,v]=objectLocal(o,q.x,q.y);return u>=0&&u<=1&&v>=0&&v<=1;});
- if(o){oe.selected=o.id;oe.drag={id:e.pointerId,kind:'object',point:q,original:{...o},before:JSON.stringify({objects:hongObjects,terrain:hongTerrain})};objectMessage(objectType(o.type).name+' selezionato.');}else oe.drag={id:e.pointerId,kind:'pan',point:p,x:oe.x,y:oe.y};updateObjectProps();paintObjects();};
-oc.onpointermove=e=>{const d=oe.drag;if(!d||d.id!==e.pointerId)return;e.preventDefault();const p=objectScreen(e);if(d.kind==='pan'){oe.x=d.x+p.x-d.point.x;oe.y=d.y+p.y-d.point.y;}else{const o=selectedObject(),q=objectWorldPoint(p);o.x=clamp(d.original.x+q.x-d.point.x,0,2048);o.y=clamp(d.original.y+q.y-d.point.y,0,3072);}paintObjects();};
-function endObjectDrag(e){const d=oe.drag;if(!d||d.id!==e.pointerId)return;if(d.kind==='object'){if(e.type==='pointercancel'){const a=JSON.parse(d.before);hongObjects=a.objects;hongTerrain=a.terrain;}else if(d.before!==JSON.stringify({objects:hongObjects,terrain:hongTerrain})){oe.history.push(d.before);if(oe.history.length>50)oe.history.shift();}commitObjects();}oe.drag=null;}
-oc.onpointerup=endObjectDrag;oc.onpointercancel=endObjectDrag;oc.addEventListener('wheel',e=>{e.preventDefault();const p=objectScreen(e);zoomObjects(Math.exp(-e.deltaY*.001),p.x,p.y);},{passive:false});
-$('objectPlay').onclick=()=>{combineObjectWorld();if(!nearestFree(player)){objectMessage('Riccardo è bloccato. Usa Riccardo qui su una strada libera.');return;}saveObjects();renderObjects();oe.open=false;editor.open=false;objectPanel.hidden=true;game.inert=false;resetInput();lastTime=0;drawPlayer();rebuildDepth();updateCamera();};
-function exportObjectLayout(){return{version:OBJECT_VERSION,map:HONGDEON.map,width:2048,height:3072,objects:cloneLayout(),catalog:OBJECT_TYPES.map(d=>({...d})),terrain:copy(hongTerrain),collisions:hongWorld.collisions,depth:hongObjects.map(o=>({id:o.id,name:objectType(o.type).name,baseY:o.y,polygon:objectOutline(o)}))};}
-$('objectExport').onclick=()=>{saveObjects();$('objectData').value=JSON.stringify(exportObjectLayout(),null,2);$('objectDataPanel').hidden=false;$('objectCopy').textContent='Copia';};
-$('objectDataClose').onclick=()=>{$('objectDataPanel').hidden=true;};
-$('objectCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('objectData').value);$('objectCopy').textContent='Copiato!';}catch(_){$('objectData').focus();$('objectData').select();$('objectCopy').textContent='Tieni premuto e copia';}};
-$('objectDownload').onclick=()=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([$('objectData').value],{type:'application/json'}));a.href=url;a.download='hongdeon-oggetti.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-$('objectImport').onclick=()=>{try{const a=JSON.parse($('objectData').value);if(a.version!==OBJECT_VERSION||!Array.isArray(a.objects)||a.objects.length>500||!a.objects.every(validObject)||new Set(a.objects.map(o=>o.id)).size!==a.objects.length||!validWorld(a.terrain))throw Error('Dati non validi o riferiti a un’altra versione.');rememberObjects();hongObjects=a.objects.map(o=>({...o,mirror:!!o.mirror}));hongTerrain=a.terrain;oe.selected=null;commitObjects();updateObjectProps();$('objectDataPanel').hidden=true;for(const t of new Set(hongObjects.map(o=>o.type)))getObjectImage(t).promise.catch(e=>objectMessage(e.message));objectMessage('Disposizione importata e salvata.');}catch(e){$('objectCopy').textContent=e.message;}};
-const openTerrainEditor=$('editorOpen').onclick;
-$('editorOpen').onclick=()=>{if(locationId==='hongdeon'){if(!ready||intro||dialogue||locked())return;openObjectEditor();}else openTerrainEditor();};
-$('objectTerrain').onclick=()=>{oe.open=false;objectPanel.hidden=true;terrainEditing=true;world=copy(hongTerrain);editor.history=[];editor.draft=[];editor.selected=-1;editor.layer='collision';editor.tool='pan';$('editor').hidden=false;requestAnimationFrame(()=>resizeEditor(true));};
-const closeTerrainEditor=$('editorClose').onclick;
-$('editorClose').onclick=()=>{if(!terrainEditing){closeTerrainEditor();return;}if(editor.draft.length){notice('Termina prima la forma.');return;}hongTerrain=copy(world);terrainEditing=false;combineObjectWorld();saveObjects();rebuildDepth();$('editor').hidden=true;openObjectEditor(false);};
-window.HongdeonObjects={types:OBJECT_TYPES,export:exportObjectLayout,open:()=>{if(locationId==='hongdeon'&&!locked()&&!dialogue)openObjectEditor();}};
+const openPolygonEditor=$('editorOpen').onclick;
+$('editorOpen').onclick=()=>{editor.selected=-1;editor.history=[];editor.draft=[];editor.base=false;editor.tool='pan';openPolygonEditor();};
+// Ogni export riporta coordinate e versione della mappa effettivamente modificata.
+$('editorExport').onclick=()=>{if(editor.draft.length){notice('Termina prima la forma.');return;}saveWorld();$('exportData').value=JSON.stringify({map:locationId==='hongdeon'?HONGDEON.map:locationId==='office'?OFFICE.map:CONFIG.map,version:locationId==='hongdeon'?HONG_WORLD_VERSION:WORLD_VERSION,width:CONFIG.width,height:CONFIG.height,collisions:world.collisions,depth:world.depth},null,2);$('exportPanel').hidden=false;$('exportCopy').textContent='Copia';};
+window.HongdeonMap={stats:()=>({collisions:hongWorld.collisions.length,depth:hongWorld.depth.length,visibleDepth:hongDepthRecords.filter(d=>d.canvas).length}),version:HONG_WORLD_VERSION};
 
 /* 32 · ACCESSO TEMPORANEO PER COLLAUDO */
 const testHongButton=document.createElement('button');
@@ -1041,6 +1001,7 @@ $("retryLoad").onclick=()=>startGame(true);resize();startGame();requestAnimation
 </script>
 </body>
 </html>
+
 
 
 
