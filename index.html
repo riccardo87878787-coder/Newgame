@@ -878,8 +878,8 @@ $('menuOpen').onclick=()=>openMenu();$('menuClose').onclick=()=>closeMenu();
 // La grafica 6400 × 9600 viene mostrata in un mondo 2048 × 3072.
 // Riccardo conserva altezza, velocità e zoom di Seoul Station.
 const HONGDEON={map:'Map/hongdeon_hd.jpg',width:2048,height:3072,
- playerHeight:CONFIG.spriteHeight,zoom:CONFIG.zoom,start:{x:900,y:2800}};
-const HONG_WORLD_VERSION='hongdeon-continuous-hd-1';
+ playerHeight:CONFIG.spriteHeight*1.25,zoom:CONFIG.zoom,start:{x:900,y:2800}};
+const HONG_WORLD_VERSION='hongdeon-continuous-depth-2';
 const hongPoly=p=>p.map(([x,y])=>[x*2,y*2]);
 const hongRect=(x,y,w,h)=>hongPoly(rect(x,y,w,h));
 // Sagome riferite alla composizione originale 1024 × 1536, poi scalate ×2.
@@ -914,6 +914,84 @@ let hongWorld={collisions:[
  {name:'Pensilina Hongdeon',baseY:2820,polygon:hongRect(465,1332,119,82)},
  {name:'Tabellone fermata',baseY:2820,polygon:hongRect(589,1345,35,66)}
 ]};
+// Ogni sagoma conserva la base a terra, indipendente dalla cima dell'oggetto.
+const HONG_PROPS=[];
+function hongProp(name,baseY,polygon,collision){
+ HONG_PROPS.push({name,baseY:baseY*2,polygon:hongPoly(polygon)});
+ if(collision)hongWorld.collisions.push(hongPoly(collision));
+}
+function hongLamp(name,x,top,base,arm){
+ // Il contorno segue palo, braccio e lampada, senza ritagliare un rettangolo di strada.
+ const end=x+arm,lo=Math.min(end-11,end+11),hi=Math.max(end-11,end+11);
+ const p=[[x-5,base],[x-5,top+8],[x-3,top+2],[Math.min(x,end)-3,top-3],
+ [lo,top-4],[hi,top-4],[hi+2,top+1],[hi-1,top+6],[lo,top+7],
+ [x+3,top+6],[x+3,base-7],[x+6,base-3],[x+6,base]];
+ // L'ordine del bordo dipende dal verso del braccio: due sagome semplici sovrapposte.
+ const pole=[[x-5,base],[x-4,top+6],[x-2,top],[x+2,top],[x+4,top+6],[x+4,base-5],[x+6,base],[x-5,base]];
+ const head=[[Math.min(x,end)-4,top-4],[Math.max(x,end)+12,top-4],
+ [Math.max(x,end)+13,top+3],[Math.max(x,end)+8,top+8],[Math.min(x,end)-4,top+8]];
+ hongProp(name+' · palo',base,pole,rect(x-5,base-7,10,7));
+ hongProp(name+' · lampada',base,head);
+}
+hongLamp('Lampione parco',50,506,615,9);
+hongLamp('Lampione curva nord sinistro',490,318,432,10);
+hongLamp('Lampione curva nord destro',568,380,461,-9);
+hongLamp('Lampione Bakery',300,581,671,-9);
+hongLamp('Lampione Laundry',550,542,656,-12);
+hongLamp('Lampione residenze',461,749,843,12);
+hongLamp('Lampione ristorante coreano',540,845,960,-11);
+hongLamp('Lampione curva Cucchiaio',427,975,1085,12);
+hongLamp('Lampione ingresso Cucchiaio',437,1174,1305,18);
+
+function hongTree(name,x,base,w,h){
+ const top=base-h,cy=top+h*.34,rx=w/2;
+ // Chioma irregolare e tronco stretto; nessun blocco su tutta la chioma.
+ const p=[[x-5,base],[x-6,cy+h*.28],[x-rx*.72,cy+h*.20],
+ [x-rx*.94,cy+h*.09],[x-rx,cy-h*.05],[x-rx*.82,cy-h*.18],
+ [x-rx*.46,cy-h*.25],[x-rx*.16,top],[x+rx*.22,top+3],
+ [x+rx*.48,cy-h*.25],[x+rx*.85,cy-h*.18],[x+rx,cy-h*.02],
+ [x+rx*.88,cy+h*.12],[x+rx*.57,cy+h*.22],[x+7,cy+h*.28],
+ [x+6,base],[x-5,base]];
+ hongProp(name,base,p,rect(x-6,base-8,12,9));
+}
+hongTree('Albero fermata sinistra',15,1412,91,118);
+hongTree('Albero fermata centrale sinistra',174,1427,89,110);
+hongTree('Albero fermata alto sinistra',281,1385,95,112);
+hongTree('Albero fermata destra',674,1417,88,118);
+hongTree('Albero fermata aiuola',799,1421,92,109);
+hongTree('Albero fermata bordo destro',941,1425,95,117);
+hongTree('Albero parco ingresso',204,646,62,104);
+hongTree('Albero parco gazebo destro',225,531,69,119);
+hongTree('Albero parco gazebo sinistro',37,492,75,126);
+hongTree('Albero piazzetta nord',312,417,67,103);
+hongTree('Albero Laundry nord',581,475,61,113);
+hongTree('Albero villa nord',662,287,63,109);
+hongTree('Albero cortile nord est',782,243,76,103);
+hongTree('Albero residenze sinistre',154,850,68,153);
+hongTree('Albero cortile sinistro',395,1007,71,149);
+hongTree('Albero ristorante coreano',545,1007,62,106);
+hongTree('Albero strada orientale',889,831,65,116);
+hongTree('Albero ingresso orientale',1005,950,70,143);
+
+hongProp('Panchina parco sinistra',567,[[82,537],[120,529],[128,535],[130,553],[124,557],[123,566],[118,567],[116,559],[91,566],[88,569],[85,562]],rect(86,550,39,15));
+hongProp('Panchina parco destra',552,[[179,517],[214,520],[220,527],[216,545],[212,550],[208,550],[208,543],[182,539],[179,545],[175,543]],rect(178,532,38,16));
+hongProp('Gazebo parco',516,[[78,450],[114,432],[151,426],[192,446],[188,459],[183,457],[182,502],[168,511],[165,510],[165,460],[100,470],[100,514],[91,516],[91,468],[80,471]],rect(91,500,91,14));
+hongProp('Pensilina fermata',1412,[[466,1336],[478,1330],[567,1330],[578,1337],[581,1360],[577,1363],[577,1412],[570,1412],[570,1361],[476,1361],[476,1412],[469,1412],[469,1362],[465,1360]],rect(471,1404,106,8));
+hongProp('Panchina fermata',1410,[[479,1388],[553,1388],[555,1397],[552,1402],[550,1410],[546,1410],[546,1402],[487,1402],[487,1410],[482,1410],[482,1402],[479,1400]],rect(480,1396,74,12));
+hongProp('Tabellone fermata',1411,[[590,1350],[622,1350],[622,1411],[616,1411],[616,1403],[596,1403],[596,1411],[590,1411]],rect(590,1404,32,8));
+hongProp('Palo elettrico MART',1305,[[544,1055],[554,1055],[554,1079],[562,1080],[562,1090],[554,1090],[557,1302],[551,1307],[543,1304],[544,1090],[526,1090],[526,1084],[544,1080]],rect(542,1295,17,12));
+hongProp('Palo elettrico Laundry',657,[[551,431],[560,431],[560,458],[573,459],[573,467],[560,467],[561,655],[551,657],[551,469],[541,468],[541,460],[551,460]],rect(550,649,12,9));
+// Sostituisce le sagome rettangolari della fermata con i contorni degli oggetti.
+hongWorld.depth=HONG_PROPS;
+// Basi corrette di pensilina e tabellone: si può passare dietro la copertura.
+const oldShelter=JSON.stringify(hongRect(473,1360,100,49));
+const oldBoard=JSON.stringify(hongRect(592,1355,27,54));
+hongWorld.collisions=hongWorld.collisions.filter(p=>JSON.stringify(p)!==oldShelter&&JSON.stringify(p)!==oldBoard);
+// Impronte degli edifici raccordate ai marciapiedi senza chiudere le vie laterali.
+const oldRestaurant=JSON.stringify(hongPoly([[588,713],[790,713],[790,838],[831,866],[831,1016],[558,1016],[558,840],[588,840]]));
+hongWorld.collisions=hongWorld.collisions.filter(p=>JSON.stringify(p)!==oldRestaurant);
+hongWorld.collisions.push(hongPoly([[588,714],[791,714],[791,837],[831,867],[831,1009],[560,1009],[560,842],[588,842]]));
+
 try{const saved=JSON.parse(localStorage.getItem('hongdeon-continuous-world'));if(saved?.version===HONG_WORLD_VERSION&&validWorld(saved.world))hongWorld=saved.world;}catch(_){}
 let hongMapPromise=null,hongTravelError='';
 function loadHongdeonMap(){
@@ -956,7 +1034,7 @@ rebuildDepth=function(){
   const w=Math.ceil(Math.max(...p.map(v=>v[0])))-x,h=Math.ceil(Math.max(...p.map(v=>v[1])))-y;
   if(w<1||h<1)continue;
   const c=document.createElement('canvas'),density=2;c.className='depth-piece';c.width=w*density;c.height=h*density;
-  Object.assign(c.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px',imageRendering:'auto',zIndex:Math.round(z.baseY*100+30)});
+  Object.assign(c.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px',imageRendering:'auto',zIndex:Math.round(z.baseY*100+10)});
   const ctx=c.getContext('2d');ctx.scale(density,density);ctx.translate(-x,-y);polygonPath(ctx,p);ctx.clip();ctx.imageSmoothingEnabled=true;ctx.drawImage(mapImage,0,0,CONFIG.width,CONFIG.height);scene.appendChild(c);depthNodes.push(c);
  }
 };
@@ -972,7 +1050,7 @@ const testHongButton=document.createElement('button');
 testHongButton.id='testHongdeonButton';testHongButton.textContent='TEST HONGDEON';
 testHongButton.disabled=true;testHongButton.hidden=!ENABLE_HONGDEON_TEST;
 testHongButton.setAttribute('aria-label','Salta subito a Hongdeon per il test');
-Object.assign(testHongButton.style,{position:'absolute',right:'12px',top:'125px',zIndex:'21',fontSize:'11px',fontWeight:'900',borderColor:'#f7d580',color:'#f7d580'});
+Object.assign(testHongButton.style,{position:'absolute',left:'12px',bottom:'max(12px, env(safe-area-inset-bottom))',zIndex:'21',fontSize:'10px',fontWeight:'700',padding:'8px 10px',minHeight:'36px',background:'rgba(18,39,49,.22)',borderColor:'rgba(247,213,128,.35)',color:'rgba(255,244,210,.7)',boxShadow:'none'});
 game.appendChild(testHongButton);
 async function jumpToHongdeonTest(){
  if(!ENABLE_HONGDEON_TEST||!ready||transitioning||editor.open||locationId==='hongdeon')return;
@@ -1005,6 +1083,7 @@ $("retryLoad").onclick=()=>startGame(true);resize();startGame();requestAnimation
 </script>
 </body>
 </html>
+
 
 
 
