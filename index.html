@@ -873,254 +873,135 @@ const openBeforeInventory=openMenu;openMenu=function(scripted=false){openBeforeI
 $('menuOpen').onclick=()=>openMenu();$('menuClose').onclick=()=>closeMenu();
 
 
-/* 31 · HONGDEON: MAPPA UNICA CONTINUA IN ALTA RISOLUZIONE */
-// Le coordinate di gioco sono indipendenti dai pixel della fotografia.
-// La grafica 6400 × 9600 viene mostrata in un mondo 2048 × 3072.
-// Riccardo conserva altezza, velocità e zoom di Seoul Station.
-const HONGDEON={map:'Map/hongdeon_hd.jpg',width:2048,height:3072,
- playerHeight:CONFIG.spriteHeight*1.25,zoom:CONFIG.zoom,start:{x:900,y:2800}};
-const HONG_WORLD_VERSION='hongdeon-continuous-depth-2';
-const hongPoly=p=>p.map(([x,y])=>[x*2,y*2]);
-const hongRect=(x,y,w,h)=>hongPoly(rect(x,y,w,h));
-// Sagome riferite alla composizione originale 1024 × 1536, poi scalate ×2.
-let hongWorld={collisions:[
- hongRect(0,0,1024,20),hongRect(0,0,8,1536),hongRect(1016,0,8,1536),
- hongRect(0,1528,1024,8),
- hongPoly([[65,25],[285,25],[285,145],[252,175],[120,175],[120,110],[65,110]]),
- hongRect(0,175,116,165),hongRect(125,140,127,207),
- hongRect(275,110,168,157),hongRect(465,35,229,252),
- hongPoly([[720,58],[895,58],[895,128],[1016,128],[1016,246],[740,246]]),
- hongRect(289,293,154,146),hongRect(321,465,155,189),
- hongRect(620,326,109,143),hongRect(576,485,148,170),
- hongRect(887,456,129,186),hongRect(936,652,80,230),
- hongRect(854,633,36,62),
- hongRect(0,670,192,181),hongRect(203,739,182,169),
- hongRect(0,916,198,123),hongRect(204,1017,213,275),
- hongRect(0,1062,182,231),hongRect(0,841,59,75),
- hongPoly([[588,713],[790,713],[790,838],[831,866],[831,1016],[558,1016],[558,840],[588,840]]),
- hongPoly([[571,1047],[753,1047],[753,1124],[807,1124],[807,1162],[837,1162],[837,1294],[560,1294],[560,1148],[571,1148]]),
- hongRect(896,1003,120,298),
- // Barriere dei due parchi: ingressi aperti verso strada e marciapiede.
- hongRect(13,400,10,219),hongRect(20,629,123,12),hongRect(195,629,63,12),
- hongRect(250,452,10,174),hongRect(748,260,10,140),
- hongRect(757,405,155,12),hongRect(952,405,64,12),
- hongRect(1002,258,14,145),
- // Arredi dei parchi, fioriere e pensilina; i vialetti restano percorribili.
- hongRect(81,448,100,62),hongRect(88,540,47,17),hongRect(177,524,41,14),
- hongRect(799,282,78,62),hongRect(900,282,72,54),hongRect(901,349,79,40),
- hongRect(473,1360,100,49),hongRect(592,1355,27,54),
- hongRect(0,1430,390,17),hongRect(454,1430,562,17)
-],depth:[
- {name:'Pensilina Hongdeon',baseY:2820,polygon:hongRect(465,1332,119,82)},
- {name:'Tabellone fermata',baseY:2820,polygon:hongRect(589,1345,35,66)}
-]};
-// Ogni sagoma conserva la base a terra, indipendente dalla cima dell'oggetto.
-const HONG_PROPS=[];
-function hongProp(name,baseY,polygon,collision){
- HONG_PROPS.push({name,baseY:baseY*2,polygon:hongPoly(polygon)});
- if(collision)hongWorld.collisions.push(hongPoly(collision));
+/* HONGDEON · BASE E OGGETTI INDIPENDENTI */
+const HONGDEON={map:'Map/hongdeon_base.jpg',width:2048,height:3072,playerHeight:CONFIG.spriteHeight*1.25,zoom:CONFIG.zoom,start:{x:900,y:2800}};
+const OBJECT_VERSION='hongdeon-objects-1',OBJECT_KEY='hongdeon-object-layout-v1';
+const OBJECT_TYPES=[
+ {id:'cucchiaio',name:'Cucchiaio',file:'file_00000000d1f882098280f0012574f8c8.png',crop:[89,29,1022,1255],height:420,foot:[[.06,.63],[.94,.63],[.94,.98],[.06,.98]]},
+ {id:'mart',name:'MART',file:'file_00000000c11482099490fa2f6e027e56.png',crop:[6,8,1300,1188],height:330,foot:[[.04,.55],[.96,.55],[.96,.99],[.04,.99]]},
+ {id:'casa',name:'Casa',file:'file_00000000da6482098f8812e6a16b63e4.png',crop:[43,57,1228,1112],height:330,foot:[[.04,.53],[.96,.53],[.96,.99],[.04,.99]]},
+ {id:'albero',name:'Albero',file:'file_00000000456481faa60274539c504f23.png',crop:[8,7,1215,1262],height:245,foot:[[.44,.83],[.57,.83],[.59,.98],[.41,.98]]},
+ {id:'cespuglio',name:'Cespuglio',file:'file_0000000064288209862e290c189f75b2.png',crop:[27,78,1478,885],height:65,foot:[[.12,.55],[.88,.55],[.94,.92],[.06,.92]]},
+ {id:'panchina',name:'Panchina',file:'file_00000000f7a082098377e586da278389.png',crop:[31,37,1712,826],height:64,foot:[[.04,.67],[.96,.67],[.96,.98],[.04,.98]]},
+ {id:'lampione',name:'Lampione',file:'file_0000000021f481f8a97acf72c083f86d.png',crop:[394,13,429,1509],height:175,foot:[[.035,.93],[.17,.93],[.19,1],[.015,1]]}
+].map(d=>({...d,path:'Map/Oggetti/'+d.file}));
+const objectType=id=>OBJECT_TYPES.find(d=>d.id===id);
+let hongTerrain={collisions:[],depth:[]},hongObjects=[],hongWorld={collisions:[],depth:[]};
+let hongMapPromise=null,hongBaseImage=null,hongTravelError='',objectSerial=0,objectStorageFailed=false;
+const objectImages=new Map(),objectNodes=new Map();
+const cloneLayout=()=>JSON.parse(JSON.stringify(hongObjects));
+function objectPoint(o,u,v){const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3],a=o.angle*Math.PI/180;
+ const x=(u-.5)*w*(o.mirror?-1:1),y=(v-1)*h;
+ return[o.x+x*Math.cos(a)-y*Math.sin(a),o.y+x*Math.sin(a)+y*Math.cos(a)];}
+function objectFoot(o){return objectType(o.type).foot.map(([u,v])=>objectPoint(o,u,v));}
+function objectOutline(o){return[[0,0],[1,0],[1,1],[0,1]].map(([u,v])=>objectPoint(o,u,v));}
+function objectLocal(o,x,y){const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3],a=-o.angle*Math.PI/180,dx=x-o.x,dy=y-o.y;
+ return[(dx*Math.cos(a)-dy*Math.sin(a))*(o.mirror?-1:1)/w+.5,(dx*Math.sin(a)+dy*Math.cos(a))/h+1];}
+function validObject(o){return !!o&&!!objectType(o.type)&&typeof o.id==='string'&&o.id.length<100&&['x','y','scale','angle'].every(k=>Number.isFinite(o[k]))&&o.x>=0&&o.x<=2048&&o.y>=0&&o.y<=3072&&o.scale>=.15&&o.scale<=4&&Math.abs(o.angle)<=360;}
+try{const a=JSON.parse(localStorage.getItem(OBJECT_KEY));if(a?.version===OBJECT_VERSION&&Array.isArray(a.objects)&&a.objects.length<=500&&a.objects.every(validObject)){hongObjects=a.objects.map(o=>({...o,mirror:!!o.mirror}));if(validWorld(a.terrain))hongTerrain=a.terrain;}}catch(_){}
+function saveObjects(){try{localStorage.setItem(OBJECT_KEY,JSON.stringify({version:OBJECT_VERSION,objects:hongObjects,terrain:hongTerrain}));objectStorageFailed=false;}catch(_){objectStorageFailed=true;}}
+function combineObjectWorld(){hongWorld={collisions:[...hongTerrain.collisions,...hongObjects.map(objectFoot)],depth:hongTerrain.depth};if(locationId==='hongdeon')world=hongWorld;}
+combineObjectWorld();
+function getObjectImage(type){if(objectImages.has(type))return objectImages.get(type);const d=objectType(type),im=new Image();im.decoding='async';
+ const entry={image:im,ready:false,error:false,promise:null};entry.promise=new Promise((resolve,reject)=>{im.onload=()=>{entry.ready=true;entry.error=false;resolve(im);paintObjects();};im.onerror=()=>{entry.error=true;objectImages.delete(type);reject(Error('Immagine non caricata: '+d.path));paintObjects();};im.src=d.path;});entry.promise.catch(()=>{});objectImages.set(type,entry);return entry;}
+function renderObjects(){
+ const wanted=new Set(hongObjects.map(o=>o.id));for(const [id,node]of objectNodes)if(!wanted.has(id)){node.remove();objectNodes.delete(id);}
+ for(const o of hongObjects){const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3];let n=objectNodes.get(o.id);
+  if(!n){n=document.createElement('div');n.className='map-object';const clip=document.createElement('div'),im=document.createElement('img');im.src=d.path;im.alt='';im.draggable=false;clip.appendChild(im);n.appendChild(clip);scene.appendChild(n);objectNodes.set(o.id,n);}
+  n.hidden=locationId!=='hongdeon';Object.assign(n.style,{left:o.x+'px',top:o.y+'px',transform:'rotate('+o.angle+'deg) scaleX('+(o.mirror?-1:1)+')',zIndex:String(Math.round(o.y*100+10))});
+  const clip=n.firstChild,im=clip.firstChild,s=h/d.crop[3];Object.assign(clip.style,{left:-w/2+'px',top:-h+'px',width:w+'px',height:h+'px'});
+  Object.assign(im.style,{left:-d.crop[0]*s+'px',top:-d.crop[1]*s+'px',width:(d.crop[0]+d.crop[2])*s+'px',height:'auto'});
+  // Width uses the complete source image, not the cropped canvas.
+  const entry=objectImages.get(o.type);if(entry?.ready)im.style.width=entry.image.naturalWidth*s+'px';
+  else getObjectImage(o.type).promise.then(source=>{im.style.width=source.naturalWidth*s+'px';}).catch(()=>{});
+ }
 }
-function hongLamp(name,x,top,base,arm){
- // Il contorno segue palo, braccio e lampada, senza ritagliare un rettangolo di strada.
- const end=x+arm,lo=Math.min(end-11,end+11),hi=Math.max(end-11,end+11);
- const p=[[x-5,base],[x-5,top+8],[x-3,top+2],[Math.min(x,end)-3,top-3],
- [lo,top-4],[hi,top-4],[hi+2,top+1],[hi-1,top+6],[lo,top+7],
- [x+3,top+6],[x+3,base-7],[x+6,base-3],[x+6,base]];
- // L'ordine del bordo dipende dal verso del braccio: due sagome semplici sovrapposte.
- const pole=[[x-5,base],[x-4,top+6],[x-2,top],[x+2,top],[x+4,top+6],[x+4,base-5],[x+6,base],[x-5,base]];
- const head=[[Math.min(x,end)-4,top-4],[Math.max(x,end)+12,top-4],
- [Math.max(x,end)+13,top+3],[Math.max(x,end)+8,top+8],[Math.min(x,end)-4,top+8]];
- hongProp(name+' · palo',base,pole,rect(x-5,base-7,10,7));
- hongProp(name+' · lampada',base,head);
-}
-hongLamp('Lampione parco',50,506,615,9);
-hongLamp('Lampione curva nord sinistro',490,318,432,10);
-hongLamp('Lampione curva nord destro',568,380,461,-9);
-hongLamp('Lampione Bakery',300,581,671,-9);
-hongLamp('Lampione Laundry',550,542,656,-12);
-hongLamp('Lampione residenze',461,749,843,12);
-hongLamp('Lampione ristorante coreano',540,845,960,-11);
-hongLamp('Lampione curva Cucchiaio',427,975,1085,12);
-hongLamp('Lampione ingresso Cucchiaio',437,1174,1305,18);
-
-function hongTree(name,x,base,w,h){
- const top=base-h,cy=top+h*.34,rx=w/2;
- // Chioma irregolare e tronco stretto; nessun blocco su tutta la chioma.
- const p=[[x-5,base],[x-6,cy+h*.28],[x-rx*.72,cy+h*.20],
- [x-rx*.94,cy+h*.09],[x-rx,cy-h*.05],[x-rx*.82,cy-h*.18],
- [x-rx*.46,cy-h*.25],[x-rx*.16,top],[x+rx*.22,top+3],
- [x+rx*.48,cy-h*.25],[x+rx*.85,cy-h*.18],[x+rx,cy-h*.02],
- [x+rx*.88,cy+h*.12],[x+rx*.57,cy+h*.22],[x+7,cy+h*.28],
- [x+6,base],[x-5,base]];
- hongProp(name,base,p,rect(x-6,base-8,12,9));
-}
-hongTree('Albero fermata sinistra',15,1412,91,118);
-hongTree('Albero fermata centrale sinistra',174,1427,89,110);
-hongTree('Albero fermata alto sinistra',281,1385,95,112);
-hongTree('Albero fermata destra',674,1417,88,118);
-hongTree('Albero fermata aiuola',799,1421,92,109);
-hongTree('Albero fermata bordo destro',941,1425,95,117);
-hongTree('Albero parco ingresso',204,646,62,104);
-hongTree('Albero parco gazebo destro',225,531,69,119);
-hongTree('Albero parco gazebo sinistro',37,492,75,126);
-hongTree('Albero piazzetta nord',312,417,67,103);
-hongTree('Albero Laundry nord',581,475,61,113);
-hongTree('Albero villa nord',662,287,63,109);
-hongTree('Albero cortile nord est',782,243,76,103);
-hongTree('Albero residenze sinistre',154,850,68,153);
-hongTree('Albero cortile sinistro',395,1007,71,149);
-hongTree('Albero ristorante coreano',545,1007,62,106);
-hongTree('Albero strada orientale',889,831,65,116);
-hongTree('Albero ingresso orientale',1005,950,70,143);
-
-hongProp('Panchina parco sinistra',567,[[82,537],[120,529],[128,535],[130,553],[124,557],[123,566],[118,567],[116,559],[91,566],[88,569],[85,562]],rect(86,550,39,15));
-hongProp('Panchina parco destra',552,[[179,517],[214,520],[220,527],[216,545],[212,550],[208,550],[208,543],[182,539],[179,545],[175,543]],rect(178,532,38,16));
-hongProp('Gazebo parco',516,[[78,450],[114,432],[151,426],[192,446],[188,459],[183,457],[182,502],[168,511],[165,510],[165,460],[100,470],[100,514],[91,516],[91,468],[80,471]],rect(91,500,91,14));
-hongProp('Pensilina fermata',1412,[[466,1336],[478,1330],[567,1330],[578,1337],[581,1360],[577,1363],[577,1412],[570,1412],[570,1361],[476,1361],[476,1412],[469,1412],[469,1362],[465,1360]],rect(471,1404,106,8));
-hongProp('Panchina fermata',1410,[[479,1388],[553,1388],[555,1397],[552,1402],[550,1410],[546,1410],[546,1402],[487,1402],[487,1410],[482,1410],[482,1402],[479,1400]],rect(480,1396,74,12));
-hongProp('Tabellone fermata',1411,[[590,1350],[622,1350],[622,1411],[616,1411],[616,1403],[596,1403],[596,1411],[590,1411]],rect(590,1404,32,8));
-hongProp('Palo elettrico MART',1305,[[544,1055],[554,1055],[554,1079],[562,1080],[562,1090],[554,1090],[557,1302],[551,1307],[543,1304],[544,1090],[526,1090],[526,1084],[544,1080]],rect(542,1295,17,12));
-hongProp('Palo elettrico Laundry',657,[[551,431],[560,431],[560,458],[573,459],[573,467],[560,467],[561,655],[551,657],[551,469],[541,468],[541,460],[551,460]],rect(550,649,12,9));
-// Sostituisce le sagome rettangolari della fermata con i contorni degli oggetti.
-hongWorld.depth=HONG_PROPS;
-// Basi corrette di pensilina e tabellone: si può passare dietro la copertura.
-const oldShelter=JSON.stringify(hongRect(473,1360,100,49));
-const oldBoard=JSON.stringify(hongRect(592,1355,27,54));
-hongWorld.collisions=hongWorld.collisions.filter(p=>JSON.stringify(p)!==oldShelter&&JSON.stringify(p)!==oldBoard);
-// Impronte degli edifici raccordate ai marciapiedi senza chiudere le vie laterali.
-const oldRestaurant=JSON.stringify(hongPoly([[588,713],[790,713],[790,838],[831,866],[831,1016],[558,1016],[558,840],[588,840]]));
-hongWorld.collisions=hongWorld.collisions.filter(p=>JSON.stringify(p)!==oldRestaurant);
-hongWorld.collisions.push(hongPoly([[588,714],[791,714],[791,837],[831,867],[831,1009],[560,1009],[560,842],[588,842]]));
-
-try{const saved=JSON.parse(localStorage.getItem('hongdeon-continuous-world'));if(saved?.version===HONG_WORLD_VERSION&&validWorld(saved.world))hongWorld=saved.world;}catch(_){}
-let hongMapPromise=null,hongTravelError='';
+function commitObjects(){combineObjectWorld();saveObjects();renderObjects();paintObjects();}
 function loadHongdeonMap(){
- for(const e of [...hongTileCache.values()])if(e.status==='error')releaseHongTile(e.key);
- if(!hongMapPromise)hongMapPromise=new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>{hongMapPromise=null;reject(Error('Upload Map/HongdeonTiles before using this index.'));};im.src=hongPreview;});
- const w=viewWidth/HONGDEON.zoom,h=viewHeight/HONGDEON.zoom;
- const x=clamp(HONGDEON.start.x-w/2,0,Math.max(0,HONGDEON.width-w)),y=clamp(HONGDEON.start.y-h/2,0,Math.max(0,HONGDEON.height-h));
- hongWanted=new Set(hongTileKeys(x,y,w,h));
- return Promise.all([hongMapPromise,...[...hongWanted].map(requestHongTile)]);
+ if(!hongMapPromise)hongMapPromise=new Promise((resolve,reject)=>{const im=new Image();im.decoding='async';im.onload=()=>{hongBaseImage=im;resolve(im);};im.onerror=()=>{hongMapPromise=null;reject(Error('Manca '+HONGDEON.map));};im.src=HONGDEON.map;});
+ return Promise.all([hongMapPromise,...[...new Set(hongObjects.map(o=>o.type))].map(t=>getObjectImage(t).promise)]);
 }
 const showBeforeHongdeon=showLocation;
 showLocation=function(id){
- if(locationId==='hongdeon')hongWorld=world;
- CONFIG.width=id==='hongdeon'?HONGDEON.width:1024;
- CONFIG.height=id==='hongdeon'?HONGDEON.height:1536;
- scene.style.width=mapImage.style.width=CONFIG.width+'px';
- scene.style.height=mapImage.style.height=CONFIG.height+'px';
- // HD raster uses smooth reduction; sprites keep their existing pixel rendering.
- mapImage.style.imageRendering=id==='hongdeon'?'auto':'';
- if(id!=='hongdeon'){clearHongTextures();showBeforeHongdeon(id);return;}
+ for(const n of objectNodes.values())n.hidden=true;
+ CONFIG.width=id==='hongdeon'?HONGDEON.width:1024;CONFIG.height=id==='hongdeon'?HONGDEON.height:1536;
+ scene.style.width=mapImage.style.width=CONFIG.width+'px';scene.style.height=mapImage.style.height=CONFIG.height+'px';mapImage.style.imageRendering=id==='hongdeon'?'auto':'';
+ if(id!=='hongdeon'){showBeforeHongdeon(id);return;}
  for(const n of npcs)n.actor.node.hidden=true;
  if(locationId==='city')cityWorld=world;else if(locationId==='office')officeWorld=world;
- locationId='hongdeon';world=hongWorld;npcs.splice(0);
- player.actor.height=HONGDEON.playerHeight;player.actor.active=null;
+ locationId='hongdeon';combineObjectWorld();npcs.splice(0);player.actor.height=HONGDEON.playerHeight;player.actor.active=null;
  clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();doorButton.hidden=true;
- for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;
- depthNodes.forEach(n=>n.remove());depthNodes=[];
- mapImage.onload=null;mapImage.src=hongPreview;rebuildDepth();
- $('objective').textContent='Find Cucchiaio';
+ for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;depthNodes.forEach(n=>n.remove());depthNodes=[];
+ mapImage.onload=()=>{if(locationId==='hongdeon')rebuildDepth();};mapImage.src=HONGDEON.map;rebuildDepth();$('objective').textContent='Find Cucchiaio';
 };
 const targetsBeforeHongdeon=allTargets;allTargets=function(){return locationId==='hongdeon'?[]:targetsBeforeHongdeon();};
 const depthBeforeHongdeon=rebuildDepth;
-rebuildDepth=function(){if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}resetHongDepth();};
+rebuildDepth=function(){if(locationId!=='hongdeon'){depthBeforeHongdeon();return;}depthNodes.forEach(n=>n.remove());depthNodes=[];for(const z of hongTerrain.depth)makeDepth(z.polygon,z.baseY);renderObjects();};
 const saveBeforeHongdeon=saveWorld;
-saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}hongWorld=world;hongBoundsCache=new WeakMap();try{localStorage.setItem('hongdeon-continuous-world',JSON.stringify({version:HONG_WORLD_VERSION,world}));storageFailed=false;}catch(_){storageFailed=true;}};
+saveWorld=function(){if(locationId!=='hongdeon'){saveBeforeHongdeon();return;}if(terrainEditing){hongTerrain=copy(world);saveObjects();}else saveObjects();};
 const statusBeforeHongdeon=updateStatus;
 updateStatus=function(){if(locationId==='hongdeon'){$('status').textContent=hongTravelError||'Hongdeon';return;}statusBeforeHongdeon();};
 const beginBeforeHongdeon=beginIntro;beginIntro=function(){beginBeforeHongdeon();hongTravelError='';};
 DESTINATIONS[0].map=HONGDEON.map;
 
-/* Hongdeon: local texture streaming; the world and collision coordinates stay continuous. */
-const HONG_TEXTURE={folder:'Map/HongdeonTiles/',tile:512,cols:4,rows:6,maxCache:16,parallel:3};
-const hongTileLayer=document.createElement('div');hongTileLayer.hidden=true;
-Object.assign(hongTileLayer.style,{position:'absolute',inset:'0',zIndex:'1',pointerEvents:'none'});scene.appendChild(hongTileLayer);
-const hongTileCache=new Map();let hongTileQueue=[],hongTileActive=0,hongTileClock=0,hongWanted=new Set(),hongTileEpoch=0;
-let hongDepthRecords=[],hongDepthRevision=0,hongBoundsCache=new WeakMap();
-const hongPreview=HONG_TEXTURE.folder+'preview.jpg';
-function hongTileKeys(x,y,w,h,margin=64){
- const keys=[];for(let r=Math.max(0,Math.floor((y-margin)/512));r<=Math.min(5,Math.floor((y+h+margin)/512));r++)
- for(let c=Math.max(0,Math.floor((x-margin)/512));c<=Math.min(3,Math.floor((x+w+margin)/512));c++)keys.push(c+','+r);
- return keys;
+/* EDITOR OGGETTI · touch, trasformazioni e esportazione */
+const objectStyle=document.createElement('style');objectStyle.textContent=`
+.map-object{position:absolute;width:0;height:0;transform-origin:0 0;pointer-events:none}.map-object>div{position:absolute;overflow:hidden}.map-object img{position:absolute;max-width:none;max-height:none;image-rendering:auto}
+#objectEditor{position:fixed;inset:0;z-index:110;background:#10232d;display:flex;flex-direction:column;font:12px Arial,sans-serif}#objectTools{display:flex;flex-wrap:wrap;gap:4px;padding:7px;background:#122d38}#objectTools button{font-weight:700;min-height:36px;font-size:12px;padding:6px 9px}#objectCatalog{display:flex;gap:7px;padding:7px;overflow-x:auto;flex:none;touch-action:pan-x;background:#203a46}#objectCatalog button{flex:0 0 77px;padding:4px;font-size:11px;font-weight:700;min-height:74px}#objectCatalog img{width:60px;height:48px;object-fit:contain;display:block;margin:auto;pointer-events:none}#objectInfo{padding:6px 9px;background:#203a46;min-height:29px;color:#f6d78e}#objectView{flex:1;min-height:0;position:relative;overflow:hidden}#objectCanvas{width:100%;height:100%;display:block;touch-action:none}#objectProps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px;background:#122d38}#objectProps input{width:68px;background:#071820;color:white;border:1px solid #839da7;border-radius:5px;font-weight:700;padding:7px;touch-action:manipulation}#objectProps label{display:flex;gap:3px;align-items:center}#objectProps button{font-size:12px;min-height:34px;padding:5px 8px}#objectDataPanel{position:absolute;inset:4%;z-index:5;background:#10232dfc;border:2px solid #f6d78e;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}#objectData{flex:1;min-height:90px;background:#071820;color:white;resize:none;width:100%;font:12px monospace;user-select:text;touch-action:pan-y}#objectDataPanel p{margin:0;line-height:1.4}#objectDataActions{display:flex;flex-wrap:wrap;gap:5px}
+`;document.head.appendChild(objectStyle);
+const objectPanel=document.createElement('section');objectPanel.id='objectEditor';objectPanel.hidden=true;
+objectPanel.innerHTML=`<div id="objectTools"><button id="objectSelect">Seleziona</button><button id="objectPan">Sposta mappa</button><button id="objectUndo">Annulla</button><button id="objectPlus">Zoom +</button><button id="objectMinus">Zoom −</button><button id="objectFit">Mappa intera</button><button id="objectTerrain">Terreno</button><button id="objectExport">Copia tutto</button><button id="objectPlay">Gioca</button></div><div id="objectCatalog"></div><div id="objectInfo" role="status">Scegli un oggetto dal catalogo.</div><div id="objectProps"><strong id="objectName">Nessun oggetto</strong><label>Scala % <input id="objectScale" type="number" min="15" max="400" step="5"></label><button id="objectSmaller">−</button><button id="objectBigger">+</button><label>Rotazione ° <input id="objectAngle" type="number" min="-360" max="360" step="5"></label><button id="objectRotateLeft">↶ 15°</button><button id="objectRotateRight">↷ 15°</button><button id="objectMirror">Specchio</button><button id="objectDuplicate">Duplica</button><button id="objectDelete">Elimina</button><button id="objectFeet">Riccardo qui</button></div><div id="objectView"><canvas id="objectCanvas"></canvas></div><div id="objectDataPanel" hidden><strong>Disposizione Hongdeon</strong><p>Copia tutto il testo e mandamelo. Il salvataggio su questo dispositivo non modifica GitHub. Puoi anche incollare una disposizione e premere Importa.</p><textarea id="objectData" spellcheck="false" aria-label="Dati disposizione"></textarea><div id="objectDataActions"><button id="objectCopy">Copia</button><button id="objectDownload">Scarica JSON</button><button id="objectImport">Importa</button><button id="objectDataClose">Indietro</button></div></div>`;
+document.body.appendChild(objectPanel);
+const oe={open:false,selected:null,mode:'select',history:[],scale:1,x:0,y:0,drag:null};let terrainEditing=false;
+const oc=$('objectCanvas'),ox=oc.getContext('2d');
+function objectMessage(t){$('objectInfo').textContent=t+(objectStorageFailed?' · Salvataggio pieno: usa Copia tutto.':'');}
+function selectedObject(){return hongObjects.find(o=>o.id===oe.selected);}
+function rememberObjects(){oe.history.push(JSON.stringify({objects:hongObjects,terrain:hongTerrain}));if(oe.history.length>50)oe.history.shift();}
+function updateObjectProps(){const o=selectedObject();$('objectName').textContent=o?objectType(o.type).name:'Nessun oggetto';$('objectScale').value=o?Math.round(o.scale*100):'';$('objectAngle').value=o?o.angle:'';for(const id of ['objectScale','objectAngle','objectSmaller','objectBigger','objectRotateLeft','objectRotateRight','objectMirror','objectDuplicate','objectDelete'])$(id).disabled=!o;$('objectSelect').classList.toggle('active',oe.mode==='select');$('objectPan').classList.toggle('active',oe.mode==='pan');}
+function drawObjectCanvas(c,o){const e=objectImages.get(o.type);if(!e?.ready)return;const d=objectType(o.type),h=d.height*o.scale,w=h*d.crop[2]/d.crop[3];c.save();c.translate(o.x,o.y);c.rotate(o.angle*Math.PI/180);c.scale(o.mirror?-1:1,1);c.drawImage(e.image,...d.crop,-w/2,-h,w,h);c.restore();}
+function paintObjects(){if(!oe?.open)return;const c=ox;c.setTransform(1,0,0,1,0,0);c.fillStyle='#091920';c.fillRect(0,0,oc.width,oc.height);c.translate(oe.x,oe.y);c.scale(oe.scale,oe.scale);c.imageSmoothingEnabled=true;if(hongBaseImage)c.drawImage(hongBaseImage,0,0,2048,3072);
+ const layers=hongObjects.map(o=>({y:o.y,o}));layers.push({y:player.y,player:true});layers.sort((a,b)=>a.y-b.y||(a.player?1:-1));
+ for(const layer of layers){if(layer.o)drawObjectCanvas(c,layer.o);else{c.save();const asset=player.actor.active;if(asset){const b=asset.b,scale=player.actor.height/(asset.fixed?asset.body:b.h),origin=asset.fixed?asset.image.naturalWidth/2:b.x+b.w/2;c.imageSmoothingEnabled=false;c.drawImage(asset.image,player.x-origin*scale,player.y-asset.foot*scale,asset.image.naturalWidth*scale,asset.image.naturalHeight*scale);}c.fillStyle='#f8df75';c.strokeStyle='#111';c.lineWidth=2/oe.scale;c.beginPath();c.arc(player.x,player.y,7/oe.scale,0,Math.PI*2);c.fill();c.stroke();c.font='bold '+12/oe.scale+'px Arial';c.fillText('Riccardo',player.x+10/oe.scale,player.y);c.restore();}}
+ for(const p of hongTerrain.collisions){polygonPath(c,p);c.strokeStyle='#f07578aa';c.lineWidth=1/oe.scale;c.stroke();}
+ for(const o of hongObjects){const selected=o.id===oe.selected;polygonPath(c,objectFoot(o));c.fillStyle=selected?'#ff5f5f66':'#ff5f5f22';c.fill();c.lineWidth=(selected?2:1)/oe.scale;c.strokeStyle=selected?'#ff8f8f':'#ff8f8f66';c.stroke();if(selected){polygonPath(c,objectOutline(o));c.strokeStyle='#ffdf69';c.lineWidth=2/oe.scale;c.stroke();c.beginPath();c.moveTo(o.x-35,o.y);c.lineTo(o.x+35,o.y);c.strokeStyle='#44e6ff';c.stroke();c.beginPath();c.arc(o.x,o.y,5/oe.scale,0,Math.PI*2);c.fillStyle='#44e6ff';c.fill();}}
 }
-function hongRectVisible(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
-function hongObjectBounds(p){const xs=p.map(v=>v[0]),ys=p.map(v=>v[1]);return{x:Math.floor(Math.min(...xs)),y:Math.floor(Math.min(...ys)),w:Math.ceil(Math.max(...xs))-Math.floor(Math.min(...xs)),h:Math.ceil(Math.max(...ys))-Math.floor(Math.min(...ys))};}
-function requestHongTile(key){
- let entry=hongTileCache.get(key);if(entry){entry.used=++hongTileClock;return entry.promise;}
- const [c,r]=key.split(',').map(Number);let resolve,reject;
- entry={key,c,r,status:'queued',used:++hongTileClock,epoch:hongTileEpoch,promise:new Promise((a,b)=>{resolve=a;reject=b;}),resolve:null,reject:null};
- entry.resolve=resolve;entry.reject=reject;entry.promise.catch(()=>{});hongTileCache.set(key,entry);hongTileQueue.push(entry);pumpHongTiles();return entry.promise;
-}
-function pumpHongTiles(){
- while(hongTileActive<HONG_TEXTURE.parallel&&hongTileQueue.length){
-  const e=hongTileQueue.shift();if(hongTileCache.get(e.key)!==e)continue;
-  hongTileActive++;e.status='loading';const im=new Image();e.image=im;im.alt='';im.draggable=false;im.decoding='async';
-  Object.assign(im.style,{position:'absolute',left:e.c*512+'px',top:e.r*512+'px',width:'512px',height:'512px',imageRendering:'auto',pointerEvents:'none'});
-  let finished=false;const finish=(error)=>{if(finished)return;finished=true;hongTileActive--;im.onload=im.onerror=null;
-   if(e.epoch!==hongTileEpoch||hongTileCache.get(e.key)!==e){e.resolve(null);}
-   else if(error){e.status='error';e.reject(error);}
-   else{e.status='ready';e.resolve(im);if(locationId==='hongdeon'&&hongWanted.has(e.key)){hongTileLayer.appendChild(im);hongDepthRevision++;}}
-   pumpHongTiles();
-  };
-  im.onload=()=>finish();im.onerror=()=>finish(Error('Missing '+HONG_TEXTURE.folder+'tile_'+e.r+'_'+e.c+'.jpg'));
-  im.src=HONG_TEXTURE.folder+'tile_'+e.r+'_'+e.c+'.jpg';
- }
-}
-function releaseHongTile(key){const e=hongTileCache.get(key);if(!e)return;hongTileCache.delete(key);if(e.image){e.image.remove();if(e.status!=='loading')e.image.removeAttribute('src');}if(e.status==='queued')e.resolve(null);}
-function clearHongTextures(){
- hongTileEpoch++;hongWanted.clear();hongTileQueue=[];
- for(const key of [...hongTileCache.keys()])releaseHongTile(key);
- for(const d of hongDepthRecords)if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;d.canvas=null;}
- depthNodes=[];hongTileLayer.replaceChildren();hongTileLayer.hidden=true;
-}
-function hongView(){return{x:camera.x,y:camera.y,w:viewWidth/zoom,h:viewHeight/zoom};}
-function syncHongTiles(){
- if(locationId!=='hongdeon')return;
- const v=hongView(),keys=hongTileKeys(v.x,v.y,v.w,v.h);keys.sort((a,b)=>{const [ax,ay]=a.split(',').map(Number),[bx,by]=b.split(',').map(Number),cx=v.x+v.w/2,cy=v.y+v.h/2;return Math.hypot(ax*512+256-cx,ay*512+256-cy)-Math.hypot(bx*512+256-cx,by*512+256-cy);});const wanted=new Set(keys.slice(0,HONG_TEXTURE.maxCache));hongWanted=wanted;hongTileLayer.hidden=false;
- for(const key of wanted){void requestHongTile(key);const e=hongTileCache.get(key);if(e?.status==='ready'&&!hongTileLayer.contains(e.image))hongTileLayer.appendChild(e.image);}
- for(const e of hongTileCache.values())if(!wanted.has(e.key)&&e.image)e.image.remove();
- // Drop queued work that the camera has already left; only three requests can be in flight.
- hongTileQueue=hongTileQueue.filter(e=>{if(wanted.has(e.key))return true;releaseHongTile(e.key);return false;});
- const old=[...hongTileCache.values()].filter(e=>!wanted.has(e.key)).sort((a,b)=>a.used-b.used);
- while(hongTileCache.size>HONG_TEXTURE.maxCache&&old.length)releaseHongTile(old.shift().key);
- syncHongDepth(v);
-}
-function resetHongDepth(){
- for(const d of hongDepthRecords)if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;}
- depthNodes.forEach(n=>n.remove());depthNodes=[];
- hongDepthRecords=world.depth.map(z=>({zone:z,box:hongObjectBounds(z.polygon),canvas:null,signature:''}));hongDepthRevision++;
- hongBoundsCache=new WeakMap();
-}
-function syncHongDepth(v){
- const expanded={x:v.x-80,y:v.y-100,w:v.w+160,h:v.h+200};
- for(const d of hongDepthRecords){
-  const {box:b,zone:z}=d;
-  if(!hongRectVisible(b,expanded)){if(d.canvas){d.canvas.remove();d.canvas.width=d.canvas.height=1;d.canvas=null;d.signature='';}continue;}
-  const entries=hongTileKeys(b.x,b.y,b.w,b.h,0).map(k=>hongTileCache.get(k)).filter(e=>e?.status==='ready');
-  const signature=entries.map(e=>e.key).join('|');if(!entries.length)continue;
-  if(d.canvas&&d.signature===signature)continue;
-  let canvas=d.canvas;if(!canvas){canvas=document.createElement('canvas');canvas.className='depth-piece';d.canvas=canvas;scene.appendChild(canvas);}
-  const density=1.5;canvas.width=Math.max(1,Math.ceil(b.w*density));canvas.height=Math.max(1,Math.ceil(b.h*density));
-  Object.assign(canvas.style,{left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px',imageRendering:'auto',zIndex:Math.round(z.baseY*100+10)});
-  const ctx=canvas.getContext('2d');ctx.scale(density,density);ctx.translate(-b.x,-b.y);polygonPath(ctx,z.polygon);ctx.clip();ctx.imageSmoothingEnabled=true;
-  for(const e of entries)ctx.drawImage(e.image,e.c*512,e.r*512,512,512);
-  d.signature=signature;
- }
- depthNodes=hongDepthRecords.filter(d=>d.canvas).map(d=>d.canvas);
-}
-const originalHongCamera=updateCamera;
-updateCamera=function(){originalHongCamera();if(locationId==='hongdeon'&&!editor.open)syncHongTiles();};
-const originalHongStaticFree=staticFree;
-staticFree=function(x,y,r=CONFIG.radius){
- if(locationId!=='hongdeon')return originalHongStaticFree(x,y,r);
- if(x<r||y<r||x>CONFIG.width-r||y>CONFIG.height-r)return false;
- for(const p of world.collisions){let b=hongBoundsCache.get(p);if(!b){b=hongObjectBounds(p);hongBoundsCache.set(p,b);}
-  if(x+r<b.x||x-r>b.x+b.w||y+r<b.y||y-r>b.y+b.h)continue;
-  if(hitsPolygon(x,y,r,p))return false;
- }return true;
-};
-window.HongdeonPerformance={stats:()=>({tiles:hongTileCache.size,inFlight:hongTileActive,depthCanvases:depthNodes.length}),refresh:()=>{if(locationId==='hongdeon'){resetHongDepth();syncHongTiles();}}};
+function fitObjects(){oe.scale=Math.min(oc.width/2048,oc.height/3072)*.97;oe.x=(oc.width-2048*oe.scale)/2;oe.y=(oc.height-3072*oe.scale)/2;paintObjects();}
+function resizeObjects(fit=false){if(!oe.open)return;oc.width=Math.max(1,$('objectView').clientWidth);oc.height=Math.max(1,$('objectView').clientHeight);if(fit)fitObjects();else paintObjects();}
+new ResizeObserver(()=>resizeObjects()).observe($('objectView'));
+function zoomObjects(factor,cx=oc.width/2,cy=oc.height/2){const wx=(cx-oe.x)/oe.scale,wy=(cy-oe.y)/oe.scale;oe.scale=clamp(oe.scale*factor,.06,4);oe.x=cx-wx*oe.scale;oe.y=cy-wy*oe.scale;paintObjects();}
+function openObjectEditor(fit=true){resetInput();editor.open=true;oe.open=true;oe.drag=null;oe.mode='select';objectPanel.hidden=false;game.inert=true;updateObjectProps();requestAnimationFrame(()=>resizeObjects(fit));objectMessage('Tocca un oggetto per aggiungerlo. Trascinalo; sullo sfondo sposti la mappa. Rosso: collisione. Azzurro: base profondità.');for(const t of new Set(hongObjects.map(o=>o.type)))getObjectImage(t);}
+function objectChanged(fn){const o=selectedObject();if(!o)return;rememberObjects();fn(o);commitObjects();updateObjectProps();objectMessage(objectType(o.type).name+' · x '+Math.round(o.x)+' · y '+Math.round(o.y));}
+for(const d of OBJECT_TYPES){const b=document.createElement('button'),im=document.createElement('img');im.src=d.path;im.alt='';im.loading='lazy';b.append(im,document.createTextNode(d.name));b.onclick=()=>{rememberObjects();const id='obj-'+Date.now().toString(36)+'-'+(++objectSerial),o={id,type:d.id,x:clamp((oc.width/2-oe.x)/oe.scale,0,2048),y:clamp((oc.height*.7-oe.y)/oe.scale,0,3072),scale:1,angle:0,mirror:false};hongObjects.push(o);oe.selected=id;oe.mode='select';getObjectImage(d.id).promise.then(()=>renderObjects()).catch(e=>objectMessage(e.message));commitObjects();updateObjectProps();objectMessage(d.name+' aggiunto. Trascinalo nel punto desiderato.');};$('objectCatalog').appendChild(b);}
+$('objectSelect').onclick=()=>{oe.mode='select';updateObjectProps();};$('objectPan').onclick=()=>{oe.mode='pan';updateObjectProps();};
+$('objectPlus').onclick=()=>zoomObjects(1.3);$('objectMinus').onclick=()=>zoomObjects(1/1.3);$('objectFit').onclick=fitObjects;
+$('objectScale').onchange=e=>{const v=Number(e.target.value);if(!Number.isFinite(v)){updateObjectProps();return;}objectChanged(o=>o.scale=clamp(v/100,.15,4));};
+$('objectAngle').onchange=e=>{const v=Number(e.target.value);if(!Number.isFinite(v)){updateObjectProps();return;}objectChanged(o=>o.angle=clamp(v,-360,360));};
+$('objectSmaller').onclick=()=>objectChanged(o=>o.scale=clamp(o.scale/1.1,.15,4));$('objectBigger').onclick=()=>objectChanged(o=>o.scale=clamp(o.scale*1.1,.15,4));
+$('objectRotateLeft').onclick=()=>objectChanged(o=>o.angle=(o.angle-15+360)%360);$('objectRotateRight').onclick=()=>objectChanged(o=>o.angle=(o.angle+15+360)%360);$('objectMirror').onclick=()=>objectChanged(o=>o.mirror=!o.mirror);
+$('objectDuplicate').onclick=()=>{const o=selectedObject();if(!o)return;rememberObjects();const n={...o,id:'obj-'+Date.now().toString(36)+'-'+(++objectSerial),x:clamp(o.x+35,0,2048),y:clamp(o.y+25,0,3072)};hongObjects.push(n);oe.selected=n.id;commitObjects();updateObjectProps();};
+$('objectDelete').onclick=()=>{if(!selectedObject())return;rememberObjects();hongObjects=hongObjects.filter(o=>o.id!==oe.selected);oe.selected=null;commitObjects();updateObjectProps();};
+$('objectUndo').onclick=()=>{if(!oe.history.length)return;const a=JSON.parse(oe.history.pop());hongObjects=a.objects;hongTerrain=a.terrain;oe.selected=null;commitObjects();updateObjectProps();};
+$('objectFeet').onclick=()=>{const p={x:clamp((oc.width/2-oe.x)/oe.scale,10,2038),y:clamp((oc.height/2-oe.y)/oe.scale,10,3062)};Object.assign(player,p);if(!nearestFree(player))objectMessage('Qui non c’è un passaggio libero: sposta qualche oggetto.');paintObjects();};
+function objectScreen(e){const r=oc.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function objectWorldPoint(p){return{x:(p.x-oe.x)/oe.scale,y:(p.y-oe.y)/oe.scale};}
+oc.onpointerdown=e=>{if(e.button&&e.pointerType==='mouse')return;if(oe.drag)return;e.preventDefault();const p=objectScreen(e),q=objectWorldPoint(p);oc.setPointerCapture(e.pointerId);let o=null;if(oe.mode==='select')o=[...hongObjects].sort((a,b)=>b.y-a.y).find(o=>{const [u,v]=objectLocal(o,q.x,q.y);return u>=0&&u<=1&&v>=0&&v<=1;});
+ if(o){oe.selected=o.id;oe.drag={id:e.pointerId,kind:'object',point:q,original:{...o},before:JSON.stringify({objects:hongObjects,terrain:hongTerrain})};objectMessage(objectType(o.type).name+' selezionato.');}else oe.drag={id:e.pointerId,kind:'pan',point:p,x:oe.x,y:oe.y};updateObjectProps();paintObjects();};
+oc.onpointermove=e=>{const d=oe.drag;if(!d||d.id!==e.pointerId)return;e.preventDefault();const p=objectScreen(e);if(d.kind==='pan'){oe.x=d.x+p.x-d.point.x;oe.y=d.y+p.y-d.point.y;}else{const o=selectedObject(),q=objectWorldPoint(p);o.x=clamp(d.original.x+q.x-d.point.x,0,2048);o.y=clamp(d.original.y+q.y-d.point.y,0,3072);}paintObjects();};
+function endObjectDrag(e){const d=oe.drag;if(!d||d.id!==e.pointerId)return;if(d.kind==='object'){if(e.type==='pointercancel'){const a=JSON.parse(d.before);hongObjects=a.objects;hongTerrain=a.terrain;}else if(d.before!==JSON.stringify({objects:hongObjects,terrain:hongTerrain})){oe.history.push(d.before);if(oe.history.length>50)oe.history.shift();}commitObjects();}oe.drag=null;}
+oc.onpointerup=endObjectDrag;oc.onpointercancel=endObjectDrag;oc.addEventListener('wheel',e=>{e.preventDefault();const p=objectScreen(e);zoomObjects(Math.exp(-e.deltaY*.001),p.x,p.y);},{passive:false});
+$('objectPlay').onclick=()=>{combineObjectWorld();if(!nearestFree(player)){objectMessage('Riccardo è bloccato. Usa Riccardo qui su una strada libera.');return;}saveObjects();renderObjects();oe.open=false;editor.open=false;objectPanel.hidden=true;game.inert=false;resetInput();lastTime=0;drawPlayer();rebuildDepth();updateCamera();};
+function exportObjectLayout(){return{version:OBJECT_VERSION,map:HONGDEON.map,width:2048,height:3072,objects:cloneLayout(),catalog:OBJECT_TYPES.map(d=>({...d})),terrain:copy(hongTerrain),collisions:hongWorld.collisions,depth:hongObjects.map(o=>({id:o.id,name:objectType(o.type).name,baseY:o.y,polygon:objectOutline(o)}))};}
+$('objectExport').onclick=()=>{saveObjects();$('objectData').value=JSON.stringify(exportObjectLayout(),null,2);$('objectDataPanel').hidden=false;$('objectCopy').textContent='Copia';};
+$('objectDataClose').onclick=()=>{$('objectDataPanel').hidden=true;};
+$('objectCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('objectData').value);$('objectCopy').textContent='Copiato!';}catch(_){$('objectData').focus();$('objectData').select();$('objectCopy').textContent='Tieni premuto e copia';}};
+$('objectDownload').onclick=()=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([$('objectData').value],{type:'application/json'}));a.href=url;a.download='hongdeon-oggetti.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+$('objectImport').onclick=()=>{try{const a=JSON.parse($('objectData').value);if(a.version!==OBJECT_VERSION||!Array.isArray(a.objects)||a.objects.length>500||!a.objects.every(validObject)||new Set(a.objects.map(o=>o.id)).size!==a.objects.length||!validWorld(a.terrain))throw Error('Dati non validi o riferiti a un’altra versione.');rememberObjects();hongObjects=a.objects.map(o=>({...o,mirror:!!o.mirror}));hongTerrain=a.terrain;oe.selected=null;commitObjects();updateObjectProps();$('objectDataPanel').hidden=true;for(const t of new Set(hongObjects.map(o=>o.type)))getObjectImage(t).promise.catch(e=>objectMessage(e.message));objectMessage('Disposizione importata e salvata.');}catch(e){$('objectCopy').textContent=e.message;}};
+const openTerrainEditor=$('editorOpen').onclick;
+$('editorOpen').onclick=()=>{if(locationId==='hongdeon'){if(!ready||intro||dialogue||locked())return;openObjectEditor();}else openTerrainEditor();};
+$('objectTerrain').onclick=()=>{oe.open=false;objectPanel.hidden=true;terrainEditing=true;world=copy(hongTerrain);editor.history=[];editor.draft=[];editor.selected=-1;editor.layer='collision';editor.tool='pan';$('editor').hidden=false;requestAnimationFrame(()=>resizeEditor(true));};
+const closeTerrainEditor=$('editorClose').onclick;
+$('editorClose').onclick=()=>{if(!terrainEditing){closeTerrainEditor();return;}if(editor.draft.length){notice('Termina prima la forma.');return;}hongTerrain=copy(world);terrainEditing=false;combineObjectWorld();saveObjects();rebuildDepth();$('editor').hidden=true;openObjectEditor(false);};
+window.HongdeonObjects={types:OBJECT_TYPES,export:exportObjectLayout,open:()=>{if(locationId==='hongdeon'&&!locked()&&!dialogue)openObjectEditor();}};
 
 /* 32 · ACCESSO TEMPORANEO PER COLLAUDO */
 const testHongButton=document.createElement('button');
@@ -1160,6 +1041,7 @@ $("retryLoad").onclick=()=>startGame(true);resize();startGame();requestAnimation
 </script>
 </body>
 </html>
+
 
 
 
