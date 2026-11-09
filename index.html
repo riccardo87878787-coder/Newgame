@@ -361,6 +361,7 @@ function moveEntity(subject,dx,dy){
 }
 /* 13 · NPC: PERCORSI, SOSTE E PROFONDITÀ */
 function drawNpc(n){
+ if(n.id==='seoyoon'){const a=n.moving?n.walkAssets[n.direction]:n.idleAssets[n.direction];setAsset(n.actor,a||n.idleAssets.down);place(n.actor,n.x,n.y);return;}
  let a,paused=false;
  if(n.talking&&!dialogue?.target?.dog)a=n.idleAssets[n.direction];
  else if(n.route){a=n.walkAssets[n.direction];paused=!n.moving||n.talking;}
@@ -740,9 +741,10 @@ const originalSpeech=openSpeech;openSpeech=function(lines,options={}){$('speech'
 /* 25 · DATI PERSONAGGI INDIPENDENTI DALLE QUATTRO POSIZIONI */
 const LIMITS={level:99,hp:9999,ep:5000,won:999999999};
 const partyMembers={riccardo:{name:{ko:'리카르도',en:'Riccardo'},level:1,hp:250,maxHp:250,ep:100,maxEp:100,card:'Menu/file_000000002b388209a33ce587676f6016.png'}};
+partyMembers.seoyoon={name:{ko:'서윤',en:'Seoyoon'},level:1,hp:200,maxHp:200,ep:120,maxEp:120,hpLimit:9999,epLimit:5800,joined:false,card:'Seoyoon/file_00000000db8c8209b2a8fc318cab46ef.png'};
 const partySlots=['riccardo',null,null,null];let won=50000,language='ko';
-function updateMember(id,patch){const member=partyMembers[id];if(!member)return;Object.assign(member,patch);member.level=clamp(Math.trunc(member.level)||1,1,LIMITS.level);member.maxHp=clamp(Math.trunc(member.maxHp)||1,1,LIMITS.hp);member.maxEp=clamp(Math.trunc(member.maxEp)||0,0,LIMITS.ep);member.hp=clamp(Math.trunc(member.hp)||0,0,member.maxHp);member.ep=clamp(Math.trunc(member.ep)||0,0,member.maxEp);renderMenu();}
-function assignMember(slot,id){if(slot<0||slot>3||id!==null&&!partyMembers[id])return;const old=partySlots.indexOf(id);if(id&&old>=0)partySlots[old]=null;partySlots[slot]=id;renderMenu();}
+function updateMember(id,patch){const member=partyMembers[id];if(!member)return;Object.assign(member,patch);member.level=clamp(Math.trunc(member.level)||1,1,LIMITS.level);member.maxHp=clamp(Math.trunc(member.maxHp)||1,1,LIMITS.hp);member.maxEp=clamp(Math.trunc(member.maxEp)||0,0,member.epLimit||LIMITS.ep);member.hp=clamp(Math.trunc(member.hp)||0,0,member.maxHp);member.ep=clamp(Math.trunc(member.ep)||0,0,member.maxEp);renderMenu();}
+function assignMember(slot,id){if(slot<0||slot>3||id!==null&&(!partyMembers[id]||partyMembers[id].joined===false))return;const old=partySlots.indexOf(id);if(id&&old>=0)partySlots[old]=null;partySlots[slot]=id;renderMenu();}
 function changeWon(amount){won=clamp(won+Math.trunc(amount||0),0,LIMITS.won);renderMenu();}
 window.TaraiParty={members:partyMembers,slots:partySlots,updateMember,assignMember,changeWon,getWon:()=>won};
 const MENU_TEXT={ko:['아이템','스킬','장비','상태','대형','저장','설정','언어'],en:['Item','Skills','Equip','Status','Form','Save','Options','Language']};
@@ -1033,6 +1035,26 @@ const exportBeforeCucchiaio=$('editorExport').onclick;$('editorExport').onclick=
 const cameraBeforeFixedZoom=updateCamera;
 updateCamera=function(){if(!intro){const factor=locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:locationId==='hongdeon'?1/1.25:1;zoom=CONFIG.minZoom*factor;}cameraBeforeFixedZoom();};
 for(const id of ['zoomIn','zoomOut']){$(id).hidden=true;$(id).style.display='none';$(id).onclick=null;}
+
+
+/* SEOYOON · NPC del Cucchiaio e futuro membro del gruppo */
+let seoyoonNpc=null,seoyoonLoading=null;
+function loadSeoyoon(){
+ if(seoyoonLoading)return seoyoonLoading;
+ const n={id:'seoyoon',name:'Seoyoon',x:535,y:525,direction:'down',height:100,radius:10,moving:false,talking:false,idleAssets:{},walkAssets:{},actor:createActor(100)};
+ n.actor.node.hidden=true;seoyoonNpc=n;
+ seoyoonLoading=Promise.all(Object.keys(IT).flatMap(d=>[
+  loadAsset('Seoyoon/seoyoon_ferma_'+({up:'alto',down:'basso',left:'sinistra',right:'destra'})[d]+'.png').then(a=>n.idleAssets[d]=a),
+  loadAsset('Seoyoon/seoyoon_camminata_'+({up:'alto',down:'basso',left:'sinistra',right:'destra'})[d]+'.gif').then(a=>n.walkAssets[d]=a)
+ ])).then(()=>{if(locationId==='restaurant'){if(!npcs.includes(n))npcs.push(n);drawNpc(n);}else n.actor.node.hidden=true;return n;});
+ return seoyoonLoading;
+}
+const showBeforeSeoyoon=showLocation;
+showLocation=function(id){if(seoyoonNpc)seoyoonNpc.actor.node.hidden=true;showBeforeSeoyoon(id);if(id==='restaurant'){if(seoyoonNpc){npcs.push(seoyoonNpc);drawNpc(seoyoonNpc);}void loadSeoyoon();}};
+// La storia chiamerà joinSeoyoon soltanto quando entrerà davvero nel gruppo.
+window.TaraiParty.joinSeoyoon=function(){const m=partyMembers.seoyoon;if(partySlots.includes('seoyoon'))return true;const slot=partySlots[1]===null?1:partySlots.indexOf(null);if(slot<0)return false;m.joined=true;assignMember(slot,'seoyoon');return true;};
+const beginBeforeSeoyoon=beginIntro;
+beginIntro=function(){partyMembers.seoyoon.joined=false;Object.assign(partyMembers.seoyoon,{level:1,hp:200,maxHp:200,ep:120,maxEp:120});for(let i=0;i<partySlots.length;i++)if(partySlots[i]==='seoyoon')partySlots[i]=null;beginBeforeSeoyoon();};
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
