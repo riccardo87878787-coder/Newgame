@@ -97,6 +97,15 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #equipBack,#equipConfirm{position:absolute;top:92.2%;width:38%;height:4.7%;font-size:4.6cqw;font-weight:bold;color:#fff0cf!important}#equipBack{left:7%}#equipConfirm{right:7%}
 
 </style>
+<style>
+#speech{width:250px;min-height:0;font-size:15px;line-height:1.32;padding:3px 5px 11px;border-width:10px 14px 18px;border-image-width:10px 14px 18px;max-width:calc(100% - 24px)}
+#speechText{color:#211b16;font-weight:600}
+#speech .speech-speaker{display:block;color:#9b3d48;font-size:13px;font-weight:800;margin-bottom:3px;line-height:1.2}
+#speech .speech-body{display:block;color:#211b16}
+#speech .speech-page{display:block;color:#68635d;font-size:10px;text-align:right;line-height:1;margin-top:4px}
+#speech.thought{border-bottom-width:28px;border-image-width:10px 14px 28px}
+#speech.narration{padding:9px 11px;font-size:14px}
+</style>
 </head>
 <body>
 <!-- 05 · HTML -->
@@ -547,7 +556,7 @@ function screenPosition(p){return{x:(p.x-camera.x)*zoom,y:(p.y-camera.y)*zoom};}
 function clearMarkers(){for(const b of markerNodes.values())b.hidden=true;}
 function openSpeech(lines,options={}){
  resetInput();reactionTime=0;dialogue={lines,index:0,type:options.type||"npc",target:options.target||null};
- $("speechText").textContent=lines[0];$("speech").hidden=false;pop($("speech"));clearMarkers();
+ setSpeechText(lines[0]);$("speech").hidden=false;pop($("speech"));clearMarkers();
 }
 function interact(t){
  if(!ready||intro||dialogue||editor.open||!nearTarget(t))return;
@@ -572,7 +581,7 @@ function closeDialogue(question=true){
 }
 function advanceSpeech(){
  if(!dialogue)return;
- if(dialogue.index+1<dialogue.lines.length){dialogue.index++;$("speechText").textContent=dialogue.lines[dialogue.index];pop($("speech"));}
+ if(dialogue.index+1<dialogue.lines.length){dialogue.index++;setSpeechText(dialogue.lines[dialogue.index]);pop($("speech"));}
  else closeDialogue();
  updateCamera();updateInteractionUI();
 }
@@ -626,7 +635,7 @@ function updateInteractionUI(){
  if(dialogue){
   $("speech").hidden=false;
   const worldAnchor=dialogue.type==="npc"?targetHead(dialogue.target):{x:player.x,y:headY(player)};
-  const anchor=screenPosition(worldAnchor),bubble=$("speech"),w=Math.min(310,viewWidth-20);
+  const anchor=screenPosition(worldAnchor),bubble=$("speech"),w=Math.min(250,viewWidth-20);
   bubble.style.width=w+"px";const h=bubble.offsetHeight||90;
   const left=clamp(anchor.x-w/2,12,Math.max(12,viewWidth-w-12));
   bubble.style.left=left+"px";bubble.style.top=clamp(anchor.y-h-17,12,Math.max(12,viewHeight-h-12))+"px";
@@ -763,7 +772,7 @@ const OFFICE_STORY=[
  {speaker:'narration',text:'Riccardo hands his phone to the woman behind the counter.'}
 ];
 function startOfficeStory(target){resetInput();target.owner.talking=true;player.direction='up';officeSequence={index:0,target,pause:0};showOfficePage();}
-function showOfficePage(){const q=officeSequence;if(!q)return;const page=OFFICE_STORY[q.index];if(!page){officeSequence=null;dialogue=null;runAutomaticMenu();return;}if(page.speaker==='question'){dialogue=null;$('speech').hidden=true;reactionTime=1.5;q.pause=1.5;return;}openSpeech([page.text],{type:page.speaker==='npc'?'npc':'story',target:q.target});dialogue.officeStory=true;$('speech').classList.toggle('thought',page.speaker==='thought');$('speech').classList.toggle('narration',page.speaker==='narration');}
+function showOfficePage(){const q=officeSequence;if(!q)return;const page=OFFICE_STORY[q.index];if(!page){officeSequence=null;dialogue=null;runAutomaticMenu();return;}if(page.speaker==='question'){dialogue=null;$('speech').hidden=true;reactionTime=1.5;q.pause=1.5;return;}openSpeech([page.text],{type:page.speaker==='npc'?'npc':'story',target:q.target});dialogue.officeStory=true;$('speech').classList.toggle('thought',page.speaker==='thought');$('speech').classList.toggle('narration',page.speaker==='narration');setSpeechText(page.text);}
 function updateOfficeSequence(dt){if(officeSequence?.pause>0){officeSequence.pause-=dt;if(officeSequence.pause<=0){reactionTime=0;officeSequence.index++;showOfficePage();}}}
 const originalAdvance=advanceSpeech;advanceSpeech=function(){if(dialogue?.officeStory){dialogue=null;$('speech').hidden=true;$('speech').classList.remove('thought','narration');officeSequence.index++;showOfficePage();updateInteractionUI();return;}originalAdvance();};
 const originalSpeech=openSpeech;openSpeech=function(lines,options={}){$('speech').classList.remove('thought','narration');originalSpeech(lines,options);};
@@ -839,7 +848,7 @@ const NPC_EN={
  '23_giovane_colloquio':'It’s my first interview today… Does my tie look all right?',
  '24_cliente_sportello':'I’m in the middle of my appointment. Please wait a moment.'
 };
-function showEnglishPage(){const [speaker,text]=ENGLISH_SCENE[dialogue.index];dialogue.type=speaker==='npc'?'npc':'translation';$('speech').classList.toggle('thought',speaker==='thought');$('speechText').textContent=text;pop($('speech'));updateCamera();updateInteractionUI();}
+function showEnglishPage(){const [speaker,text]=ENGLISH_SCENE[dialogue.index];dialogue.type=speaker==='npc'?'npc':'translation';$('speech').classList.toggle('thought',speaker==='thought');setSpeechText(text);pop($('speech'));updateCamera();updateInteractionUI();}
 function startEnglishConversation(){reactionTime=0;const owner=officeNpcs.find(n=>n.id==='18_impiegata_principale');officeNpcs.forEach(n=>n.talking=false);const target=owner?{type:'npc',key:owner.id,owner,dog:false}:null;if(owner)owner.talking=true;openSpeech(ENGLISH_SCENE.map(p=>p[1]),{type:'translation',target});dialogue.englishScene=true;showEnglishPage();}
 const advanceBeforeEnglish=advanceSpeech;advanceSpeech=function(){if(!dialogue?.englishScene){advanceBeforeEnglish();return;}if(dialogue.index<ENGLISH_SCENE.length-1){dialogue.index++;showEnglishPage();}else{closeDialogue(false);$('speech').classList.remove('thought');menuUnlocked=true;jobAssigned=true;$('rpgMenu').classList.remove('auto');$('objective').textContent='Take the bus to Hongdeon';updateInteractionUI();}};
 const interactBeforeTranslation=interact;interact=function(t){
@@ -847,7 +856,7 @@ const interactBeforeTranslation=interact;interact=function(t){
  if(t.type==='sign'&&jobAssigned){openDestinations();return;}
  if(t.owner?.id==='18_impiegata_principale'&&jobAssigned){t.owner.talking=true;openSpeech(['Cucchiaio is in Hongdeon. Take the bus from the stop outside Seoul Station, next to the map board. Good luck with your interview!'],{type:'npc',target:t});return;}
  interactBeforeTranslation(t);
- if(language==='en'&&dialogue?.type==='npc'&&!dialogue.officeStory){dialogue.lines=[t.dog?'Woof! Woof!':NPC_EN[t.owner.id]||'Hello!'];dialogue.index=0;$('speechText').textContent=dialogue.lines[0];}
+ if(language==='en'&&dialogue?.type==='npc'&&!dialogue.officeStory){dialogue.lines=[t.dog?'Woof! Woof!':NPC_EN[t.owner.id]||'Hello!'];dialogue.index=0;setSpeechText(dialogue.lines[0]);}
 };
 /* 29 · INVENTARIO CON CATALOGO ESPANDIBILE E OGGETTI CONSUMABILI */
 let inventory={},selectedItem=null;
@@ -1062,7 +1071,7 @@ const exportBeforeCucchiaio=$('editorExport').onclick;$('editorExport').onclick=
 
 /* Visuale di gioco fissa al limite più lontano già previsto. */
 const cameraBeforeFixedZoom=updateCamera;
-updateCamera=function(){if(!intro){const factor=locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:locationId==='hongdeon'?1/1.25:1;zoom=CONFIG.minZoom*factor;}cameraBeforeFixedZoom();};
+updateCamera=function(){if(!intro){const factor=locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:isInterior(locationId)?CONFIG.spriteHeight/player.actor.height:locationId==='hongdeon'?1/1.25:1;zoom=CONFIG.minZoom*factor;}cameraBeforeFixedZoom();};
 for(const id of ['zoomIn','zoomOut']){$(id).hidden=true;$(id).style.display='none';$(id).onclick=null;}
 
 
@@ -1181,7 +1190,7 @@ const SEOYOON_SCENES={
  ['Seoyoon','Yes. I’ll show you around after the shift. For now, those pans aren’t going to wash themselves.'],['Riccardo','Fine. But I’m expecting EXP for this.'],['Seoyoon','You can have a clean kitchen.'],['Riccardo','Tough game.']
  ]
 };
-function showSeoyoonPage(){const q=dialogue?.seoyoonScene;if(!q)return;const [speaker,text]=SEOYOON_SCENES[q.part][q.index];dialogue.type=speaker==='Seoyoon'&&dialogue.target?'npc':'story';$('speech').classList.toggle('thought',speaker==='thought');$('speech').classList.toggle('narration',speaker==='narration');$('speechText').textContent=(speaker==='Riccardo'||speaker==='Seoyoon'?speaker+': ':'')+text;pop($('speech'));updateInteractionUI();}
+function showSeoyoonPage(){const q=dialogue?.seoyoonScene;if(!q)return;const [speaker,text]=SEOYOON_SCENES[q.part][q.index];dialogue.type=speaker==='Seoyoon'&&dialogue.target?'npc':'story';$('speech').classList.toggle('thought',speaker==='thought');$('speech').classList.toggle('narration',speaker==='narration');setSpeechText((speaker==='Riccardo'||speaker==='Seoyoon'?speaker+': ':'')+text);pop($('speech'));updateInteractionUI();}
 function startSeoyoonPages(part){const n=seoyoonNpc;const target=n?{type:'npc',key:n.id,owner:n,dog:false}:null;if(n){n.previousDirection=n.direction;n.direction=facing(player.x-n.x,player.y-n.y);n.talking=true;drawNpc(n);}resetInput();menuOpen=false;openSpeech([''],{type:'story',target});dialogue.seoyoonScene={part,index:0};showSeoyoonPage();}
 function grantWorkClothes(){for(const id of Object.keys(EQUIP_ITEMS))equipState.owned[id]=Math.max(1,equipState.owned[id]||0);equipmentFor('riccardo').weapon='chipped_pan';equipState.stage='equip';saveEquipState();openEquip(true);}
 const advanceBeforeSeoyoonStory=advanceSpeech;advanceSpeech=function(){const q=dialogue?.seoyoonScene;if(!q)return advanceBeforeSeoyoonStory();if(q.index+1<SEOYOON_SCENES[q.part].length){q.index++;showSeoyoonPage();return;}const part=q.part;closeDialogue(false);$('speech').classList.remove('thought','narration');if(part==='before'){grantWorkClothes();}else{equipState.stage='done';saveEquipState();$('objective').textContent='Ready for your first shift';resetInput();updateInteractionUI();}};
@@ -1193,6 +1202,36 @@ const interactBeforeSeoyoonStory=interact;interact=function(t){if(t?.owner?.id!=
 };
 let equipFirstStartup=true;const beginBeforeEquipStory=beginIntro;beginIntro=function(){if(!equipFirstStartup){equipState=freshEquipState();saveEquipState();}equipFirstStartup=false;equipTutorial=false;equipPage.hidden=true;beginBeforeEquipStory();};
 window.TaraiEquipment={getState:()=>JSON.parse(JSON.stringify(equipState)),getStats:equipmentStats,open:()=>{if(!dialogue&&!locked()&&!intro&&menuUnlocked)openEquip();}};
+
+/* BALLOON COMPATTI · nomi separati e pagine brevi per tutti i dialoghi */
+let speechPages=[],speechPageIndex=0,speechSpeaker='';
+function splitBalloonText(text,limit=120){
+ const pages=[];let rest=String(text??'').trim();
+ while(rest.length>limit){let cut=rest.lastIndexOf(' ',limit);if(cut<limit*.45)cut=limit;pages.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();}
+ if(rest)pages.push(rest);return pages.length?pages:[''];
+}
+function currentSpeaker(){
+ if(!dialogue)return '';
+ const q=dialogue.seoyoonScene;
+ if(q){const who=SEOYOON_SCENES[q.part][q.index][0];return who==='narration'?'':who==='thought'?'Riccardo':who;}
+ if(dialogue.officeStory&&officeSequence){const who=OFFICE_STORY[officeSequence.index]?.speaker;if(who==='narration')return '';if(who!=='npc')return 'Riccardo';}
+ if(dialogue.englishScene){const who=ENGLISH_SCENE[dialogue.index]?.[0];if(who==='narration')return '';if(who!=='npc')return 'Riccardo';}
+ if(dialogue.type==='npc'){const name=dialogue.target?.owner?.name;return typeof name==='string'?name:(name?.[language]||name?.en||'');}
+ return dialogue.type==='narration'?'':'Riccardo';
+}
+function paintBalloonPage(){
+ const node=$('speechText');node.replaceChildren();
+ if(speechSpeaker){const name=document.createElement('strong');name.className='speech-speaker';name.textContent=speechSpeaker;node.appendChild(name);}
+ const text=document.createElement('span');text.className='speech-body';text.textContent=speechPages[speechPageIndex]||'';node.appendChild(text);
+ if(speechPages.length>1){const page=document.createElement('small');page.className='speech-page';page.textContent=(speechPageIndex+1)+'/'+speechPages.length;node.appendChild(page);}
+}
+function setSpeechText(value){
+ let text=String(value??''),name='';const explicit=text.match(/^(Riccardo|Seoyoon):\s*/);
+ if(explicit){name=explicit[1];text=text.slice(explicit[0].length);}else name=currentSpeaker();
+ speechSpeaker=name;speechPages=splitBalloonText(text);speechPageIndex=0;paintBalloonPage();
+}
+const advanceBeforeCompactBalloons=advanceSpeech;
+advanceSpeech=function(){if(dialogue&&speechPageIndex+1<speechPages.length){speechPageIndex++;paintBalloonPage();pop($('speech'));updateInteractionUI();return;}advanceBeforeCompactBalloons();};
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
