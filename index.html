@@ -948,6 +948,86 @@ async function jumpToHongdeonTest(){
 const travelBeforeHongTest=updateTravel;
 updateTravel=function(dt){travelBeforeHongTest(dt);testHongButton.hidden=!ENABLE_HONGDEON_TEST||locationId==='hongdeon'||editor.open;testHongButton.disabled=!ready||transitioning;};
 
+/* CUCCHIAIO · interni, scale, porte e editor indipendente per piano */
+const CUCCHIAIO_VERSION='cucchiaio-interiors-2026-11-09-v1';
+const CUCCHIAIO={
+ restaurant:{map:'Map/file_00000000742c8209a861d7436b79bd3a.png',name:'Cucchiaio',start:{x:510,y:1210}},
+ quarters:{map:'Map/file_00000000204882098018615f2a89953c.png',name:'Staff quarters',start:{x:909,y:720}}
+};
+const DOOR_FILES={closed:'Map/file_0000000044648209a71ca1da056b52f8.png',up:'Map/file_000000005c4081f8beeaaa5b620b8fac.png',down:'Map/file_00000000b4e4820980ffc1c3958e2e21.png'};
+const interiorWorlds={},interiorImages={},doorSprites={};
+const isInterior=id=>Object.hasOwn(CUCCHIAIO,id);
+const wall=(x,y,w,h)=>rect(x,y,w,h);
+function initialInterior(id){
+ const collisions=[wall(0,0,45,1536),wall(980,0,44,1536),wall(0,0,1024,45),wall(0,1260,1024,276)];
+ const depth=[];
+ if(id==='restaurant'){
+  collisions.push(wall(45,45,800,255),wall(290,310,345,75),wall(45,390,90,90),wall(225,390,620,90),wall(855,240,110,445),wall(65,1135,145,90));
+  depth.push({name:'Bancone cucina',baseY:480,polygon:wall(225,385,620,95)});
+  for(const y of [620,845,1075])for(const x of [325,677]){collisions.push(wall(x-84,y-38,168,95));depth.push({name:'Tavolo',baseY:y+57,polygon:wall(x-95,y-100,190,157)});}
+ }else{
+  collisions.push(wall(375,45,25,515),wall(560,45,30,515),wall(375,835,25,425),wall(560,835,30,425),wall(855,240,110,445),wall(400,45,160,255));
+  for(const [x,y,w] of [[55,555,320],[590,555,265],[40,765,335],[565,765,415]]){
+   const center=x+w/2;collisions.push(wall(x,y,center-42-x,65),wall(center+42,y,x+w-center-42,65));
+  }
+  collisions.push(wall(400,300,55,55),wall(510,300,50,55),wall(65,170,90,220),wall(305,165,65,105),wall(750,260,90,210),wall(605,190,100,95),wall(775,165,65,105));
+ }
+ return {collisions,depth};
+}
+for(const id of Object.keys(CUCCHIAIO)){
+ interiorWorlds[id]=initialInterior(id);
+ try{const s=JSON.parse(localStorage.getItem('cucchiaio-'+id));if(s?.version===CUCCHIAIO_VERSION&&validWorld(s.world))interiorWorlds[id]=s.world;}catch(_){}
+}
+function loadInteriorImage(id){if(interiorImages[id])return interiorImages[id];return interiorImages[id]=new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>{delete interiorImages[id];reject(Error('Unable to load '+CUCCHIAIO[id].map));};im.src=CUCCHIAIO[id].map;});}
+// Ritaglio trasparenza a runtime: stessa altezza visiva per le tre pose.
+function loadDoorSprites(){return Promise.all(Object.entries(DOOR_FILES).map(([state,src])=>new Promise(resolve=>{if(doorSprites[state])return resolve();const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const cx=c.getContext('2d');cx.drawImage(im,0,0);const data=cx.getImageData(0,0,c.width,c.height).data;let l=c.width,t=c.height,r=0,b=0;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++)if(data[(y*c.width+x)*4+3]>80){l=Math.min(l,x);r=Math.max(r,x);t=Math.min(t,y);b=Math.max(b,y);}const out=document.createElement('canvas');out.width=Math.max(1,r-l+1);out.height=Math.max(1,b-t+1);out.getContext('2d').drawImage(im,l,t,out.width,out.height,0,0,out.width,out.height);doorSprites[state]=out.toDataURL();}catch(_){doorSprites[state]=src;}resolve();};im.onerror=()=>{doorSprites[state]=src;resolve();};im.src=src;})));}
+let roomDoors=[];
+function clearRoomDoors(){for(const d of roomDoors)d.node.remove();roomDoors=[];}
+function buildRoomDoors(){clearRoomDoors();if(locationId!=='quarters')return;
+ for(const [x,y,w] of [[173,615,84],[680,615,84],[165.5,830,84],[730.5,830,84],[455,350,55]]){
+  const node=document.createElement('img');node.alt='';node.draggable=false;Object.assign(node.style,{position:'absolute',pointerEvents:'none',objectFit:'fill',transformOrigin:'left bottom'});scene.appendChild(node);roomDoors.push({x,y,w,node,amount:0,side:'up'});
+ }
+ updateRoomDoors(0);
+}
+function updateRoomDoors(dt){if(locationId!=='quarters')return;for(const d of roomDoors){
+ const near=Math.abs(player.x-(d.x+d.w/2))<d.w/2+24&&Math.abs(player.y-d.y)<100;
+ if(near&&d.amount===0)d.side=player.y>d.y?'up':'down';
+ d.amount=clamp(d.amount+(near?1:-1)*dt*5,0,1);
+ const open=d.amount>.55,state=open?d.side:'closed';if(d.state!==state){d.node.src=doorSprites[state]||DOOR_FILES[state];d.state=state;}
+ const h=d.w*2.05,travel=d.w*.52;
+ const bottom=d.y+(open?(d.side==='down'?travel:-travel):0);
+ Object.assign(d.node.style,{left:d.x+'px',top:(bottom-h)+'px',width:(open?Math.max(7,d.w*.09):d.w*(1-d.amount*.85))+'px',height:h+'px',zIndex:String(Math.round(Math.max(d.y,bottom)*100+35))});
+ }}
+const occupyBeforeDoors=canOccupy;
+canOccupy=function(subject,x,y){if(locationId==='quarters'&&roomDoors.some(d=>d.amount<.55&&Math.abs(y-d.y)<subject.radius+3&&x>d.x-subject.radius&&x<d.x+d.w+subject.radius))return false;return occupyBeforeDoors(subject,x,y);};
+const showBeforeCucchiaio=showLocation;
+showLocation=function(id){
+ if(isInterior(locationId))interiorWorlds[locationId]=world;
+ clearRoomDoors();
+ if(!isInterior(id)){showBeforeCucchiaio(id);return;}
+ if(locationId==='city')cityWorld=world;else if(locationId==='office')officeWorld=world;else if(locationId==='hongdeon')hongWorld=world;
+ for(const n of npcs)n.actor.node.hidden=true;npcs.splice(0);clearHongDepth();depthNodes.forEach(n=>n.remove());depthNodes=[];
+ clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();doorButton.hidden=true;
+ locationId=id;world=interiorWorlds[id];CONFIG.width=1024;CONFIG.height=1536;scene.style.width=mapImage.style.width='1024px';scene.style.height=mapImage.style.height='1536px';mapImage.style.imageRendering='auto';player.actor.height=80;player.actor.active=null;
+ for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;
+ mapImage.onload=()=>{if(locationId===id)rebuildDepth();};mapImage.src=CUCCHIAIO[id].map;$('objective').textContent=id==='restaurant'?'Explore Cucchiaio':'Staff quarters';buildRoomDoors();
+};
+const saveBeforeCucchiaio=saveWorld;saveWorld=function(){if(!isInterior(locationId))return saveBeforeCucchiaio();interiorWorlds[locationId]=world;try{localStorage.setItem('cucchiaio-'+locationId,JSON.stringify({version:CUCCHIAIO_VERSION,world}));storageFailed=false;}catch(_){storageFailed=true;}};
+const targetsBeforeCucchiaio=allTargets;allTargets=function(){return isInterior(locationId)?[]:targetsBeforeCucchiaio();};
+const statusBeforeCucchiaio=updateStatus;updateStatus=function(){if(isInterior(locationId)){$('status').textContent=CUCCHIAIO[locationId].name;return;}statusBeforeCucchiaio();};
+const PORTALS=[
+ {from:'hongdeon',to:'restaurant',x:1360,y:1950,r:110,label:'Enter Cucchiaio',spawn:{x:510,y:1210},direction:'up'},
+ {from:'restaurant',to:'hongdeon',x:510,y:1240,r:65,label:'Exit Cucchiaio',spawn:{x:1360,y:1950},direction:'down'},
+ {from:'restaurant',to:'quarters',x:909,y:705,r:64,label:'Go upstairs',spawn:{x:909,y:720},direction:'down'},
+ {from:'quarters',to:'restaurant',x:909,y:705,r:64,label:'Go downstairs',spawn:{x:909,y:730},direction:'down'}
+];
+function nearbyPortal(){return PORTALS.find(p=>p.from===locationId&&Math.hypot(player.x-p.x,player.y-p.y)<p.r);}
+async function useCucchiaioPortal(p){if(locked()||intro||dialogue||editor.open||p.from!==locationId)return;resetInput();transitioning=true;const epoch=sceneEpoch;$('fade').classList.add('black');try{await Promise.all([wait(780),isInterior(p.to)?loadInteriorImage(p.to):loadHongdeonMap(),loadDoorSprites()]);if(epoch!==sceneEpoch)return;saveWorld();showLocation(p.to);Object.assign(player,p.spawn,{direction:p.direction,moving:false});nearestFree(player);zoom=CONFIG.zoom;drawPlayer();updateCamera();await wait(100);}catch(e){$('status').textContent=e.message;notice(e.message);}finally{if(epoch===sceneEpoch){$('fade').classList.remove('black');await wait(780);transitioning=false;}}}
+const portalButton=document.createElement('button');portalButton.className='marker object';portalButton.textContent='!';portalButton.hidden=true;Object.assign(portalButton.style,{background:'#fff6df',color:'#d92532',fontWeight:'900',fontSize:'28px'});$('interactions').appendChild(portalButton);portalButton.onclick=e=>{e.stopPropagation();const p=nearbyPortal();if(p)useCucchiaioPortal(p);};
+const uiBeforeCucchiaio=updateInteractionUI;updateInteractionUI=function(){uiBeforeCucchiaio();if(isInterior(locationId))doorButton.hidden=true;const p=nearbyPortal();portalButton.hidden=!p||!ready||intro||!!dialogue||editor.open||locked();if(!portalButton.hidden){const pos=screenPosition({x:p.x,y:p.y-65});portalButton.style.left=clamp(pos.x,24,viewWidth-24)+'px';portalButton.style.top=clamp(pos.y,52,viewHeight-25)+'px';portalButton.setAttribute('aria-label',p.label);}};
+const travelBeforeCucchiaio=updateTravel;updateTravel=function(dt){travelBeforeCucchiaio(dt);if(isInterior(locationId))testHongButton.hidden=true;updateRoomDoors(dt);};
+const exportBeforeCucchiaio=$('editorExport').onclick;$('editorExport').onclick=()=>{if(!isInterior(locationId))return exportBeforeCucchiaio();if(editor.draft.length){notice('Termina prima la forma.');return;}saveWorld();$('exportData').value=JSON.stringify({map:CUCCHIAIO[locationId].map,version:CUCCHIAIO_VERSION,width:1024,height:1536,collisions:world.collisions,depth:world.depth},null,2);$('exportPanel').hidden=false;$('exportCopy').textContent='Copia';};
+
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
 async function startGame(retry=false){
