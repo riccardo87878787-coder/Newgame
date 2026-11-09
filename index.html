@@ -984,7 +984,7 @@ function loadDoorSprites(){return Promise.all(Object.entries(DOOR_FILES).map(([s
 let roomDoors=[];
 function clearRoomDoors(){for(const d of roomDoors)d.node.remove();roomDoors=[];}
 function buildRoomDoors(){clearRoomDoors();if(locationId!=='quarters')return;
- for(const [x,y,w] of [[173,615,84],[680,615,84],[165.5,830,84],[730.5,830,84],[455,350,55]]){
+ for(const [x,y,w] of [[183,619,77],[684,619,70],[184,840,77],[717,840,72],[458,350,50]]){
   const node=document.createElement('img');node.alt='';node.draggable=false;Object.assign(node.style,{position:'absolute',pointerEvents:'none',objectFit:'fill',transformOrigin:'left bottom'});scene.appendChild(node);roomDoors.push({x,y,w,node,amount:0,side:'up'});
  }
  updateRoomDoors(0);
@@ -994,8 +994,9 @@ function updateRoomDoors(dt){if(locationId!=='quarters')return;for(const d of ro
  if(near&&d.amount===0)d.side=player.y>d.y?'up':'down';
  d.amount=clamp(d.amount+(near?1:-1)*dt*5,0,1);
  const open=d.amount>.55,state=open?d.side:'closed';if(d.state!==state){d.node.src=doorSprites[state]||DOOR_FILES[state];d.state=state;}
- const h=d.w*2.05,travel=d.w*.52;
- const bottom=d.y+(open?(d.side==='down'?travel:-travel):0);
+ const closedHeight=d.w<60?48:64,travel=d.w*.42;
+ const h=closedHeight+(open?travel:0);
+ const bottom=d.y+(open&&d.side==='down'?travel:0);
  Object.assign(d.node.style,{left:d.x+'px',top:(bottom-h)+'px',width:(open?Math.max(7,d.w*.09):d.w*(1-d.amount*.85))+'px',height:h+'px',zIndex:String(Math.round(Math.max(d.y,bottom)*100+35))});
  }}
 const occupyBeforeDoors=canOccupy;
@@ -1027,6 +1028,11 @@ const portalButton=document.createElement('button');portalButton.className='mark
 const uiBeforeCucchiaio=updateInteractionUI;updateInteractionUI=function(){uiBeforeCucchiaio();if(isInterior(locationId))doorButton.hidden=true;const p=nearbyPortal();portalButton.hidden=!p||!ready||intro||!!dialogue||editor.open||locked();if(!portalButton.hidden){const pos=screenPosition({x:p.x,y:p.y-65});portalButton.style.left=clamp(pos.x,24,viewWidth-24)+'px';portalButton.style.top=clamp(pos.y,52,viewHeight-25)+'px';portalButton.setAttribute('aria-label',p.label);}};
 const travelBeforeCucchiaio=updateTravel;updateTravel=function(dt){travelBeforeCucchiaio(dt);if(isInterior(locationId))testHongButton.hidden=true;updateRoomDoors(dt);};
 const exportBeforeCucchiaio=$('editorExport').onclick;$('editorExport').onclick=()=>{if(!isInterior(locationId))return exportBeforeCucchiaio();if(editor.draft.length){notice('Termina prima la forma.');return;}saveWorld();$('exportData').value=JSON.stringify({map:CUCCHIAIO[locationId].map,version:CUCCHIAIO_VERSION,width:1024,height:1536,collisions:world.collisions,depth:world.depth},null,2);$('exportPanel').hidden=false;$('exportCopy').textContent='Copia';};
+
+/* Visuale di gioco fissa al limite più lontano già previsto. */
+const cameraBeforeFixedZoom=updateCamera;
+updateCamera=function(){if(!intro){const factor=locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:locationId==='hongdeon'?CONFIG.spriteHeight/HONGDEON.playerHeight:1;zoom=CONFIG.minZoom*factor;}cameraBeforeFixedZoom();};
+for(const id of ['zoomIn','zoomOut']){$(id).hidden=true;$(id).style.display='none';$(id).onclick=null;}
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
