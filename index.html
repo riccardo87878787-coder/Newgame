@@ -68,6 +68,35 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #destinationBack{position:absolute;bottom:5.5%;left:15%;width:70%;height:7%;border:0;background:#272929;color:#fff4de;font-size:20px;font-weight:800}
 #game.travel-ending #resetButton{position:relative;z-index:41}#game.travel-ending #hud{z-index:41}#game.travel-ending .panel{visibility:hidden}
 </style>
+<style>
+#equipPage{position:absolute;inset:0;z-index:30;background:#182e2f;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;color:#3b2414;font-family:Georgia,'Noto Sans KR',serif}
+#equipCanvas{position:relative;width:min(100%,66.6667dvh);aspect-ratio:2/3;margin:auto;background:#f6e5c6 url('Equip/Icone/equip_background.png') center/100% 100%;container-type:inline-size;font-size:3cqw}
+#equipCanvas button{font-family:inherit;color:inherit;border:0;border-radius:0;box-shadow:none;background:none;padding:0;min-height:0;cursor:pointer;touch-action:manipulation}
+#equipCanvas button:focus-visible{outline:2px solid #d3a449;outline-offset:1px}
+#equipCanvas button:disabled{cursor:default;opacity:.55}
+#equipCanvas h1,#equipCanvas h2{position:absolute;margin:0;text-align:center;color:#fff0cf;font-weight:700;line-height:1.1}
+#equipCanvas h1{left:5%;top:1.6%;width:90%;font-size:6cqw}
+#equipPortrait{position:absolute;left:9.7%;top:7.9%;width:24.8%;height:15.5%;border-radius:8%;background-size:265% auto;background-position:6% 3%;background-repeat:no-repeat}
+#equipName{position:absolute;left:45%;top:10.7%;width:43%;font-size:6cqw;font-weight:bold}
+#equipLevel{position:absolute;left:46%;top:17%;font-size:4.2cqw;font-weight:bold}
+#equipPrev,#equipNext{position:absolute;top:13.6%;font-size:4cqw;width:5%;height:4%}#equipPrev{left:38%}#equipNext{right:4%}
+#equipCanvas h2{top:26.3%;font-size:4.2cqw}#equipLeftTitle{left:3%;width:42%}#equipRightTitle{left:48%;width:49%}
+#equipSlots{position:absolute;left:4.8%;top:30.9%;width:40.2%;height:41.1%;display:grid;grid-template-rows:repeat(5,1fr);gap:1.2%}
+#equipCanvas .equip-slot{display:flex;align-items:center;width:100%;min-width:0;text-align:left;padding:1.8% 2%;border-radius:10px}
+#equipCanvas .equip-slot[aria-pressed=true]{background:#28504b24;outline:2px solid #b48b43}
+.equip-slot img{width:27%;height:85%;object-fit:contain;image-rendering:pixelated}
+.equip-slot span{display:flex;flex-direction:column;min-width:0;gap:.8cqw;padding-left:4%;flex:1}
+.equip-slot strong{font-size:3.7cqw}.equip-slot small{font-size:2.7cqw;line-height:1.1;overflow-wrap:anywhere}
+#equipAvailable{position:absolute;left:49.5%;top:31.4%;width:46%;height:40.5%;overflow:auto;font-size:3cqw}
+#equipCanvas .equip-item{display:flex;align-items:center;text-align:left;width:100%;gap:3%;padding:4% 2%;border-radius:8px}
+#equipCanvas .equip-item[aria-pressed=true]{background:#204e48;color:#fff1d1;outline:2px solid #c39b4b;outline-offset:-2px}
+.equip-item img{width:25%;aspect-ratio:1;object-fit:contain;image-rendering:pixelated}.equip-item span{flex:1;font-size:3.5cqw;font-weight:bold}.equip-item small{font-size:2.5cqw}
+#equipDetailIcon{position:absolute;left:7%;top:77.2%;width:18.5%;height:11%;object-fit:contain;image-rendering:pixelated}
+#equipDetail{position:absolute;left:32%;top:76.3%;width:62%;height:13.4%;overflow:auto}#equipItemName{font-size:4cqw;line-height:1.05}#equipDescription{font-size:2.8cqw;line-height:1.2;margin:1.5cqw 0;font-style:italic}#equipComparison{font-size:3.3cqw;font-weight:bold}.better{color:#257528}.worse{color:#aa2e28}
+#equipHint{position:absolute;left:5%;top:90.8%;width:90%;font-family:Arial,sans-serif;font-size:2.5cqw;font-weight:bold;text-align:center;color:#4d301a;background:#f7e7c6ed}
+#equipBack,#equipConfirm{position:absolute;top:92.2%;width:38%;height:4.7%;font-size:4.6cqw;font-weight:bold;color:#fff0cf!important}#equipBack{left:7%}#equipConfirm{right:7%}
+
+</style>
 </head>
 <body>
 <!-- 05 · HTML -->
@@ -1055,6 +1084,110 @@ showLocation=function(id){if(seoyoonNpc)seoyoonNpc.actor.node.hidden=true;showBe
 window.TaraiParty.joinSeoyoon=function(){const m=partyMembers.seoyoon;if(partySlots.includes('seoyoon'))return true;const slot=partySlots[1]===null?1:partySlots.indexOf(null);if(slot<0)return false;m.joined=true;assignMember(slot,'seoyoon');return true;};
 const beginBeforeSeoyoon=beginIntro;
 beginIntro=function(){partyMembers.seoyoon.joined=false;Object.assign(partyMembers.seoyoon,{level:1,hp:200,maxHp:200,ep:120,maxEp:120});for(let i=0;i<partySlots.length;i++)if(partySlots[i]==='seoyoon')partySlots[i]=null;beginBeforeSeoyoon();};
+
+/* EQUIP · Cucchiaio first shift */
+const EQUIP_SAVE_KEY='newgame-cucchiaio-equip-v1';
+const EQUIP_SLOTS=['weapon','head','body','legs','shoes'];
+const EQUIP_LABELS={weapon:'Weapon',head:'Head',body:'Body',legs:'Legs',shoes:'Shoes'};
+const EQUIP_ITEMS={
+ chipped_pan:{slot:'weapon',name:'Chipped Frying Pan',icon:'padella_sbeccata',description:'A chipped frying pan. Still good for cooking. Probably.',attack:3},
+ secondhand_bandana:{slot:'head',name:'Secondhand Bandana',icon:'bandana_bordeaux',description:'A faded burgundy bandana. Keeps your hair out of dinner.',defense:1},
+ secondhand_shirt:{slot:'body',name:'Secondhand T-Shirt',icon:'maglietta_bianca',description:'A white work shirt. Its previous owner left a few memories.',defense:2},
+ secondhand_trousers:{slot:'legs',name:'Secondhand Trousers',icon:'pantaloni_neri',description:'Black work trousers. Comfortable enough for a very long shift.',defense:1},
+ secondhand_shoes:{slot:'shoes',name:'Secondhand Shoes',icon:'scarpe_blu_scuro',description:'Navy kitchen clogs. Reliable grip, questionable fashion.',defense:1}
+};
+function freshEquipState(){return {stage:'new',owned:{},members:{riccardo:{}}};}
+let equipState=freshEquipState();
+try{const s=JSON.parse(localStorage.getItem(EQUIP_SAVE_KEY));if(s&&['new','equip','after','done'].includes(s.stage)){
+ equipState.stage=s.stage;
+ for(const id of Object.keys(EQUIP_ITEMS))if(Number.isInteger(s.owned?.[id])&&s.owned[id]>0)equipState.owned[id]=Math.min(99,s.owned[id]);
+ const remaining={...equipState.owned};
+ for(const [member,slots] of Object.entries(s.members||{})){if(!partyMembers[member])continue;equipState.members[member]={};for(const slot of EQUIP_SLOTS){const id=slots?.[slot];if(EQUIP_ITEMS[id]?.slot===slot&&remaining[id]>0){equipState.members[member][slot]=id;remaining[id]--;}}}
+}}catch(_){}
+function saveEquipState(){try{localStorage.setItem(EQUIP_SAVE_KEY,JSON.stringify(equipState));}catch(_){notice('Unable to save progress in this browser.');}}
+function equipmentFor(id){return equipState.members[id]||(equipState.members[id]={});}
+function equipmentStats(id){const result={attack:0,defense:0};for(const item of Object.values(equipmentFor(id))){const data=EQUIP_ITEMS[item];if(data){result.attack+=data.attack||0;result.defense+=data.defense||0;}}return result;}
+function availableEquip(id,member){return (equipState.owned[id]||0)-Object.entries(equipState.members).reduce((n,[m,slots])=>n+(m===member?0:Object.values(slots).filter(x=>x===id).length),0);}
+const equipPage=document.createElement('section');equipPage.id='equipPage';equipPage.hidden=true;equipPage.setAttribute('role','dialog');equipPage.setAttribute('aria-modal','true');equipPage.setAttribute('aria-label','Equipment');
+equipPage.innerHTML='<div id="equipCanvas"><h1>EQUIP</h1><div id="equipPortrait"></div><div id="equipName"></div><div id="equipLevel"></div><button id="equipPrev" aria-label="Previous character">◀</button><button id="equipNext" aria-label="Next character">▶</button><h2 id="equipLeftTitle">EQUIPPED</h2><h2 id="equipRightTitle">AVAILABLE</h2><div id="equipSlots"></div><div id="equipAvailable"></div><img id="equipDetailIcon" alt=""><div id="equipDetail"><strong id="equipItemName"></strong><p id="equipDescription"></p><div id="equipComparison"></div></div><div id="equipHint" role="status"></div><button id="equipBack">BACK</button><button id="equipConfirm">EQUIP</button></div>';
+game.appendChild(equipPage);
+let equipMember='riccardo',equipSlot='head',equipSelected=null,equipTutorial=false;
+function equipCharacters(){return partySlots.filter(id=>id&&partyMembers[id]&&partyMembers[id].joined!==false);}
+function renderEquip(){
+ const characters=equipCharacters();if(!characters.includes(equipMember))equipMember=characters[0]||'riccardo';
+ const m=partyMembers[equipMember],slots=equipmentFor(equipMember);
+ $('equipName').textContent=m.name[language]||m.name.en;$('equipLevel').textContent='Lv '+m.level;
+ $('equipPortrait').style.backgroundImage='url("'+m.card+'")';
+ for(const id of ['equipPrev','equipNext']){$(id).hidden=characters.length<2||equipTutorial;}
+ $('equipSlots').replaceChildren();
+ for(const slot of EQUIP_SLOTS){const b=document.createElement('button');b.className='equip-slot';b.setAttribute('aria-pressed',String(slot===equipSlot));const item=EQUIP_ITEMS[slots[slot]],img=document.createElement('img');img.src='Equip/Icone/'+(item?item.icon:'slot_'+slot)+'.png';img.alt='';b.appendChild(img);const words=document.createElement('span'),label=document.createElement('strong'),value=document.createElement('small');label.textContent=EQUIP_LABELS[slot];value.textContent=item?item.name:'Empty';words.append(label,value);b.appendChild(words);b.onclick=()=>{equipSlot=slot;equipSelected=null;renderEquip();};$('equipSlots').appendChild(b);}
+ const ids=Object.keys(EQUIP_ITEMS).filter(id=>EQUIP_ITEMS[id].slot===equipSlot&&availableEquip(id,equipMember)>0);
+ if(!ids.includes(equipSelected))equipSelected=ids[0]||null;
+ $('equipAvailable').replaceChildren();
+ for(const id of ids){const item=EQUIP_ITEMS[id],b=document.createElement('button');b.className='equip-item';b.setAttribute('aria-pressed',String(id===equipSelected));const img=document.createElement('img');img.src='Equip/Icone/'+item.icon+'.png';img.alt='';const name=document.createElement('span');name.textContent=item.name;const count=document.createElement('small');count.textContent=slots[equipSlot]===id?'Equipped':'×'+availableEquip(id,equipMember);b.append(img,name,count);b.onclick=()=>{equipSelected=id;renderEquip();};$('equipAvailable').appendChild(b);}
+ if(!ids.length)$('equipAvailable').textContent='No compatible equipment.';
+ const item=EQUIP_ITEMS[equipSelected];$('equipDetailIcon').hidden=!item;
+ $('equipItemName').textContent=item?.name||'Empty slot';$('equipDescription').textContent=item?.description||'Select a slot to see compatible equipment.';
+ $('equipComparison').replaceChildren();
+ if(item){$('equipDetailIcon').src='Equip/Icone/'+item.icon+'.png';const current=equipmentStats(equipMember),old=EQUIP_ITEMS[slots[equipSlot]]||{};for(const [stat,label] of [['attack','ATK'],['defense','DEF']]){const next=current[stat]-(old[stat]||0)+(item[stat]||0);if(!item[stat]&&!old[stat])continue;const row=document.createElement('div');row.append(document.createTextNode(label+' '+current[stat]+' → '));const value=document.createElement('span');value.textContent=next;value.className=next>current[stat]?'better':next<current[stat]?'worse':'';row.appendChild(value);$('equipComparison').appendChild(row);}}
+ $('equipConfirm').disabled=!item||slots[equipSlot]===equipSelected;
+ $('equipConfirm').textContent=slots[equipSlot]===equipSelected&&item?'EQUIPPED':'EQUIP';
+ $('equipBack').disabled=equipTutorial;
+ const remaining=EQUIP_SLOTS.slice(1).filter(slot=>!equipmentFor('riccardo')[slot]);
+ $('equipHint').textContent=equipTutorial?'Work clothes: '+(4-remaining.length)+'/4 · Select '+EQUIP_LABELS[remaining[0]||'head']+' and press EQUIP.':'';
+}
+function openEquip(tutorial=false){resetInput();clearMarkers();equipTutorial=tutorial;menuOpen=true;$('rpgMenu').hidden=true;equipPage.hidden=false;equipMember='riccardo';equipSlot=tutorial?(EQUIP_SLOTS.slice(1).find(s=>!equipmentFor('riccardo')[s])||'head'):'weapon';equipSelected=null;renderEquip();}
+function closeEquip(){if(equipTutorial)return;equipPage.hidden=true;resetInput();menuOpen=true;$('rpgMenu').hidden=false;renderMenu();}
+function equipChosen(){const item=EQUIP_ITEMS[equipSelected];if(!item||item.slot!==equipSlot||availableEquip(equipSelected,equipMember)<=0)return false;equipmentFor(equipMember)[equipSlot]=equipSelected;saveEquipState();
+ if(equipTutorial){const next=EQUIP_SLOTS.slice(1).find(slot=>!equipmentFor('riccardo')[slot]);if(!next){equipTutorial=false;equipPage.hidden=true;menuOpen=false;equipState.stage='after';saveEquipState();startSeoyoonPages('after');return true;}equipSlot=next;equipSelected=null;}
+ renderEquip();return true;
+}
+function cycleEquip(d){if(equipTutorial)return;const ids=equipCharacters();if(ids.length<2)return;equipMember=ids[(ids.indexOf(equipMember)+d+ids.length)%ids.length];equipSelected=null;renderEquip();}
+ $('equipBack').onclick=closeEquip;$('equipConfirm').onclick=equipChosen;$('equipPrev').onclick=()=>cycleEquip(-1);$('equipNext').onclick=()=>cycleEquip(1);
+const menuBeforeEquip=renderMenu;renderMenu=function(){menuBeforeEquip();const b=$('menuNav').querySelector('[data-menu-index="2"]');if(b)b.onclick=()=>{if(!autoMenu)openEquip();};};
+const closeMenuBeforeEquip=closeMenu;closeMenu=function(){if(equipTutorial)return;equipPage.hidden=true;closeMenuBeforeEquip();};
+const SEOYOON_SCENES={
+ before:[
+ ['Seoyoon','Hi! Are you Riccardo? The Job Center called about you.'],
+ ['Riccardo',"That’s me. I’m here about the job."],
+ ['Seoyoon',"I’m Seoyoon. I work here as a waitress. Have you worked in a kitchen before?"],
+ ['Riccardo',"Yes. Kitchens are probably the one place where I know what I’m doing."],
+ ['Seoyoon',"Then you’ll be fine. They’re expecting you to start today. We still have some time before the dinner service, so I can show you around."],
+ ['Riccardo','Straight into it, then. All right.'],
+ ['Seoyoon','Here are your work clothes.'],
+ ['narration','Seoyoon hands you a bandana, a white T-shirt, black trousers and a pair of kitchen clogs. There’s a chipped frying pan, too.'],
+ ['Riccardo','Thanks. Where can I get changed?'],
+ ['Seoyoon','Just open the menu, go to Equip, and select your work clothes.'],
+ ['Riccardo','…Equip?'],
+ ['Seoyoon','Yes. Put them on from there.'],
+ ['thought','Right. This is a video game. Why was I expecting a changing room?']
+ ],
+ after:[
+ ['Riccardo','That’s it? I’m changed?'],['Seoyoon','You are. The bandana suits you.'],
+ ['Riccardo','Thanks. I think it belonged to three other people first.'],['Seoyoon','Then it has more experience than both of us.'],['Riccardo','Good. Maybe it can do my shift.'],
+ ['Seoyoon','Come on. Dinner service starts soon.'],['Riccardo','Does it usually get busy?'],
+ ['Seoyoon','Lately? Every night. Apparently, we changed suppliers and started using some special ingredients. People keep coming back.'],
+ ['Riccardo','Special how?'],['Seoyoon','No idea. I carry the plates. You’re the one who gets to find out what’s in them.'],['Riccardo','Anything else I should know?'],
+ ['Seoyoon','Some of the customers can be a little strange.'],['Riccardo','Strange?'],['Seoyoon','Yesterday, a man asked for another portion before I’d even put his first one down.'],['Riccardo','Efficient.'],
+ ['Seoyoon','And one woman tried to order from a coat rack. But she apologised to it afterwards, so… probably just tired.'],['Riccardo','Nothing to worry about, then?'],['Seoyoon','Nothing we can’t handle. Just keep the food coming.'],
+ ['Seoyoon','Oh, one more thing. Have you found a place to stay?'],['Riccardo','Not yet. Finding a job was the first problem on my list.'],
+ ['Seoyoon','Well, the restaurant has rooms upstairs for the staff. Two are empty. You can take one.'],['Riccardo','A job and a room? That’s a surprisingly generous starter pack.'],
+ ['Seoyoon','Wait until you see the room. There’s a bed, a wardrobe… and plenty of room for your imagination.'],['Riccardo','Luxury. Do you live upstairs too?'],
+ ['Seoyoon','Yes. I’ll show you around after the shift. For now, those pans aren’t going to wash themselves.'],['Riccardo','Fine. But I’m expecting EXP for this.'],['Seoyoon','You can have a clean kitchen.'],['Riccardo','Tough game.']
+ ]
+};
+function showSeoyoonPage(){const q=dialogue?.seoyoonScene;if(!q)return;const [speaker,text]=SEOYOON_SCENES[q.part][q.index];dialogue.type=speaker==='Seoyoon'&&dialogue.target?'npc':'story';$('speech').classList.toggle('thought',speaker==='thought');$('speech').classList.toggle('narration',speaker==='narration');$('speechText').textContent=(speaker==='Riccardo'||speaker==='Seoyoon'?speaker+': ':'')+text;pop($('speech'));updateInteractionUI();}
+function startSeoyoonPages(part){const n=seoyoonNpc;const target=n?{type:'npc',key:n.id,owner:n,dog:false}:null;if(n){n.previousDirection=n.direction;n.direction=facing(player.x-n.x,player.y-n.y);n.talking=true;drawNpc(n);}resetInput();menuOpen=false;openSpeech([''],{type:'story',target});dialogue.seoyoonScene={part,index:0};showSeoyoonPage();}
+function grantWorkClothes(){for(const id of Object.keys(EQUIP_ITEMS))equipState.owned[id]=Math.max(1,equipState.owned[id]||0);equipmentFor('riccardo').weapon='chipped_pan';equipState.stage='equip';saveEquipState();openEquip(true);}
+const advanceBeforeSeoyoonStory=advanceSpeech;advanceSpeech=function(){const q=dialogue?.seoyoonScene;if(!q)return advanceBeforeSeoyoonStory();if(q.index+1<SEOYOON_SCENES[q.part].length){q.index++;showSeoyoonPage();return;}const part=q.part;closeDialogue(false);$('speech').classList.remove('thought','narration');if(part==='before'){grantWorkClothes();}else{equipState.stage='done';saveEquipState();$('objective').textContent='Ready for your first shift';resetInput();updateInteractionUI();}};
+const interactBeforeSeoyoonStory=interact;interact=function(t){if(t?.owner?.id!=='seoyoon')return interactBeforeSeoyoonStory(t);if(!ready||intro||dialogue||editor.open||locked()||!nearTarget(t))return;
+ player.direction=facing(t.owner.x-player.x,t.owner.y-player.y);drawPlayer();
+ if(equipState.stage==='done'){openSpeech(['Seoyoon: Ready for your first shift? We’ll talk again once the kitchen is ready.'],{type:'npc',target:t});return;}
+ if(equipState.stage==='equip'){if(EQUIP_SLOTS.slice(1).every(s=>equipmentFor('riccardo')[s])){equipState.stage='after';saveEquipState();startSeoyoonPages('after');}else openEquip(true);return;}
+ startSeoyoonPages(equipState.stage==='after'?'after':'before');
+};
+let equipFirstStartup=true;const beginBeforeEquipStory=beginIntro;beginIntro=function(){if(!equipFirstStartup){equipState=freshEquipState();saveEquipState();}equipFirstStartup=false;equipTutorial=false;equipPage.hidden=true;beginBeforeEquipStory();};
+window.TaraiEquipment={getState:()=>JSON.parse(JSON.stringify(equipState)),getStats:equipmentStats,open:()=>{if(!dialogue&&!locked()&&!intro&&menuUnlocked)openEquip();}};
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
