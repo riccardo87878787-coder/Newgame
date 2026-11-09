@@ -1085,6 +1085,11 @@ window.TaraiParty.joinSeoyoon=function(){const m=partyMembers.seoyoon;if(partySl
 const beginBeforeSeoyoon=beginIntro;
 beginIntro=function(){partyMembers.seoyoon.joined=false;Object.assign(partyMembers.seoyoon,{level:1,hp:200,maxHp:200,ep:120,maxEp:120});for(let i=0;i<partySlots.length;i++)if(partySlots[i]==='seoyoon')partySlots[i]=null;beginBeforeSeoyoon();};
 
+// Seoyoon resta interagibile nel ristorante anche usando il salto di test.
+const targetsBeforeSeoyoonTalk=allTargets;
+allTargets=function(){if(locationId==='restaurant')return npcs.filter(n=>n.id==='seoyoon').map(owner=>({key:owner.id,type:'npc',owner,dog:false}));return targetsBeforeSeoyoonTalk();};
+const nearBeforeSeoyoonTalk=nearTarget;
+nearTarget=function(t){if(locationId==='restaurant'&&t.owner?.id==='seoyoon')return Math.hypot(player.x-t.owner.x,player.y-t.owner.y)<=110;return nearBeforeSeoyoonTalk(t);};
 /* EQUIP · Cucchiaio first shift */
 const EQUIP_SAVE_KEY='newgame-cucchiaio-equip-v1';
 const EQUIP_SLOTS=['weapon','head','body','legs','shoes'];
