@@ -102,10 +102,10 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #speechText{color:#211b16;font-weight:600}
 #speech .speech-speaker{display:block;color:#9b3d48;font-size:13px;font-weight:800;margin-bottom:3px;line-height:1.2}
 #speech .speech-body{display:block;color:#211b16}
-#speech .speech-page{display:block;color:#68635d;font-size:10px;text-align:right;line-height:1;margin-top:4px}
 #speech.thought{border-bottom-width:28px;border-image-width:10px 14px 28px}
 #speech.narration{padding:9px 11px;font-size:14px}
 </style>
+<style>#speech.appear{animation:none}</style>
 </head>
 <body>
 <!-- 05 · HTML -->
@@ -1223,7 +1223,6 @@ function paintBalloonPage(){
  const node=$('speechText');node.replaceChildren();
  if(speechSpeaker){const name=document.createElement('strong');name.className='speech-speaker';name.textContent=speechSpeaker;node.appendChild(name);}
  const text=document.createElement('span');text.className='speech-body';text.textContent=speechPages[speechPageIndex]||'';node.appendChild(text);
- if(speechPages.length>1){const page=document.createElement('small');page.className='speech-page';page.textContent=(speechPageIndex+1)+'/'+speechPages.length;node.appendChild(page);}
 }
 function setSpeechText(value){
  let text=String(value??''),name='';const explicit=text.match(/^(Riccardo|Seoyoon):\s*/);
@@ -1233,6 +1232,14 @@ function setSpeechText(value){
 const advanceBeforeCompactBalloons=advanceSpeech;
 advanceSpeech=function(){if(dialogue&&speechPageIndex+1<speechPages.length){speechPageIndex++;paintBalloonPage();pop($('speech'));updateInteractionUI();return;}advanceBeforeCompactBalloons();};
 
+// Decodifica e conserva tutte le cornici prima di mostrare il primo dialogo.
+const balloonSkinImages=[];
+const balloonSkinsReady=Promise.all(Object.values(UI_ASSETS).map(src=>new Promise(resolve=>{
+ const im=new Image();balloonSkinImages.push(im);
+ im.onload=async()=>{try{await im.decode();}catch(_){}resolve();};
+ im.onerror=()=>resolve();im.src=src;
+})));
+
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
 async function startGame(retry=false){
@@ -1240,6 +1247,7 @@ async function startGame(retry=false){
  try{
   await new Promise((resolve,reject)=>{mapImage.onload=resolve;mapImage.onerror=reject;mapImage.src=CONFIG.map+(retry?"?retry="+Date.now():"");});
   if(!assetsStarted){assetsStarted=true;await Promise.all([loadCharacters(),loadVehicles()]);setupTrain();}
+  await balloonSkinsReady;
   rebuildDepth();for(const n of npcs){nearestFree(n);drawNpc(n);}ready=true;$("loading").hidden=true;resize();beginIntro();
  }catch(_){$("loadingTitle").textContent="Unable to load the map";$("loadingText").textContent="Controlla il nome della mappa e la sua posizione accanto a index.html.";$("retryLoad").hidden=false;}finally{loadingMap=false;}
 }
