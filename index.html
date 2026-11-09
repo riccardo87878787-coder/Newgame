@@ -555,7 +555,7 @@ function nearTarget(t){
 function screenPosition(p){return{x:(p.x-camera.x)*zoom,y:(p.y-camera.y)*zoom};}
 function clearMarkers(){for(const b of markerNodes.values())b.hidden=true;}
 function openSpeech(lines,options={}){
- resetInput();reactionTime=0;dialogue={lines,index:0,type:options.type||"npc",target:options.target||null};
+ resetInput();reactionTime=0;dialogue={lines,index:0,type:options.type||"npc",target:options.target||null,speaker:options.speaker||(options.target?.dog?"Dubu":options.target?.owner?.name)||""};
  setSpeechText(lines[0]);$("speech").hidden=false;pop($("speech"));clearMarkers();
 }
 function interact(t){
@@ -1071,7 +1071,7 @@ const exportBeforeCucchiaio=$('editorExport').onclick;$('editorExport').onclick=
 
 /* Visuale di gioco fissa al limite più lontano già previsto. */
 const cameraBeforeFixedZoom=updateCamera;
-updateCamera=function(){if(!intro){const factor=locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:isInterior(locationId)?CONFIG.spriteHeight/player.actor.height:locationId==='hongdeon'?1/1.25:1;zoom=CONFIG.minZoom*factor;}cameraBeforeFixedZoom();};
+updateCamera=function(){if(!intro){const factor=locationId==='office'?CONFIG.spriteHeight/OFFICE_VIEW.playerHeight:isInterior(locationId)?CONFIG.spriteHeight/player.actor.height:locationId==='hongdeon'?1/1.25:1;zoom=locationId==='office'?Math.max(viewWidth/CONFIG.width,viewHeight/CONFIG.height):CONFIG.minZoom*factor;}cameraBeforeFixedZoom();};
 for(const id of ['zoomIn','zoomOut']){$(id).hidden=true;$(id).style.display='none';$(id).onclick=null;}
 
 
@@ -1216,12 +1216,12 @@ function currentSpeaker(){
  if(q){const who=SEOYOON_SCENES[q.part][q.index][0];return who==='narration'?'':who==='thought'?'Riccardo':who;}
  if(dialogue.officeStory&&officeSequence){const who=OFFICE_STORY[officeSequence.index]?.speaker;if(who==='narration')return '';if(who!=='npc')return 'Riccardo';}
  if(dialogue.englishScene){const who=ENGLISH_SCENE[dialogue.index]?.[0];if(who==='narration')return '';if(who!=='npc')return 'Riccardo';}
- if(dialogue.type==='npc'){const name=dialogue.target?.owner?.name;return typeof name==='string'?name:(name?.[language]||name?.en||'');}
+ if(dialogue.type==='npc')return dialogue.target?.owner?.id==='seoyoon'?'Seoyoon':'';
  return dialogue.type==='narration'?'':'Riccardo';
 }
 function paintBalloonPage(){
  const node=$('speechText');node.replaceChildren();
- if(speechSpeaker){const name=document.createElement('strong');name.className='speech-speaker';name.textContent=speechSpeaker;node.appendChild(name);}
+ const candidate=speechSpeaker||currentSpeaker(),shownSpeaker=['Riccardo','Seoyoon'].includes(candidate)?candidate:'';if(shownSpeaker){const name=document.createElement('strong');name.className='speech-speaker';name.textContent=shownSpeaker;node.appendChild(name);}
  const text=document.createElement('span');text.className='speech-body';text.textContent=speechPages[speechPageIndex]||'';node.appendChild(text);
 }
 function setSpeechText(value){
