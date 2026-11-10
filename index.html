@@ -106,6 +106,19 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #speech.narration{padding:9px 11px;font-size:14px}
 </style>
 <style>#speech.appear{animation:none}</style>
+<style>
+/* 30 · PRIMO COMBATTIMENTO RPG */
+#battleScreen{position:absolute;inset:0;z-index:45;background:#000;overflow:hidden;font-family:Arial,sans-serif}
+#battleBackdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;opacity:0;transition:opacity .65s}
+#battleActors{position:absolute;inset:0;opacity:0;transition:opacity .65s}
+.battle-actor{position:absolute;bottom:26%;width:43%;height:46%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 6px 3px #0008)}
+#battleEnemy{left:4%;transform:scaleX(-1)}#battleHero{right:3%}
+#battleMenu{position:absolute;left:3%;right:3%;bottom:max(2%,env(safe-area-inset-bottom));min-height:20%;background:#142735ef;border:2px solid #b9a47a;border-radius:8px;display:grid;grid-template-columns:42% 58%;gap:0;padding:9px;color:#fff;opacity:0;transition:opacity .5s}
+#battleStats{border-right:1px solid #7d8e96;padding:5px;font-size:clamp(11px,3.2vw,17px);line-height:1.7}#battleStats strong{color:#ffda77}#battleCommands{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding-left:8px}#battleCommands button{min-height:34px;font-weight:bold;font-size:clamp(11px,3.1vw,16px);padding:4px}#battleCommands button:disabled{opacity:.3}
+#battleMessage{position:absolute;left:4%;right:4%;top:5%;background:#142735e8;border:1px solid #b9a47a;border-radius:6px;padding:10px;font-size:14px;text-align:center;opacity:0;transition:opacity .4s}
+#battleScreen.battle-visible #battleBackdrop,#battleScreen.battle-visible #battleActors,#battleScreen.battle-visible #battleMenu,#battleScreen.battle-visible #battleMessage{opacity:1}
+#battleEnemy.vanish{opacity:0;transition:opacity .3s}#battleVortex{position:absolute;inset:-80%;z-index:4;pointer-events:none;background:repeating-conic-gradient(from 0deg,#000 0deg 23deg,#172c39 24deg 43deg,#000 44deg 60deg);animation:battleSpin .9s linear infinite;opacity:0;transition:opacity .4s}#battleVortex.active{opacity:1}@keyframes battleSpin{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
 <!-- 05 · HTML -->
@@ -126,6 +139,7 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
   <button id="menuOpen" hidden>메뉴</button>
   <section id="rpgMenu" hidden aria-label="Game menu"><div id="partySlots"></div><nav id="menuNav"></nav><div id="wallet"></div><button id="menuClose"></button><div id="languagePage" hidden><h2 id="languageTitle"></h2><div id="languageChoices"><button data-language="ko">한국어</button><button data-language="en">English</button></div><button id="languageBack"></button></div></section><div id="fade"></div>
 <section id="destinations" hidden role="dialog" aria-modal="true" aria-label="Bus destinations"><div id="destinationPanel"><img id="destinationSkin" src="Menu/file_0000000058f08209bf1a209d9e6b9d3c.png" alt="" onerror="this.hidden=true"><h2 id="destinationTitle">DESTINATIONS</h2><div id="destinationList"></div><button id="destinationBack">BACK</button></div></section>
+<section id="battleScreen" hidden aria-label="Turn-based battle"><img id="battleBackdrop" src="Map/file_000000004b808209ac31d0be04302bdb.png" alt=""><div id="battleActors"><img id="battleEnemy" class="battle-actor" alt="Enemy"><img id="battleHero" class="battle-actor" alt="Riccardo"></div><div id="battleMessage" aria-live="polite"></div><div id="battleMenu"><div id="battleStats"></div><div id="battleCommands"><button data-battle="atk">ATK</button><button data-battle="skl">SKL</button><button data-battle="def">DEF</button><button data-battle="item">ITEM</button><button data-battle="run">RUN</button></div></div><div id="battleVortex"></div></section>
   <div id="loading"><strong id="loadingTitle">Loading Seoul…</strong><p id="loadingText">Please wait.</p><button id="retryLoad" hidden>Retry</button></div>
 </main>
 <section id="editor" hidden role="dialog" aria-modal="true" aria-label="Editor mappa">
@@ -727,7 +741,7 @@ Object.assign(NPC_LINES,{'19_impiegato_occhiali':'번호표 뽑고 잠시만 기
 let locationId='city',transitioning=false,menuOpen=false,autoMenu=false,ending=false,officeLoaded=false,sceneEpoch=0,officeSequence=null;
 const cityNpcs=[],officeNpcs=[];let cityWorld=null,officeWorld={collisions:copy(OFFICE.collisions),depth:copy(OFFICE.depth)};
 const cityMap=new Image(),officeMap=new Image();let officeMapPromise=null;
-function locked(){return transitioning||menuOpen||autoMenu||ending||destinationOpen||!!travelScene||!!officeSequence;}
+function locked(){return transitioning||menuOpen||autoMenu||ending||destinationOpen||!!travelScene||!!officeSequence||battleActive;}
 function loadOfficeMap(){return officeMapPromise||(officeMapPromise=new Promise((resolve,reject)=>{officeMap.onload=resolve;officeMap.onerror=()=>{officeMapPromise=null;reject(Error('Unable to load '+OFFICE.map));};officeMap.src=OFFICE.map;}));}
 async function loadOfficeNpcs(){if(officeLoaded)return;const jobs=[];for(const [id,name,x,y,direction,fixedFacing]of OFFICE_DATA){const n={...npc(id,name,x,y,direction),fixedFacing,height:id.startsWith('18_')||id.startsWith('19_')?OFFICE_VIEW.staffHeight:id.startsWith('20_')||id.startsWith('22_')?OFFICE_VIEW.seatedHeight:OFFICE_VIEW.npcHeight,radius:12,actor:null,animation:null,idleAssets:{},walkAssets:{},moving:false,talking:false};n.actor=createActor(n.height);officeNpcs.push(n);jobs.push(loadAsset(n.gif,true).then(a=>n.animation=a));for(const d of fixedFacing?[direction]:Object.keys(IT))jobs.push(loadAsset(n.idle[d],true).then(a=>n.idleAssets[d]=a));}await Promise.all(jobs);officeLoaded=true;for(const n of officeNpcs)n.actor.node.hidden=true;}
 function showLocation(id){
@@ -1193,7 +1207,7 @@ const SEOYOON_SCENES={
 function showSeoyoonPage(){const q=dialogue?.seoyoonScene;if(!q)return;const [speaker,text]=SEOYOON_SCENES[q.part][q.index];dialogue.type=speaker==='Seoyoon'&&dialogue.target?'npc':'story';$('speech').classList.toggle('thought',speaker==='thought');$('speech').classList.toggle('narration',speaker==='narration');setSpeechText((speaker==='Riccardo'||speaker==='Seoyoon'?speaker+': ':'')+text);pop($('speech'));updateInteractionUI();}
 function startSeoyoonPages(part){const n=seoyoonNpc;const target=n?{type:'npc',key:n.id,owner:n,dog:false}:null;if(n){n.previousDirection=n.direction;n.direction=facing(player.x-n.x,player.y-n.y);n.talking=true;drawNpc(n);}resetInput();menuOpen=false;openSpeech([''],{type:'story',target});dialogue.seoyoonScene={part,index:0};showSeoyoonPage();}
 function grantWorkClothes(){for(const id of Object.keys(EQUIP_ITEMS))equipState.owned[id]=Math.max(1,equipState.owned[id]||0);equipmentFor('riccardo').weapon='chipped_pan';equipState.stage='equip';saveEquipState();openEquip(true);}
-const advanceBeforeSeoyoonStory=advanceSpeech;advanceSpeech=function(){const q=dialogue?.seoyoonScene;if(!q)return advanceBeforeSeoyoonStory();if(q.index+1<SEOYOON_SCENES[q.part].length){q.index++;showSeoyoonPage();return;}const part=q.part;closeDialogue(false);$('speech').classList.remove('thought','narration');if(part==='before'){grantWorkClothes();}else{equipState.stage='done';saveEquipState();$('objective').textContent='Ready for your first shift';resetInput();updateInteractionUI();}};
+const advanceBeforeSeoyoonStory=advanceSpeech;advanceSpeech=function(){const q=dialogue?.seoyoonScene;if(!q)return advanceBeforeSeoyoonStory();if(q.index+1<SEOYOON_SCENES[q.part].length){q.index++;showSeoyoonPage();return;}const part=q.part;closeDialogue(false);$('speech').classList.remove('thought','narration');if(part==='before'){grantWorkClothes();}else{equipState.stage='done';saveEquipState();$('objective').textContent='Ready for your first shift';resetInput();updateInteractionUI();void startFirstBattle();}};
 const interactBeforeSeoyoonStory=interact;interact=function(t){if(t?.owner?.id!=='seoyoon')return interactBeforeSeoyoonStory(t);if(!ready||intro||dialogue||editor.open||locked()||!nearTarget(t))return;
  player.direction=facing(t.owner.x-player.x,t.owner.y-player.y);drawPlayer();
  if(equipState.stage==='done'){openSpeech(['Seoyoon: Ready for your first shift? We’ll talk again once the kitchen is ready.'],{type:'npc',target:t});return;}
@@ -1239,6 +1253,22 @@ const balloonSkinsReady=Promise.all(Object.values(UI_ASSETS).map(src=>new Promis
  im.onload=async()=>{try{await im.decode();}catch(_){}resolve();};
  im.onerror=()=>resolve();im.src=src;
 })));
+
+
+/* 30 · BATTAGLIA INIZIA DOPO IL DIALOGO FINALE CON SEOYOON */
+const BATTLE_FILES={hero:{idle:PLAYER_FILES.idle.left,atk:'Riccardogif/riccardo_attacco_outfit.gif',hurt:'Riccardogif/riccardo_danno_outfit.gif',def:'Riccardogif/riccardo_guardia_outfit.gif',win:'Riccardogif/riccardo_vittoria_5_giri.gif'},enemy:{idle:'Enemy/file_0000000041a482099abeaba46b3e57dd.gif',atk:'Enemy/file_0000000041a482099abeaba46b3e57dd.gif',hurt:'Enemy/nemico_affamato_danno.gif',def:'Enemy/file_00000000e3608209879d9dcd34bccb34.gif'}};
+let battleActive=false,battleBusy=false,battleState=null,battleToken=0;
+const battleWait=ms=>new Promise(r=>setTimeout(r,ms));
+function battleImage(who,action){const el=$(who==='hero'?'battleHero':'battleEnemy');el.src=BATTLE_FILES[who][action]+'?battle='+Date.now();}
+function battleSay(msg){$('battleMessage').textContent=msg;}
+function battleRender(){if(!battleState)return;const b=battleState;$('battleStats').innerHTML='<strong>RICCARDO</strong><div>HP '+b.hp+' / '+b.maxHp+'</div><div>EP '+b.ep+' / 100</div><div>ENEMY HP '+b.enemyHp+' / 60</div>';for(const btn of $('battleCommands').querySelectorAll('button'))btn.disabled=battleBusy||btn.dataset.battle==='skl'||btn.dataset.battle==='item';}
+async function battleAnim(who,action,duration=750){battleImage(who,action);await battleWait(duration);if(battleActive&&action!=='win')battleImage(who,'idle');}
+async function startFirstBattle(){if(battleActive)return;resetInput();battleActive=true;battleBusy=true;const token=++battleToken;const screen=$('battleScreen'),vortex=$('battleVortex');battleState={hp:250,maxHp:250,ep:100,enemyHp:60,guard:false};screen.hidden=false;screen.classList.remove('battle-visible');vortex.classList.add('active');$('battleActors').style.opacity='0';$('battleMenu').style.opacity='0';$('battleMessage').style.opacity='0';battleImage('hero','idle');battleImage('enemy','idle');battleSay('A hungry customer appears!');await battleWait(850);if(token!==battleToken)return;vortex.classList.remove('active');await battleWait(350);if(token!==battleToken)return;$('battleBackdrop').style.opacity='1';await battleWait(650);if(token!==battleToken)return;screen.classList.add('battle-visible');$('battleActors').style.opacity='1';$('battleMenu').style.opacity='1';$('battleMessage').style.opacity='1';battleBusy=false;battleRender();}
+async function battleEnemyTurn(token){if(token!==battleToken)return;battleSay('The hungry customer attacks!');await battleAnim('enemy','atk',650);if(token!==battleToken)return;const damage=battleState.guard?7:20;battleState.hp=Math.max(0,battleState.hp-damage);battleSay('Riccardo takes '+damage+' damage!');await battleAnim('hero','hurt',650);battleState.guard=false;if(battleState.hp<=0){battleSay('Defeat! Tap to retry.');$('battleCommands').innerHTML='<button data-battle="retry">RETRY</button>';battleBusy=false;battleRender();return;}battleBusy=false;battleSay('Riccardo’s turn');battleRender();}
+async function battleWin(token){if(token!==battleToken)return;battleSay('Enemy defeated!');$('battleEnemy').classList.add('vanish');await battleWait(350);if(token!==battleToken)return;battleSay('Victory!');battleImage('hero','win');battleRender();}
+async function battleCommand(cmd){if(!battleActive||battleBusy)return;if(cmd==='retry'){battleActive=false;$('battleScreen').hidden=true;$('battleEnemy').classList.remove('vanish');$('battleCommands').innerHTML='<button data-battle="atk">ATK</button><button data-battle="skl">SKL</button><button data-battle="def">DEF</button><button data-battle="item">ITEM</button><button data-battle="run">RUN</button>';void startFirstBattle();return;}if(!['atk','def','run'].includes(cmd))return;battleBusy=true;const token=battleToken;battleRender();if(cmd==='run'){battleSay('You cannot escape this battle!');await battleWait(750);}else if(cmd==='def'){battleState.guard=true;battleSay('Riccardo takes a defensive stance!');await battleAnim('hero','def',800);}else{battleSay('Riccardo attacks!');await battleAnim('hero','atk',750);if(token!==battleToken)return;const damage=18;battleState.enemyHp=Math.max(0,battleState.enemyHp-damage);battleSay('Enemy takes '+damage+' damage!');await battleAnim('enemy','hurt',600);if(battleState.enemyHp<=0){await battleWin(token);return;}}await battleWait(400);await battleEnemyTurn(token);}
+$('battleCommands').addEventListener('click',e=>{const btn=e.target.closest('[data-battle]');if(btn)void battleCommand(btn.dataset.battle);});
+const beginBeforeBattle=beginIntro;beginIntro=function(){battleToken++;battleActive=false;battleBusy=false;battleState=null;$('battleScreen').hidden=true;$('battleScreen').classList.remove('battle-visible');$('battleBackdrop').style.opacity='';$('battleActors').style.opacity='';$('battleMenu').style.opacity='';$('battleMessage').style.opacity='';$('battleEnemy').classList.remove('vanish');beginBeforeBattle();};
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
