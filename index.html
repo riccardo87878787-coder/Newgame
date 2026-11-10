@@ -117,6 +117,9 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #battleStats{border-right:1px solid #7d8e96;padding:5px;font-size:clamp(11px,3.2vw,17px);line-height:1.7}#battleStats strong{color:#ffda77}#battleCommands{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding-left:8px}#battleCommands button{min-height:34px;font-weight:bold;font-size:clamp(11px,3.1vw,16px);padding:4px}#battleCommands button:disabled{opacity:.3}
 #battleMessage{position:absolute;left:4%;right:4%;top:5%;background:#142735e8;border:1px solid #b9a47a;border-radius:6px;padding:10px;font-size:14px;text-align:center;opacity:0;transition:opacity .4s}
 #battleScreen.battle-visible #battleBackdrop,#battleScreen.battle-visible #battleActors,#battleScreen.battle-visible #battleMenu,#battleScreen.battle-visible #battleMessage{opacity:1}
+/* Effetti fisici PNG: un solo impulso per colpo, sul busto del bersaglio. */
+.battle-hit-effect{position:absolute;z-index:6;width:23%;height:22%;object-fit:contain;image-rendering:pixelated;pointer-events:none;opacity:0;animation:battleHitFlash .25s linear forwards}
+@keyframes battleHitFlash{0%,40%{opacity:1}100%{opacity:0}}
 #battleEnemy.vanish{opacity:0;transition:opacity .3s}#battleVortex{position:absolute;inset:-80%;z-index:4;pointer-events:none;background:repeating-conic-gradient(from 0deg,#000 0deg 23deg,#172c39 24deg 43deg,#000 44deg 60deg);animation:battleSpin .9s linear infinite;opacity:0;transition:opacity .4s}#battleVortex.active{opacity:1}@keyframes battleSpin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -1265,6 +1268,26 @@ const BATTLE_FILES={hero:{idle:'Riccardogif/riccardo_guardia_outfit.gif',atk:'Ri
 let battleActive=false,battleBusy=false,battleState=null,battleToken=0;
 const battleWait=ms=>new Promise(r=>setTimeout(r,ms));
 function battleImage(who,action){const el=$(who==='hero'?'battleHero':'battleEnemy');el.src=BATTLE_FILES[who][action]+'?battle='+Date.now();}
+const BATTLE_HIT_FILES={hero:'icons/file_00000000bdb48209a26e95289dd1242e.png',enemy:'icons/file_00000000c38c8209803fb42976322a40.png'};
+let battleHitTimeout=null;
+function clearBattleHit(){clearTimeout(battleHitTimeout);battleHitTimeout=null;document.querySelectorAll('.battle-hit-effect').forEach(el=>el.remove());}
+function showBattleHit(attacker,token){
+ if(token!==battleToken||!battleActive)return;
+ clearBattleHit();
+ const victim=$(attacker==='hero'?'battleEnemy':'battleHero');
+ const actors=$('battleActors');
+ const hit=document.createElement('img');
+ hit.className='battle-hit-effect';hit.alt='';hit.draggable=false;
+ hit.src=BATTLE_HIT_FILES[attacker];
+ // Centro del busto dello sprite colpito, senza cambiare la sua posizione.
+ const actorBox=victim.getBoundingClientRect();
+ const containerBox=actors.getBoundingClientRect();
+ hit.style.left=((actorBox.left+actorBox.width*.50-containerBox.left)/containerBox.width*100)+'%';
+ hit.style.top=((actorBox.top+actorBox.height*.40-containerBox.top)/containerBox.height*100)+'%';
+ hit.style.transform='translate(-50%,-50%)';
+ actors.appendChild(hit);
+ battleHitTimeout=setTimeout(()=>{hit.remove();battleHitTimeout=null;},260);
+}
 function battleSay(msg){$('battleMessage').textContent=msg;}
 function battleRender(){if(!battleState)return;const b=battleState;$('battleStats').innerHTML='<strong>RICCARDO</strong><div>HP '+b.hp+' / '+b.maxHp+'</div><div>EP '+b.ep+' / 100</div><div>ENEMY HP '+b.enemyHp+' / 60</div>';for(const btn of $('battleCommands').querySelectorAll('button'))btn.disabled=battleBusy||btn.dataset.battle==='skl'||btn.dataset.battle==='item';}
 async function battleAnim(who,action,duration=750,hold=false){battleImage(who,action);await battleWait(duration);if(battleActive&&action!=='win'&&!hold)battleImage(who,'idle');}
@@ -1279,13 +1302,14 @@ async function battleStrike(who,action,duration,token,onHit){
  await battleWait(duration/2);if(token!==battleToken)return;
  if(onHit)onHit();
  battleImage(victim,'hurt');
+ showBattleHit(who,token);
  await battleWait(duration/2);if(token!==battleToken)return;
  battleImage(victim,'idle');
  // L'attaccante conserva la GIF d'attacco fino al termine della sequenza.
  el.style.transition='opacity .14s linear';el.style.opacity='0';await battleWait(160);if(token!==battleToken)return;
  battlePosition(who,false);battleImage(who,'idle');el.style.opacity='1';await battleWait(180);
 }
-async function startFirstBattle(){if(battleActive)return;resetInput();battleActive=true;battleBusy=true;const token=++battleToken;const screen=$('battleScreen'),vortex=$('battleVortex');battleState={hp:250,maxHp:250,ep:100,enemyHp:60,guard:false};screen.hidden=false;screen.classList.remove('battle-visible');vortex.classList.add('active');$('battleActors').style.opacity='0';$('battleMenu').style.opacity='0';$('battleMessage').style.opacity='0';battlePosition('hero',false);battlePosition('enemy',false);$('battleHero').style.opacity='1';$('battleEnemy').style.opacity='1';battleImage('hero','idle');battleImage('enemy','idle');battleSay('A hungry customer appears!');await battleWait(850);if(token!==battleToken)return;vortex.classList.remove('active');await battleWait(350);if(token!==battleToken)return;$('battleBackdrop').style.opacity='1';await battleWait(650);if(token!==battleToken)return;screen.classList.add('battle-visible');$('battleActors').style.opacity='1';$('battleMenu').style.opacity='1';$('battleMessage').style.opacity='1';battleBusy=false;battleRender();}
+async function startFirstBattle(){if(battleActive)return;clearBattleHit();resetInput();battleActive=true;battleBusy=true;const token=++battleToken;const screen=$('battleScreen'),vortex=$('battleVortex');battleState={hp:250,maxHp:250,ep:100,enemyHp:60,guard:false};screen.hidden=false;screen.classList.remove('battle-visible');vortex.classList.add('active');$('battleActors').style.opacity='0';$('battleMenu').style.opacity='0';$('battleMessage').style.opacity='0';battlePosition('hero',false);battlePosition('enemy',false);$('battleHero').style.opacity='1';$('battleEnemy').style.opacity='1';battleImage('hero','idle');battleImage('enemy','idle');battleSay('A hungry customer appears!');await battleWait(850);if(token!==battleToken)return;vortex.classList.remove('active');await battleWait(350);if(token!==battleToken)return;$('battleBackdrop').style.opacity='1';await battleWait(650);if(token!==battleToken)return;screen.classList.add('battle-visible');$('battleActors').style.opacity='1';$('battleMenu').style.opacity='1';$('battleMessage').style.opacity='1';battleBusy=false;battleRender();}
 async function battleEnemyTurn(token){
  if(token!==battleToken)return;
  battleSay('The hungry customer attacks!');
@@ -1323,7 +1347,7 @@ async function battleCommand(cmd){
  await battleEnemyTurn(token);
 }
 $('battleCommands').addEventListener('click',e=>{const btn=e.target.closest('[data-battle]');if(btn)void battleCommand(btn.dataset.battle);});
-const beginBeforeBattle=beginIntro;beginIntro=function(){clearTimeout(finalBattleDialogueTimer);battleToken++;battleActive=false;battleBusy=false;battleState=null;$('battleScreen').hidden=true;$('battleScreen').classList.remove('battle-visible');$('battleBackdrop').style.opacity='';$('battleActors').style.opacity='';$('battleMenu').style.opacity='';$('battleMessage').style.opacity='';$('battleEnemy').classList.remove('vanish');battlePosition('hero',false);battlePosition('enemy',false);$('battleHero').style.opacity='1';$('battleEnemy').style.opacity='1';beginBeforeBattle();};
+const beginBeforeBattle=beginIntro;beginIntro=function(){clearBattleHit();clearTimeout(finalBattleDialogueTimer);battleToken++;battleActive=false;battleBusy=false;battleState=null;$('battleScreen').hidden=true;$('battleScreen').classList.remove('battle-visible');$('battleBackdrop').style.opacity='';$('battleActors').style.opacity='';$('battleMenu').style.opacity='';$('battleMessage').style.opacity='';$('battleEnemy').classList.remove('vanish');battlePosition('hero',false);battlePosition('enemy',false);$('battleHero').style.opacity='1';$('battleEnemy').style.opacity='1';beginBeforeBattle();};
 
 /* 21 · AVVIO */
 let loadingMap=false,assetsStarted=false;
