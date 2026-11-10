@@ -112,7 +112,7 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #battleBackdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;opacity:0;transition:opacity .65s}
 #battleActors{position:absolute;inset:0;opacity:0;transition:opacity .65s}
 .battle-actor{position:absolute;bottom:26%;width:43%;height:46%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 6px 3px #0008)}
-#battleEnemy{left:4%;transform:scaleX(1)}#battleHero{right:3%}
+#battleEnemy{left:4%;transform:scaleX(-1)}#battleHero{right:3%}
 #battleMenu{position:absolute;left:3%;right:3%;bottom:max(2%,env(safe-area-inset-bottom));min-height:20%;background:#142735ef;border:2px solid #b9a47a;border-radius:8px;display:grid;grid-template-columns:42% 58%;gap:0;padding:9px;color:#fff;opacity:0;transition:opacity .5s}
 #battleStats{border-right:1px solid #7d8e96;padding:5px;font-size:clamp(11px,3.2vw,17px);line-height:1.7}#battleStats strong{color:#ffda77}#battleCommands{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding-left:8px}#battleCommands button{min-height:34px;font-weight:bold;font-size:clamp(11px,3.1vw,16px);padding:4px}#battleCommands button:disabled{opacity:.3}
 #battleMessage{position:absolute;left:4%;right:4%;top:5%;background:#142735e8;border:1px solid #b9a47a;border-radius:6px;padding:10px;font-size:14px;text-align:center;opacity:0;transition:opacity .4s}
@@ -1268,15 +1268,15 @@ function battleImage(who,action){const el=$(who==='hero'?'battleHero':'battleEne
 function battleSay(msg){$('battleMessage').textContent=msg;}
 function battleRender(){if(!battleState)return;const b=battleState;$('battleStats').innerHTML='<strong>RICCARDO</strong><div>HP '+b.hp+' / '+b.maxHp+'</div><div>EP '+b.ep+' / 100</div><div>ENEMY HP '+b.enemyHp+' / 60</div>';for(const btn of $('battleCommands').querySelectorAll('button'))btn.disabled=battleBusy||btn.dataset.battle==='skl'||btn.dataset.battle==='item';}
 async function battleAnim(who,action,duration=750,hold=false){battleImage(who,action);await battleWait(duration);if(battleActive&&action!=='win'&&!hold)battleImage(who,'idle');}
-function battlePosition(who,near){const el=$(who==='hero'?'battleHero':'battleEnemy');el.style.left=near?(who==='hero'?'39%':'38%'):(who==='enemy'?'4%':'');el.style.right=near?'auto':(who==='hero'?'3%':'auto');el.style.zIndex=near?'3':'1';}
+function battlePosition(who,near){const el=$(who==='hero'?'battleHero':'battleEnemy');el.style.left=near?(who==='hero'?'18%':'53%'):(who==='enemy'?'4%':'auto');el.style.right='auto';if(who==='hero'&&!near){el.style.left='auto';el.style.right='3%';}el.style.zIndex=near?'3':'1';}
 async function battleStrike(who,action,duration,token){
  const el=$(who==='hero'?'battleHero':'battleEnemy');
  // Teleport next to the opponent, play the entire attack there, then teleport home.
- el.style.opacity='0';await battleWait(140);if(token!==battleToken)return;
- battlePosition(who,true);el.style.opacity='1';await battleWait(160);if(token!==battleToken)return;
+ el.style.transition='opacity .14s linear';el.style.opacity='0';await battleWait(160);if(token!==battleToken)return;
+ battlePosition(who,true);el.style.opacity='1';await battleWait(180);if(token!==battleToken)return;
  await battleAnim(who,action,duration,true);if(token!==battleToken)return;
- el.style.opacity='0';await battleWait(140);if(token!==battleToken)return;
- battlePosition(who,false);battleImage(who,'idle');el.style.opacity='1';await battleWait(130);
+ el.style.transition='opacity .14s linear';el.style.opacity='0';await battleWait(160);if(token!==battleToken)return;
+ battlePosition(who,false);battleImage(who,'idle');el.style.opacity='1';await battleWait(180);
 }
 async function startFirstBattle(){if(battleActive)return;resetInput();battleActive=true;battleBusy=true;const token=++battleToken;const screen=$('battleScreen'),vortex=$('battleVortex');battleState={hp:250,maxHp:250,ep:100,enemyHp:60,guard:false};screen.hidden=false;screen.classList.remove('battle-visible');vortex.classList.add('active');$('battleActors').style.opacity='0';$('battleMenu').style.opacity='0';$('battleMessage').style.opacity='0';battlePosition('hero',false);battlePosition('enemy',false);$('battleHero').style.opacity='1';$('battleEnemy').style.opacity='1';battleImage('hero','idle');battleImage('enemy','idle');battleSay('A hungry customer appears!');await battleWait(850);if(token!==battleToken)return;vortex.classList.remove('active');await battleWait(350);if(token!==battleToken)return;$('battleBackdrop').style.opacity='1';await battleWait(650);if(token!==battleToken)return;screen.classList.add('battle-visible');$('battleActors').style.opacity='1';$('battleMenu').style.opacity='1';$('battleMessage').style.opacity='1';battleBusy=false;battleRender();}
 async function battleEnemyTurn(token){if(token!==battleToken)return;battleSay('The hungry customer attacks!');await battleStrike('enemy','atk',650,token);if(token!==battleToken)return;const damage=battleState.guard?7:20;battleState.hp=Math.max(0,battleState.hp-damage);battleSay('Riccardo takes '+damage+' damage!');await battleAnim('hero','hurt',650);battleState.guard=false;battleImage('hero','idle');if(battleState.hp<=0){battleSay('Defeat! Tap to retry.');$('battleCommands').innerHTML='<button data-battle="retry">RETRY</button>';battleBusy=false;battleRender();return;}battleBusy=false;battleSay('Riccardo’s turn');battleRender();}
