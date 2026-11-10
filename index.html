@@ -1268,7 +1268,7 @@ function battleImage(who,action){const el=$(who==='hero'?'battleHero':'battleEne
 function battleSay(msg){$('battleMessage').textContent=msg;}
 function battleRender(){if(!battleState)return;const b=battleState;$('battleStats').innerHTML='<strong>RICCARDO</strong><div>HP '+b.hp+' / '+b.maxHp+'</div><div>EP '+b.ep+' / 100</div><div>ENEMY HP '+b.enemyHp+' / 60</div>';for(const btn of $('battleCommands').querySelectorAll('button'))btn.disabled=battleBusy||btn.dataset.battle==='skl'||btn.dataset.battle==='item';}
 async function battleAnim(who,action,duration=750,hold=false){battleImage(who,action);await battleWait(duration);if(battleActive&&action!=='win'&&!hold)battleImage(who,'idle');}
-function battlePosition(who,near){const el=$(who==='hero'?'battleHero':'battleEnemy');el.style.left=near?(who==='hero'?'18%':'43%'):(who==='enemy'?'4%':'auto');el.style.right='auto';if(who==='hero'&&!near){el.style.left='auto';el.style.right='3%';}el.style.zIndex=near?'3':'1';}
+function battlePosition(who,near){const el=$(who==='hero'?'battleHero':'battleEnemy');el.style.left=near?(who==='hero'?'18%':'35%'):(who==='enemy'?'4%':'auto');el.style.right='auto';if(who==='hero'&&!near){el.style.left='auto';el.style.right='3%';}el.style.zIndex=near?'3':'1';}
 async function battleStrike(who,action,duration,token,onHit){
  const el=$(who==='hero'?'battleHero':'battleEnemy');
  const victim=who==='hero'?'enemy':'hero';
@@ -1281,6 +1281,7 @@ async function battleStrike(who,action,duration,token,onHit){
  battleImage(victim,'hurt');
  await battleWait(duration/2);if(token!==battleToken)return;
  battleImage(victim,'idle');
+ // L'attaccante conserva la GIF d'attacco fino al termine della sequenza.
  el.style.transition='opacity .14s linear';el.style.opacity='0';await battleWait(160);if(token!==battleToken)return;
  battlePosition(who,false);battleImage(who,'idle');el.style.opacity='1';await battleWait(180);
 }
@@ -1289,7 +1290,7 @@ async function battleEnemyTurn(token){
  if(token!==battleToken)return;
  battleSay('The hungry customer attacks!');
  const damage=battleState.guard?7:20;
- await battleStrike('enemy','atk',650,token,()=>{
+ await battleStrike('enemy','atk',1400,token,()=>{
   battleState.hp=Math.max(0,battleState.hp-damage);
   battleSay('Riccardo takes '+damage+' damage!');
   battleRender();
