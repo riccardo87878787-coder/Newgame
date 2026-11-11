@@ -152,12 +152,11 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 /* PRIMO SERVIZIO · montaggio, notte e incontro sulla mappa */
 #dinnerMontage{position:absolute;inset:0;z-index:32;background:#000;display:grid;place-items:center;pointer-events:auto}
 #dinnerMontageImage{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;opacity:0}
-#dinnerMontageImage.playing{animation:dinnerShot 1s linear both}
+#dinnerMontageImage.playing{animation:dinnerShot 3s linear both}
 @keyframes dinnerShot{0%{opacity:0}18%,78%{opacity:1}100%{opacity:0}}
 #dinnerCaption{position:absolute;left:6%;right:6%;bottom:6%;margin:0;padding:12px;color:#fff5df;background:#000b;text-align:center;font:bold clamp(12px,3.4vw,19px)/1.5 Georgia,serif;text-shadow:1px 1px #000;pointer-events:none}
 #dinnerRetry{position:absolute;left:12%;right:12%;top:40%;padding:20px;background:#102631;border:2px solid #b8cad6;text-align:center}
 #dinnerRetry p{overflow-wrap:anywhere;font-size:13px}
-#hungryCall{position:absolute;left:3%;top:40%;z-index:9;padding:10px 15px;background:#fff5df;border:3px double #647078;color:#211b16;font:bold 17px Georgia,serif;box-shadow:2px 3px #0006;pointer-events:none}
 #storyNightLighting{position:absolute;inset:0;z-index:3;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen}
 #scene.story-night #map,#scene.story-night .depth-piece{filter:brightness(.37) saturate(.7) sepia(.12) hue-rotate(12deg)}
 #scene.story-night .actor{filter:brightness(.8) saturate(.85)}
@@ -1546,9 +1545,9 @@ const HUNGRY_LINES=[
  ['Riccardo','Okay. That’s close enough.',60],
  ['Riccardo','I said—stay back!',28]
 ];
-const STORY_TIMING={shot:1000,fade:450,call:1100,pan:1000,steps:96,approachSpeed:55,lungeSpeed:160};
+const STORY_TIMING={shot:3000,fade:450,equipFade:450,call:1100,pan:1000,steps:96,approachSpeed:55,lungeSpeed:160};
 const workPlayerAssets={idle:{},walk:{}};
-let workUniformEnabled=false,workAssetsPromise=null,dinnerAssetsPromise=null,hungryWalkPromise=null,storyPhase='before-service',storyBusy=false,storyEpoch=0,storyNight=false,storyDistance=0,storyLastPosition=null,storyEnemy=null,storyEncounter=null,storyCamera=null;
+let workUniformEnabled=false,workAssetsPromise=null,dinnerAssetsPromise=null,hungryWalkPromise=null,storyPhase='before-service',storyBusy=false,storyEpoch=0,storyNight=false,storyDistance=0,storyNextSpawnCheck=96,storyLastPosition=null,storyEnemy=null,storyEncounter=null,storyCamera=null,equipTransition=false,hungryWalkAsset=null;
 function loadWorkUniform(){if(workAssetsPromise)return workAssetsPromise;workAssetsPromise=Promise.all(['idle','walk'].flatMap(mode=>Object.keys(IT).map(d=>loadAsset(WORK_PLAYER_FILES[mode][d]).then(a=>workPlayerAssets[mode][d]=a))));return workAssetsPromise;}
 function hasWorkClothes(){return EQUIP_SLOTS.slice(1).every(slot=>!!equipmentFor('riccardo')[slot]);}
 function enableWorkUniform(){workUniformEnabled=true;void loadWorkUniform().then(()=>drawPlayer());drawPlayer();}
@@ -1563,13 +1562,37 @@ closeEquip=function(){if(hasWorkClothes())enableWorkUniform();closeEquipBeforeUn
 $('equipBack').onclick=closeEquip;
 const lockBeforeDinner=locked;locked=function(){return storyBusy||lockBeforeDinner();};
 const dinnerMontage=document.createElement('section');dinnerMontage.id='dinnerMontage';dinnerMontage.hidden=true;dinnerMontage.setAttribute('aria-label','Evening service');dinnerMontage.innerHTML='<img id="dinnerMontageImage" alt="Evening service at Cucchiaio"><p id="dinnerCaption">The evening service goes smoothly…</p><div id="dinnerRetry" hidden><p id="dinnerError"></p><button id="dinnerRetryButton">RETRY</button></div>';game.appendChild(dinnerMontage);
-const hungryCall=document.createElement('div');hungryCall.id='hungryCall';hungryCall.textContent='Hungry…';hungryCall.hidden=true;game.appendChild(hungryCall);
 const storyNightLighting=document.createElement('canvas');storyNightLighting.id='storyNightLighting';storyNightLighting.hidden=true;game.appendChild(storyNightLighting);
 function setStoryBusy(value){storyBusy=value;game.classList.toggle('story-busy',value);if(value){resetInput();clearMarkers();doorButton.hidden=true;portalButton.hidden=true;}updateInteractionUI();}
+const equipBeforeStoryFade=equipChosen;
+equipChosen=function(){
+ if(equipTransition)return false;
+ const item=EQUIP_ITEMS[equipSelected],valid=item&&item.slot===equipSlot&&availableEquip(equipSelected,equipMember)>0;
+ const last=equipTutorial&&valid&&EQUIP_SLOTS.slice(1).every(slot=>slot===equipSlot||equipmentFor('riccardo')[slot]);
+ if(!last)return equipBeforeStoryFade();
+ void finishWorkEquip();return true;
+};
+$('equipConfirm').onclick=equipChosen;
+async function finishWorkEquip(){
+ const epoch=++storyEpoch,fade=$('fade'),previous={transition:fade.style.transition,zIndex:fade.style.zIndex};equipTransition=true;equipPage.inert=true;setStoryBusy(true);
+ fade.style.zIndex='40';fade.style.transition='opacity '+STORY_TIMING.equipFade+'ms linear';void fade.offsetWidth;fade.classList.add('black');
+ if(!await storyWait(STORY_TIMING.equipFade,epoch))return;
+ // Il menu resta visibile fino al nero; il cambio d'abito avviene sotto la copertura.
+ equipBeforeStoryFade();equipPage.inert=false;drawPlayer();
+ if(!await storyWait(50,epoch))return;fade.classList.remove('black');
+ if(!await storyWait(STORY_TIMING.equipFade,epoch))return;
+ fade.style.transition=previous.transition;fade.style.zIndex=previous.zIndex;equipTransition=false;setStoryBusy(false);
+}
+const uiBeforeOffscreenCall=updateInteractionUI;
+updateInteractionUI=function(){
+ uiBeforeOffscreenCall();if(!dialogue?.offscreenHungryCall)return;
+ // Si riusa il balloon del gioco, compresa la sua cornice PNG.
+ const bubble=$('speech');bubble.hidden=false;bubble.style.width=Math.min(250,viewWidth-24)+'px';bubble.style.left='12px';bubble.style.top=clamp(viewHeight*.4,12,Math.max(12,viewHeight-bubble.offsetHeight-12))+'px';
+};
 function storyValid(epoch){return epoch===storyEpoch;}
 async function storyWait(ms,epoch){await wait(ms);return storyValid(epoch);}
 function loadDinnerImages(){if(dinnerAssetsPromise)return dinnerAssetsPromise;dinnerAssetsPromise=Promise.all(DINNER_IMAGES.map(src=>new Promise((resolve,reject)=>{const image=new Image();image.onload=async()=>{try{await image.decode();}catch(_){}resolve(image);};image.onerror=()=>reject(Error('Unable to load '+src));image.src=src;}))).catch(e=>{dinnerAssetsPromise=null;throw e;});return dinnerAssetsPromise;}
-function loadHungryWalk(){if(hungryWalkPromise)return hungryWalkPromise;hungryWalkPromise=loadAsset(HUNGRY_WALK_FILE).then(asset=>{if(!asset){hungryWalkPromise=null;throw Error('Unable to load '+HUNGRY_WALK_FILE);}return asset;});return hungryWalkPromise;}
+function loadHungryWalk(){if(hungryWalkPromise)return hungryWalkPromise;hungryWalkPromise=loadAsset(HUNGRY_WALK_FILE).then(asset=>{if(!asset){hungryWalkPromise=null;throw Error('Unable to load '+HUNGRY_WALK_FILE);}hungryWalkAsset=asset;return asset;});return hungryWalkPromise;}
 async function startDinnerMontage(){
  if(storyPhase==='montage'||storyPhase==='after-service'||storyPhase==='outside-ready'||storyPhase==='outside-walk'||storyPhase==='encounter'||storyPhase==='battle'||storyPhase==='complete')return;
  const epoch=++storyEpoch;storyPhase='montage';setStoryBusy(true);closeDialogue(false);$('speech').hidden=true;reactionTime=0;$('reaction').hidden=true;dinnerMontage.hidden=false;$('dinnerRetry').hidden=true;
@@ -1604,12 +1627,13 @@ function startStoryConversation(kind){
 }
 const advanceBeforeDinner=advanceSpeech;
 advanceSpeech=function(){
+ if(equipTransition||dialogue?.offscreenHungryCall)return;
  const q=dialogue?.dinnerStory;if(!q)return advanceBeforeDinner();
  if(speechPageIndex+1<speechPages.length){speechPageIndex++;paintBalloonPage();updateInteractionUI();return;}
  if(q.index+1<storyLines().length){q.index++;showStoryConversationPage();return;}
  const kind=q.kind;closeDialogue(false);$('speech').classList.remove('thought','narration');
  if(kind==='post-service'){
-  if(seoyoonNpc){seoyoonNpc.talking=false;drawNpc(seoyoonNpc);}storyPhase='outside-ready';storyDistance=0;storyLastPosition=null;setStoryBusy(false);$('objective').textContent='Take the old frying pan outside';
+  if(seoyoonNpc){seoyoonNpc.talking=false;drawNpc(seoyoonNpc);}storyPhase='outside-ready';storyDistance=0;storyNextSpawnCheck=STORY_TIMING.steps;storyLastPosition=null;setStoryBusy(false);$('objective').textContent='Take the old frying pan outside';
  }else if(storyEncounter){storyEncounter.finishing=true;storyEncounter.gap=24;}
 };
 const interactBeforeDinner=interact;
@@ -1619,18 +1643,30 @@ interact=function(t){
   if(storyPhase==='outside-ready'){openSpeech(['Seoyoon: The bins are outside. Then I’ll show you your room.'],{type:'npc',target:t});return;}
  }return interactBeforeDinner(t);
 };
-function findHungrySpawn(){
- // Stesso corridoio percorribile di Riccardo: niente attraversamento dei palazzi.
- for(let distance=320;distance>=100;distance-=10){const x=player.x-distance;if(x<20)continue;let clear=true;for(let px=x;px<player.x-25;px+=8)if(!staticFree(px,player.y,10)){clear=false;break;}if(clear)return{x,y:player.y};}
- return{x:player.x-45,y:player.y};
+function hungrySpriteHalfWidth(asset=hungryWalkAsset){return asset?HONGDEON.playerHeight*asset.b.w/asset.b.h/2:HONGDEON.playerHeight*.4;}
+function hungryRouteClear(spawn,asset=hungryWalkAsset){
+ const radius=10,half=hungrySpriteHalfWidth(asset);
+ // Anche il bordo destro dello sprite deve restare fuori dall'inquadratura.
+ if(spawn.x<radius||spawn.x+half>=camera.x-12||spawn.x>=player.x-100||Math.abs(spawn.y-player.y)>.5)return false;
+ for(let x=spawn.x;x<player.x-25;x+=8){if(!staticFree(x,spawn.y,radius))return false;if(npcs.some(n=>n!==storyEnemy&&Math.hypot(x-n.x,spawn.y-n.y)<radius+(n.radius||9)))return false;}
+ return true;
 }
-async function startHungryEncounter(){
- if(storyPhase!=='outside-walk')return;const epoch=++storyEpoch;storyPhase='encounter-loading';setStoryBusy(true);
- let asset;try{asset=await loadHungryWalk();}catch(e){if(!storyValid(epoch))return;storyPhase='outside-walk';storyDistance=STORY_TIMING.steps-16;storyLastPosition={x:player.x,y:player.y};setStoryBusy(false);$('status').textContent=e.message;return;}
+function findHungrySpawn(){
+ const rightmost=Math.floor(camera.x-hungrySpriteHalfWidth()-24);
+ for(let x=rightmost;x>=Math.max(10,rightmost-120);x-=12){const spawn={x,y:player.y};if(hungryRouteClear(spawn))return spawn;}
+ // Si lascia il controllo al giocatore finché trova un corridoio adatto.
+ return null;
+}
+async function startHungryEncounter(candidate=null){
+ if(storyPhase!=='outside-walk')return;const spawn=candidate||findHungrySpawn();if(!spawn)return;
+ const epoch=++storyEpoch;storyPhase='encounter-loading';setStoryBusy(true);
+ let asset;try{asset=await loadHungryWalk();}catch(e){if(!storyValid(epoch))return;storyPhase='outside-walk';storyNextSpawnCheck=storyDistance+12;storyLastPosition={x:player.x,y:player.y};setStoryBusy(false);$('status').textContent=e.message;return;}
  if(!storyValid(epoch))return;
- const spawn=findHungrySpawn();storyEnemy={id:'hungry_stranger',name:'Stranger',...spawn,direction:'right',height:HONGDEON.playerHeight,radius:9,moving:false,talking:false,actor:createActor(HONGDEON.playerHeight),idleAssets:{right:asset},walkAssets:{right:asset},animation:asset,asset};storyEnemy.actor.node.hidden=true;
- hungryCall.hidden=false;storyPhase='encounter';if(!await storyWait(STORY_TIMING.call,epoch))return;
- hungryCall.hidden=true;player.direction='left';player.moving=false;drawPlayer();
+ if(!hungryRouteClear(spawn,asset)){storyPhase='outside-walk';storyNextSpawnCheck=storyDistance+12;setStoryBusy(false);return;}
+ storyEnemy={id:'hungry_stranger',name:'Stranger',...spawn,direction:'right',height:HONGDEON.playerHeight,radius:9,moving:false,talking:false,actor:createActor(HONGDEON.playerHeight),idleAssets:{right:asset},walkAssets:{right:asset},animation:asset,asset};storyEnemy.actor.node.hidden=true;
+ storyPhase='encounter';openSpeech(['Stranger: Hungry…'],{type:'story'});dialogue.offscreenHungryCall=true;updateInteractionUI();
+ if(!await storyWait(STORY_TIMING.call,epoch))return;
+ closeDialogue(false);player.direction='left';player.moving=false;drawPlayer();
  const focus={x:(player.x+spawn.x)/2,y:player.y};storyCamera={from:{x:player.x,y:player.y},to:focus,progress:0};storyEncounter={startGap:player.x-spawn.x,gap:player.x-spawn.x,finishing:false,launching:false};drawHungryEnemy();
  if(!await storyWait(STORY_TIMING.pan,epoch))return;startStoryConversation('encounter');
 }
@@ -1647,7 +1683,7 @@ updateTravel=function(dt){
  if(storyCamera)storyCamera.progress=Math.min(1,storyCamera.progress+dt*1000/STORY_TIMING.pan);
  if(storyPhase==='outside-walk'&&locationId==='hongdeon'&&!dialogue&&!locked()){
   if(storyLastPosition){const dx=player.x-storyLastPosition.x,dy=player.y-storyLastPosition.y,distance=Math.hypot(dx,dy);if(distance<50)storyDistance+=distance;}
-  storyLastPosition={x:player.x,y:player.y};if(storyDistance>=STORY_TIMING.steps)void startHungryEncounter();
+  storyLastPosition={x:player.x,y:player.y};if(storyDistance>=Math.max(STORY_TIMING.steps,storyNextSpawnCheck)){const spawn=findHungrySpawn();if(spawn)void startHungryEncounter(spawn);else storyNextSpawnCheck=storyDistance+12;}
  }
  if(storyPhase==='encounter'&&storyEnemy&&storyEncounter&&!firstBattleActive){
   const gap=player.x-storyEnemy.x,target=storyEncounter.gap,speed=storyEncounter.finishing?STORY_TIMING.lungeSpeed:STORY_TIMING.approachSpeed;storyEnemy.moving=gap>target+.5;
@@ -1656,11 +1692,11 @@ updateTravel=function(dt){
  }
 };
 const portalBeforeDinner=useCucchiaioPortal;
-useCucchiaioPortal=async function(p){const exiting=p.from==='restaurant'&&p.to==='hongdeon'&&storyPhase==='outside-ready';await portalBeforeDinner(p);if(exiting&&locationId==='hongdeon'){storyNight=true;storyPhase='outside-walk';storyDistance=0;storyLastPosition={x:player.x,y:player.y};$('objective').textContent='Take the frying pan to the bins';paintStoryNight();}};
+useCucchiaioPortal=async function(p){const exiting=p.from==='restaurant'&&p.to==='hongdeon'&&storyPhase==='outside-ready';await portalBeforeDinner(p);if(exiting&&locationId==='hongdeon'){storyNight=true;storyPhase='outside-walk';storyDistance=0;storyNextSpawnCheck=STORY_TIMING.steps;storyLastPosition={x:player.x,y:player.y};$('objective').textContent='Take the frying pan to the bins';paintStoryNight();}};
 const continueBattleBeforeDinner=$('battleContinue').onclick;
 $('battleContinue').onclick=()=>{continueBattleBeforeDinner();if(storyPhase==='battle'){storyPhase='complete';storyCamera=null;storyEncounter=null;if(storyEnemy){storyEnemy.actor.node.remove();storyEnemy=null;}}};
 const beginBeforeDinner=beginIntro;
-beginIntro=function(){storyEpoch++;storyPhase='before-service';storyBusy=false;storyNight=false;workUniformEnabled=false;storyDistance=0;storyLastPosition=null;storyCamera=null;storyEncounter=null;if(storyEnemy){storyEnemy.actor.node.remove();storyEnemy=null;}dinnerMontage.hidden=true;hungryCall.hidden=true;storyNightLighting.hidden=true;scene.classList.remove('story-night');game.classList.remove('story-busy');beginBeforeDinner();};
+beginIntro=function(){storyEpoch++;storyPhase='before-service';storyBusy=false;storyNight=false;workUniformEnabled=false;storyDistance=0;storyLastPosition=null;storyCamera=null;storyEncounter=null;if(storyEnemy){storyEnemy.actor.node.remove();storyEnemy=null;}dinnerMontage.hidden=true;equipTransition=false;equipPage.inert=false;storyNextSpawnCheck=STORY_TIMING.steps;$('fade').style.zIndex='';storyNightLighting.hidden=true;scene.classList.remove('story-night');game.classList.remove('story-busy');beginBeforeDinner();};
 window.TaraiStory={getState:()=>({phase:storyPhase,night:storyNight,uniform:workUniformEnabled,distance:storyDistance,enemy:storyEnemy?{x:storyEnemy.x,y:storyEnemy.y,moving:storyEnemy.moving}:null}),retryService:()=>{if(storyPhase==='montage-error')void startDinnerMontage();}};
 
 
