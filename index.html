@@ -1602,8 +1602,14 @@ async function startDinnerMontage(){
  for(let i=0;i<images.length;i++){shot.classList.remove('playing');shot.src=images[i].src;shot.style.animationDuration=STORY_TIMING.shot+'ms';void shot.offsetWidth;shot.classList.add('playing');if(!await storyWait(STORY_TIMING.shot,epoch))return;}
  shot.classList.remove('playing');storyNight=true;paintStoryNight();
  // Si ritorna alla stessa stanza e alle stesse posizioni, senza clienti sulla mappa.
- $('fade').style.transition='opacity '+STORY_TIMING.fade+'ms linear';$('fade').classList.add('black');dinnerMontage.hidden=true;
- if(!await storyWait(50,epoch))return;$('fade').classList.remove('black');if(!await storyWait(STORY_TIMING.fade,epoch))return;$('fade').style.transition='';
+ const fade=$('fade'),previousTransition=fade.style.transition;
+ // L'ultima immagine è già sfumata sul nero: prepara la stessa copertura
+ // prima di nascondere il montaggio, poi rivela il gioco gradualmente.
+ fade.style.transition='none';fade.classList.add('black');void fade.offsetWidth;
+ dinnerMontage.hidden=true;
+ if(!await storyWait(50,epoch))return;
+ fade.style.transition='opacity '+STORY_TIMING.fade+'ms linear';void fade.offsetWidth;fade.classList.remove('black');
+ if(!await storyWait(STORY_TIMING.fade,epoch))return;fade.style.transition=previousTransition;
  storyPhase='after-service';startStoryConversation('post-service');
 }
 $('dinnerRetryButton').onclick=()=>void startDinnerMontage();
@@ -1611,7 +1617,7 @@ function paintStoryNight(){
  const active=storyNight&&locationId==='hongdeon';scene.classList.toggle('story-night',active);storyNightLighting.hidden=!active;
  if(!active)return;const width=Math.max(1,Math.round(viewWidth)),height=Math.max(1,Math.round(viewHeight));if(storyNightLighting.width!==width||storyNightLighting.height!==height){storyNightLighting.width=width;storyNightLighting.height=height;}
  const ctx=storyNightLighting.getContext('2d');ctx.clearRect(0,0,width,height);
- const lamps=[[1090,1860],[1598,1860],[1760,1620],[557,1140],[1680,1136],[365,1416],[305,2708],[1490,2704],[867,346],[1420,414],[1450,894]];
+ const lamps=[[1760,1620],[557,1140],[1680,1136],[365,1416],[305,2708],[1490,2704],[867,346],[1420,414],[1450,894]];
  for(const [x,y] of lamps){const p=screenPosition({x,y}),r=90*zoom;if(p.x< -r||p.x>width+r||p.y< -r||p.y>height+r)continue;const g=ctx.createRadialGradient(p.x,p.y,1,p.x,p.y,r);g.addColorStop(0,'rgba(255,189,72,.55)');g.addColorStop(.2,'rgba(255,160,45,.24)');g.addColorStop(1,'rgba(255,140,20,0)');ctx.fillStyle=g;ctx.fillRect(p.x-r,p.y-r,r*2,r*2);}
 }
 function storyLines(){return dialogue?.dinnerStory?.kind==='post-service'?POST_SERVICE_LINES:HUNGRY_LINES;}
