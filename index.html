@@ -163,6 +163,8 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #game.story-busy #sideControls,#game.story-busy #menuOpen,#game.story-busy #testHongdeonButton{visibility:hidden}
 @media(prefers-reduced-motion:reduce){#dinnerMontageImage.playing{animation-name:dinnerShot}}
 
+#speech .speech-tail{position:absolute;max-width:none;pointer-events:none;image-rendering:pixelated;z-index:0}
+
 </style>
 </head>
 <body>
@@ -1704,6 +1706,76 @@ $('battleContinue').onclick=()=>{continueBattleBeforeDinner();if(storyPhase==='b
 const beginBeforeDinner=beginIntro;
 beginIntro=function(){storyEpoch++;storyPhase='before-service';storyBusy=false;storyNight=false;workUniformEnabled=false;storyDistance=0;storyLastPosition=null;storyCamera=null;storyEncounter=null;if(storyEnemy){storyEnemy.actor.node.remove();storyEnemy=null;}dinnerMontage.hidden=true;equipTransition=false;equipPage.inert=false;storyNextSpawnCheck=STORY_TIMING.steps;$('fade').style.zIndex='';storyNightLighting.hidden=true;scene.classList.remove('story-night');game.classList.remove('story-busy');beginBeforeDinner();};
 window.TaraiStory={getState:()=>({phase:storyPhase,night:storyNight,uniform:workUniformEnabled,distance:storyDistance,enemy:storyEnemy?{x:storyEnemy.x,y:storyEnemy.y,moving:storyEnemy.moving}:null}),retryService:()=>{if(storyPhase==='montage-error')void startDinnerMontage();}};
+
+/* BALLOON · cornice originale, punta indipendente e misura adattiva */
+let dialogueSkin=null;
+const dialogueTail=document.createElement('img');dialogueTail.className='speech-tail';dialogueTail.alt='';dialogueTail.draggable=false;$('speech').appendChild(dialogueTail);
+async function prepareDialogueSkin(){
+ await balloonSkinsReady;
+ const image=balloonSkinImages.find(im=>im.src===new URL(UI_ASSETS.dialogue,location.href).href);
+ if(!image?.naturalWidth)return;
+ try{
+  const w=image.naturalWidth,h=image.naturalHeight,slice=110;
+  if(w<=200||h<=180)return;
+  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);
+  const data=ctx.getImageData(0,0,w,h).data;
+  const bright=(x,y,threshold=145)=>{const i=(y*w+x)*4;return data[i+3]>96&&Math.max(data[i],data[i+1],data[i+2])>threshold;};
+  let body=-1,frameBottom=-1;
+  for(let y=Math.max(0,h-slice-50);y<h;y++){let count=0;for(let x=0;x<w;x++)if(bright(x,y,205))count++;if(count>w*.6)body=y;let frameCount=0;for(let x=0;x<w;x++)if(bright(x,y))frameCount++;if(frameCount>w*.6)frameBottom=y;}
+  if(body<0||body>=h-3)return;
+  const cut=body+1;let l=w,r=-1,b=-1,tipSum=0,tipCount=0;
+  for(let y=frameBottom+1;y<h;y++)for(let x=Math.floor(w*.35);x<w*.65;x++)if(bright(x,y)){l=Math.min(l,x);r=Math.max(r,x);b=Math.max(b,y);}
+  if(r<l||r-l>w*.25||b-cut<2)return;
+  for(let x=l;x<=r;x++)if(bright(x,b)){tipSum+=x+.5;tipCount++;}
+  l=Math.max(0,l-8);r=Math.min(w-1,r+8);
+  const tail=document.createElement('canvas');tail.width=r-l+1;tail.height=b-cut+1;
+  tail.getContext('2d').drawImage(image,l,cut,tail.width,tail.height,0,0,tail.width,tail.height);
+  // Ricostruisci la linea inferiore sotto la vecchia punta usando la stessa cornice.
+  for(let y=cut;y<h;y++){
+   const i=(y*w+Math.floor(w*.25))*4;
+   ctx.clearRect(l-12,y,r-l+25,1);
+   ctx.fillStyle='rgba('+data[i]+','+data[i+1]+','+data[i+2]+','+(data[i+3]/255)+')';ctx.fillRect(l-12,y,r-l+25,1);
+  }
+  dialogueSkin={body:canvas.toDataURL('image/png'),tail:tail.toDataURL('image/png'),width:tail.width,height:tail.height,tipX:tipSum/tipCount-l,cut,h,slice};
+  dialogueTail.src=dialogueSkin.tail;updateInteractionUI();
+ }catch(_){/* La cornice originale resta disponibile anche senza lettura pixel. */}
+}
+function dialogueHead(){
+ const owner=dialogue.type==='npc'?dialogue.target?.owner:player;
+ if(!owner?.actor)return null;
+ const actor=owner.actor,a=actor.active;let x=owner.x;
+ if(a){const scale=actor.width?actor.width/a.b.w:actor.height/(a.fixed?a.body:a.b.h),origin=a.fixed?a.image.naturalWidth/2:a.b.x+a.b.w/2;x+=(a.b.x+a.b.w/2-origin)*scale;}
+ return screenPosition({x,y:owner.y-(actor.visibleHeight||owner.height)});
+}
+const uiBeforeAlignedBalloons=updateInteractionUI;
+updateInteractionUI=function(){
+ uiBeforeAlignedBalloons();const bubble=$('speech');
+ if(!dialogue||dialogue.offscreenHungryCall||bubble.hidden||bubble.classList.contains('thought')||bubble.classList.contains('narration')){bubble.classList.remove('aligned-speech');dialogueTail.hidden=true;bubble.style.removeProperty('border-image-source');return;}
+ const anchor=dialogueHead();if(!anchor)return;
+ const margin=12,normal=Math.min(250,viewWidth-margin*2),minimum=Math.min(200,normal);
+ // Riduci solo se il centro del balloon normale uscirebbe dallo schermo.
+ const centeredSpace=2*Math.min(anchor.x-margin,viewWidth-margin-anchor.x);
+ const width=clamp(centeredSpace,minimum,normal);bubble.style.width=width+'px';
+ const height=bubble.offsetHeight,left=clamp(anchor.x-width/2,margin,Math.max(margin,viewWidth-width-margin));
+ let tipY=height,top=anchor.y-6-tipY;
+ if(dialogueSkin){
+  bubble.classList.add('aligned-speech');bubble.style.borderImageSource='url("'+dialogueSkin.body+'")';dialogueTail.hidden=false;
+  const scale=18/dialogueSkin.slice,tailWidth=dialogueSkin.width*scale,tailHeight=dialogueSkin.height*scale;
+  const border=getComputedStyle(bubble),borderLeft=parseFloat(border.borderLeftWidth),borderTop=parseFloat(border.borderTopWidth);
+  const tailTop=height-18+(dialogueSkin.cut-(dialogueSkin.h-dialogueSkin.slice))*scale;
+  tipY=tailTop+tailHeight;top=anchor.y-6-tipY;
+  Object.assign(dialogueTail.style,{width:tailWidth+'px',height:tailHeight+'px',left:(anchor.x-left-dialogueSkin.tipX*scale-borderLeft)+'px',top:(tailTop-borderTop)+'px',transform:''});
+  // Se manca del tutto lo spazio sopra, la stessa punta si orienta verso l'alto.
+  if(top<margin){top=anchor.y+6+tailHeight;dialogueTail.style.top=(-borderTop-tailHeight)+'px';dialogueTail.style.transform='scaleY(-1)';}
+ }else{
+  // Prima che la cornice sia decodificata, mantieni il centro della punta sul PG.
+  const fallbackWidth=Math.min(width,Math.max(40,centeredSpace));bubble.style.width=fallbackWidth+'px';
+  bubble.style.left=(anchor.x-fallbackWidth/2)+'px';bubble.style.top=Math.max(margin,anchor.y-6-bubble.offsetHeight)+'px';return;
+ }
+ bubble.style.left=left+'px';bubble.style.top=top+'px';bubble.style.setProperty('--tail',(anchor.x-left)+'px');
+};
+void prepareDialogueSkin();
 
 
 /* 21 · AVVIO */
