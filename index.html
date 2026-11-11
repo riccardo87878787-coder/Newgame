@@ -165,6 +165,30 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 
 #speech .speech-tail{position:absolute;max-width:none;pointer-events:none;image-rendering:pixelated;z-index:0}
 
+#progressionPage{position:absolute;inset:0;z-index:5;background:#142b35;color:#f6edda;padding:5%;overflow:auto;display:flex;flex-direction:column;gap:12px}
+#progressionPage h2{margin:0;color:#f1d581;letter-spacing:3px;font-size:20px}
+#progressionMembers{display:flex;gap:8px;flex-wrap:wrap}
+#progressionMembers button{font-size:13px;padding:9px;border:1px solid #b4a37f;background:#203e49;color:#fff2da}
+#progressionMembers button[aria-pressed=true]{outline:2px solid #f1d581}
+#progressionBody{flex:1;overflow:auto;font-size:13px;line-height:1.5}
+.progression-stat{display:grid;grid-template-columns:45px 1fr;gap:4px;padding:8px 0;border-bottom:1px solid #ffffff22}
+.progression-stat small{grid-column:2;color:#c1d0d2;font-size:11px}
+.affinity-note{color:#c1d0d2;font-size:11px}
+.technique-card{padding:12px 0;border-bottom:1px solid #b4a37f55}
+.technique-card strong{color:#f2d68b}.technique-card p{margin:5px 0}
+#progressionBack{align-self:flex-end;padding:10px 20px;font-size:14px}
+#sleepPrompt{position:absolute;inset:0;z-index:35;display:grid;place-items:center;background:#0003;padding:18px}
+#sleepPanel{width:min(300px,100%);padding:14px 12px 10px;border:solid transparent;border-width:10px 14px 18px;border-image-source:url('icons/Balloon_dialogo.png');border-image-slice:70 100 110 fill;border-image-width:10px 14px 18px;color:#211b16;font:600 16px/1.4 Arial,sans-serif;text-align:center;image-rendering:pixelated}
+#sleepQuestion{margin:0 0 16px}.sleep-choices{display:flex;justify-content:center;gap:18px}
+.sleep-choices button{min-width:82px;min-height:44px;padding:8px 16px;border:2px solid #677984;border-radius:0;background:#f8f0e2;color:#211b16;font:bold 14px Arial,sans-serif;box-shadow:none}
+.sleep-choices button:focus-visible{outline:3px solid #9c3c4a;outline-offset:2px}
+#resumeNight{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);z-index:25;padding:14px 26px;font:bold 16px Arial,sans-serif;background:#18343fe8;color:#f8e9bc;border:2px solid #b8a26b}
+#battleSkillsList{position:absolute;left:3%;right:3%;bottom:34%;z-index:8;max-height:42%;overflow:auto;padding:12px;background:#102631f5;border:2px solid #9cafa9;display:flex;flex-direction:column;gap:8px}
+#battleSkillsList button{text-align:left;font-size:13px;padding:9px;background:#23414d;color:#fff1d2;border:1px solid #9cafa9;box-shadow:none}
+#battleSkillsList button:disabled{opacity:.45}
+#battleSkillsList small{display:block;font-size:11px;margin-top:4px;color:#cfdbdb}
+#game:has(#rpgMenu:not([hidden])) #testHongdeonButton{display:none}
+
 </style>
 </head>
 <body>
@@ -837,9 +861,9 @@ function updateOfficeSequence(dt){if(officeSequence?.pause>0){officeSequence.pau
 const originalAdvance=advanceSpeech;advanceSpeech=function(){if(dialogue?.officeStory){dialogue=null;$('speech').hidden=true;$('speech').classList.remove('thought','narration');officeSequence.index++;showOfficePage();updateInteractionUI();return;}originalAdvance();};
 const originalSpeech=openSpeech;openSpeech=function(lines,options={}){$('speech').classList.remove('thought','narration');originalSpeech(lines,options);};
 /* 25 · DATI PERSONAGGI INDIPENDENTI DALLE QUATTRO POSIZIONI */
-const LIMITS={level:99,hp:9999,ep:5000,won:999999999};
-const partyMembers={riccardo:{name:{ko:'리카르도',en:'Riccardo'},level:1,hp:250,maxHp:250,ep:100,maxEp:100,card:'Menu/file_000000002b388209a33ce587676f6016.png'}};
-partyMembers.seoyoon={name:{ko:'서윤',en:'Seoyoon'},level:1,hp:200,maxHp:200,ep:120,maxEp:120,hpLimit:9999,epLimit:5800,joined:false,card:'Seoyoon/file_00000000db8c8209b2a8fc318cab46ef.png'};
+const LIMITS={level:50,hp:9999,ep:5000,won:999999999};
+const partyMembers={riccardo:{name:{ko:'리카르도',en:'Riccardo'},level:1,hp:250,maxHp:250,ep:12,maxEp:12,card:'Menu/file_000000002b388209a33ce587676f6016.png'}};
+partyMembers.seoyoon={name:{ko:'서윤',en:'Seoyoon'},level:1,hp:160,maxHp:160,ep:18,maxEp:18,hpLimit:9999,epLimit:5800,joined:false,card:'Seoyoon/file_00000000db8c8209b2a8fc318cab46ef.png'};
 const partySlots=['riccardo',null,null,null];let won=50000,language='ko';
 function updateMember(id,patch){const member=partyMembers[id];if(!member)return;Object.assign(member,patch);member.level=clamp(Math.trunc(member.level)||1,1,LIMITS.level);member.maxHp=clamp(Math.trunc(member.maxHp)||1,1,LIMITS.hp);member.maxEp=clamp(Math.trunc(member.maxEp)||0,0,member.epLimit||LIMITS.ep);member.hp=clamp(Math.trunc(member.hp)||0,0,member.maxHp);member.ep=clamp(Math.trunc(member.ep)||0,0,member.maxEp);renderMenu();}
 function assignMember(slot,id){if(slot<0||slot>3||id!==null&&(!partyMembers[id]||partyMembers[id].joined===false))return;const old=partySlots.indexOf(id);if(id&&old>=0)partySlots[old]=null;partySlots[slot]=id;renderMenu();}
@@ -861,7 +885,7 @@ async function runAutomaticMenu(){const epoch=sceneEpoch;openMenu(true);autoMenu
 const originalSave=saveWorld;saveWorld=function(){if(locationId==='city')originalSave();else{officeWorld=world;try{localStorage.setItem('tarai-office-world-v2',JSON.stringify(world));storageFailed=false;}catch(_){storageFailed=true;}}};
 try{const saved=JSON.parse(localStorage.getItem('tarai-office-world-v2'));if(validWorld(saved))officeWorld=saved;}catch(_){}
 const originalLoadCharacters=loadCharacters;loadCharacters=async function(){await originalLoadCharacters();cityNpcs.push(...npcs);cityWorld=world;};
-const originalBegin=beginIntro;beginIntro=function(){sceneEpoch++;menuUnlocked=false;jobAssigned=false;destinationOpen=false;travelScene=null;inventory={};selectedItem=null;$('destinations').hidden=true;$('inventoryPage').hidden=true;game.classList.remove('travel-ending');$('fade').style.transition='';officeSequence=null;dialogue=null;ending=false;transitioning=false;autoMenu=false;menuOpen=false;language='ko';won=50000;Object.assign(partyMembers.riccardo,{level:1,hp:250,maxHp:250,ep:100,maxEp:100});$('rpgMenu').hidden=true;$('rpgMenu').classList.remove('auto');$('fade').classList.remove('black');$('speech').classList.remove('thought','narration');if(locationId!=='city')showLocation('city');for(const n of [...cityNpcs,...officeNpcs])n.talking=false;renderMenu();originalBegin();};
+const originalBegin=beginIntro;beginIntro=function(){sceneEpoch++;menuUnlocked=false;jobAssigned=false;destinationOpen=false;travelScene=null;inventory={};selectedItem=null;$('destinations').hidden=true;$('inventoryPage').hidden=true;game.classList.remove('travel-ending');$('fade').style.transition='';officeSequence=null;dialogue=null;ending=false;transitioning=false;autoMenu=false;menuOpen=false;language='ko';won=50000;Object.assign(partyMembers.riccardo,{level:1,hp:250,maxHp:250,ep:12,maxEp:12});$('rpgMenu').hidden=true;$('rpgMenu').classList.remove('auto');$('fade').classList.remove('black');$('speech').classList.remove('thought','narration');if(locationId!=='city')showLocation('city');for(const n of [...cityNpcs,...officeNpcs])n.talking=false;renderMenu();originalBegin();};
 const originalStatus=updateStatus;updateStatus=function(){if(ending){$('status').textContent='To be continued · ↺ Restart';return;}if(locationId==='office'){$('status').textContent=missing.size?'Missing image: '+[...missing][0]:'Job Center';return;}originalStatus();};
 // Il reset rimane l'unico controllo disponibile alla fine della prova.
 for(const id of ['editorOpen','zoomIn','zoomOut']){const fn=$(id).onclick;$(id).onclick=()=>{if(!locked())fn();};}
@@ -1152,7 +1176,7 @@ showLocation=function(id){if(seoyoonNpc)seoyoonNpc.actor.node.hidden=true;showBe
 // La storia chiamerà joinSeoyoon soltanto quando entrerà davvero nel gruppo.
 window.TaraiParty.joinSeoyoon=function(){const m=partyMembers.seoyoon;if(partySlots.includes('seoyoon'))return true;const slot=partySlots[1]===null?1:partySlots.indexOf(null);if(slot<0)return false;m.joined=true;assignMember(slot,'seoyoon');return true;};
 const beginBeforeSeoyoon=beginIntro;
-beginIntro=function(){partyMembers.seoyoon.joined=false;Object.assign(partyMembers.seoyoon,{level:1,hp:200,maxHp:200,ep:120,maxEp:120});for(let i=0;i<partySlots.length;i++)if(partySlots[i]==='seoyoon')partySlots[i]=null;beginBeforeSeoyoon();};
+beginIntro=function(){partyMembers.seoyoon.joined=false;Object.assign(partyMembers.seoyoon,{level:1,hp:160,maxHp:160,ep:18,maxEp:18});for(let i=0;i<partySlots.length;i++)if(partySlots[i]==='seoyoon')partySlots[i]=null;beginBeforeSeoyoon();};
 
 // Seoyoon resta interagibile nel ristorante anche usando il salto di test.
 const targetsBeforeSeoyoonTalk=allTargets;
@@ -1203,7 +1227,7 @@ function renderEquip(){
  const item=EQUIP_ITEMS[equipSelected];$('equipDetailIcon').hidden=!item;
  $('equipItemName').textContent=item?.name||'Empty slot';$('equipDescription').textContent=item?.description||'Select a slot to see compatible equipment.';
  $('equipComparison').replaceChildren();
- if(item){$('equipDetailIcon').src='Equip/Icone/'+item.icon+'.png';const current=equipmentStats(equipMember),old=EQUIP_ITEMS[slots[equipSlot]]||{};for(const [stat,label] of [['attack','ATK'],['defense','DEF']]){const next=current[stat]-(old[stat]||0)+(item[stat]||0);if(!item[stat]&&!old[stat])continue;const row=document.createElement('div');row.append(document.createTextNode(label+' '+current[stat]+' → '));const value=document.createElement('span');value.textContent=next;value.className=next>current[stat]?'better':next<current[stat]?'worse':'';row.appendChild(value);$('equipComparison').appendChild(row);}}
+ if(item){$('equipDetailIcon').src='Equip/Icone/'+item.icon+'.png';const current=equipmentStats(equipMember),old=EQUIP_ITEMS[slots[equipSlot]]||{};for(const [stat,label] of [['attack','ATK'],['defense','DEF'],['speed','SPD'],['technique','TEC'],['resistance','RES']]){const next=current[stat]-(old[stat]||0)+(item[stat]||0);if(!item[stat]&&!old[stat])continue;const row=document.createElement('div');row.append(document.createTextNode(label+' '+current[stat]+' → '));const value=document.createElement('span');value.textContent=next;value.className=next>current[stat]?'better':next<current[stat]?'worse':'';row.appendChild(value);$('equipComparison').appendChild(row);}}
  $('equipConfirm').disabled=!item||slots[equipSlot]===equipSelected;
  $('equipConfirm').textContent=slots[equipSlot]===equipSelected&&item?'EQUIPPED':'EQUIP';
  $('equipBack').disabled=equipTutorial;
@@ -1303,7 +1327,7 @@ const balloonSkinsReady=Promise.all(Object.values(UI_ASSETS).map(src=>new Promis
 /* PRIMO COMBATTIMENTO · prova dopo l'ultimo dialogo di Seoyoon */
 const FIRST_BATTLE={
  background:'Map/file_000000004b808209ac31d0be04302bdb.png',
- riccardo:{idle:'Riccardogif/riccardo_guardia_outfit.gif',attack:'Riccardogif/riccardo_attacco_outfit.gif',hurt:'Riccardogif/riccardo_danno_outfit.gif',victory:'Riccardogif/riccardo_vittoria_5_giri.gif'},
+ riccardo:{idle:'Riccardogif/riccardo_guardia_outfit.gif',attack:'Riccardogif/riccardo_attacco_outfit.gif',hurt:'Riccardogif/riccardo_danno_outfit.gif',victory:'Riccardogif/file_0000000061dc8209b5b372fe41605a9b.gif'},
  enemy:{idle:'Enemy/file_00000000e3608209879d9dcd34bccb34.gif',attack:'Enemy/file_0000000041a482099abeaba46b3e57dd.gif',hurt:'Enemy/nemico_affamato_danno.gif'},
  enemyStats:{hp:60,attack:25,defense:0},baseAttack:15,
  // Coordinate nell'area superiore: gli altri tre posti restano liberi.
@@ -1776,6 +1800,221 @@ updateInteractionUI=function(){
  bubble.style.left=left+'px';bubble.style.top=top+'px';bubble.style.setProperty('--tail',(anchor.x-left)+'px');
 };
 void prepareDialogueSkin();
+
+/* PROGRESSION · EXP NES, personal stats, equipment and learned techniques */
+const RPG_VERSION=1,RPG_SAVE_KEY='tarai-progression-v1';
+const EXP_LEVELS=[0,40,196,547,1171,2146,3550,5461,7957,11116,15016,19735,25351,31942,39586,48361,58345,69617,82253,96332,111932,129131,148008,168639,191103,215479,241843,270275,300851,333651,366450,399250,432049,464849,497648,530448,563247,596047,628846,661646,694445,727245,760044,792844,825643,858443,891242,924042,956841,989641];
+const EP_LEVELS=[1,5,10,20,30,40,50];
+const CHARACTER_GROWTH={
+ riccardo:{hp:250,hpGrowth:25,attack:15,attackGrowth:2,speed:8,speedGrowth:.5,technique:4,techniqueGrowth:.5,resistance:6,resistanceGrowth:1,defenseGrowth:1,ep:[12,18,26,40,54,68,80]},
+ seoyoon:{hp:160,hpGrowth:15,attack:4,attackGrowth:.5,speed:12,speedGrowth:.75,technique:12,techniqueGrowth:3,resistance:10,resistanceGrowth:1.5,defenseGrowth:1/3,ep:[18,28,40,62,82,102,120]},
+ seon_jong:{hp:180,hpGrowth:18,attack:4,attackGrowth:.5,speed:10,speedGrowth:.5,technique:14,techniqueGrowth:3,resistance:12,resistanceGrowth:1.5,defenseGrowth:1/3,ep:[20,32,46,70,92,114,135]}
+};
+const TECHNIQUES={
+ riccardo:[
+ {id:'firm_pan_strike',name:'Firm Pan Strike',level:5,ep:4,type:'physical',power:1.5,target:'single',description:'Strike one target with a decisive frying-pan blow.'},
+ {id:'lid_guard',name:'Lid Guard',level:10,ep:6,type:'guard',target:'self',duration:1,reduction:.5,taunt:true,description:'Halve incoming damage until your next turn and draw single-target physical attacks.'},
+ {id:'rim_breaker',name:'Rim Breaker',level:15,ep:9,type:'physical',power:1.8,ignoreDefense:.25,target:'single',description:'Hit one target, ignoring 25% of its physical defense.'},
+ {id:'double_pan_strike',name:'Double Pan Strike',level:20,ep:12,type:'physical',power:1.1,hits:2,target:'single',description:'Hit one target twice.'},
+ {id:'kitchen_sweep',name:'Kitchen Sweep',level:null,ep:16,type:'physical',power:1.5,target:'all-enemies',description:'Sweep your frying pan across all enemies.'},
+ {id:'smashing_blow',name:'Smashing Blow',level:null,ep:21,type:'physical',power:2.8,target:'single',debuff:{stat:'defense',amount:.2,duration:3},description:'Strike one target and lower its defense by 20% for three turns.'},
+ {id:'behind_me',name:'Behind Me!',level:null,ep:26,type:'cover',target:'ally',duration:2,reduction:.5,description:'Cover an ally against single-target physical attacks for two turns, taking half damage in their place.'},
+ {id:'heavy_service',name:'Heavy Service',level:null,ep:32,type:'physical',power:2.3,target:'all-enemies',description:'Deliver a heavy blow to every enemy.'},
+ {id:'three_stars',name:'Three Stars',level:null,ep:40,type:'physical',power:1.3,hits:3,target:'single',description:'Hit one target three times.'},
+ {id:'kitchen_closed',name:'Kitchen Closed',level:null,ep:50,type:'physical',power:3.2,ignoreDefense:.3,target:'all-enemies',description:'Hit all enemies, ignoring 30% of physical defense.'}
+ ],
+ seoyoon:[
+ {id:'scorching_plate',name:'Scorching Plate',level:1,ep:5,type:'technical',power:1.5,element:'fire',target:'single',description:'Scorch one target with a searing hot plate.'},
+ {id:'shocking_tray',name:'Shocking Tray',level:1,ep:7,type:'technical',power:1.6,element:'lightning',target:'single',description:'Send an electric shock through one target.'},
+ {id:'frozen_service',name:'Frozen Service',level:8,ep:10,type:'technical',power:2,element:'ice',target:'single',description:'Freeze one target with a burst of ice.'},
+ {id:'blazing_plates',name:'Blazing Plates',level:15,ep:14,type:'technical',power:1.5,element:'fire',target:'all-enemies',description:'Scorch every enemy with blazing plates.'},
+ {id:'service_surge',name:'Service Surge',level:null,ep:19,type:'technical',power:1.9,element:'lightning',target:'all-enemies',description:'Send an electric surge through all enemies.'},
+ {id:'frozen_bill',name:'Frozen Bill',level:null,ep:24,type:'technical',power:3.2,element:'ice',target:'single',debuff:{stat:'speed',amount:.25,duration:3},description:'Deal ice damage and lower speed by 25% for three turns.'},
+ {id:'explosive_tray',name:'Explosive Tray',level:null,ep:30,type:'technical',power:3.8,element:'none',target:'single',description:'Deal heavy non-elemental damage to one target.'},
+ {id:'plate_storm',name:'Plate Storm',level:null,ep:37,type:'technical',power:2.8,element:'ice',target:'all-enemies',description:'Strike all enemies with a storm of frozen plates.'},
+ {id:'impossible_service',name:'Impossible Service',level:null,ep:45,type:'technical',power:1.6,hits:3,elements:['fire','ice','lightning'],target:'single',description:'Hit one target with fire, ice and lightning.'},
+ {id:'final_bill',name:'Final Bill',level:null,ep:55,type:'technical',power:4,element:'none',target:'all-enemies',description:'Deal massive non-elemental damage to all enemies.'}
+ ],
+ seon_jong:[
+ {id:'a_sip',name:'A Sip',level:null,ep:5,type:'heal',power:2,target:'ally',description:'Restore HP to one ally.'},
+ {id:'protective_blend',name:'Protective Blend',level:null,ep:7,type:'protect',reduction:.2,duration:3,target:'ally',description:'Reduce damage to one ally by 20% for three turns.'},
+ {id:'cleansing_infusion',name:'Cleansing Infusion',level:null,ep:10,type:'cleanse',statuses:['poison','sleep','silence'],target:'ally',description:'Remove poison, sleep and silence from one ally.'},
+ {id:'double_espresso',name:'Double Espresso',level:null,ep:14,type:'heal',power:4,target:'ally',description:'Restore a large amount of HP to one ally.'},
+ {id:'drinks_round',name:'Drinks Round',level:null,ep:19,type:'heal',power:2.5,target:'all-allies',description:'Restore HP to all allies.'},
+ {id:'house_blend',name:'House Blend',level:null,ep:25,type:'protect',reduction:.25,duration:3,target:'all-allies',description:'Reduce damage to all allies by 25% for three turns.'},
+ {id:'wake_up',name:'Wake Up!',level:null,ep:31,type:'revive',fraction:.3,target:'fallen-ally',description:'Revive one ally with 30% of maximum HP.'},
+ {id:'restorative_service',name:'Restorative Service',level:null,ep:38,type:'regen',fraction:.1,duration:3,target:'all-allies',description:'Restore 10% of maximum HP at the end of each round for three rounds.'},
+ {id:'special_reserve',name:'Special Reserve',level:null,ep:46,type:'heal-cleanse',power:5,target:'all-allies',description:'Restore HP and remove curable ailments from all allies.'},
+ {id:'last_round',name:'Last Round',level:null,ep:58,type:'revive-heal',power:6,fraction:.5,target:'all-allies',description:'Revive fallen allies with 50% HP and restore HP to conscious allies.'}
+ ]
+};
+function epForLevel(id,level){const values=CHARACTER_GROWTH[id].ep;for(let i=1;i<EP_LEVELS.length;i++)if(level<=EP_LEVELS[i]){const f=(level-EP_LEVELS[i-1])/(EP_LEVELS[i]-EP_LEVELS[i-1]);return Math.floor(values[i-1]+(values[i]-values[i-1])*f);}return values.at(-1);}
+function personalStats(id,level=partyMembers[id]?.level||1){const p=CHARACTER_GROWTH[id];if(!p)return null;level=clamp(Math.trunc(level)||1,1,50);const n=level-1;return {level,maxHp:p.hp+p.hpGrowth*n,maxEp:epForLevel(id,level),attack:p.attack+Math.floor(p.attackGrowth*n),defense:Math.floor(n*p.defenseGrowth+1e-8),speed:p.speed+Math.floor(p.speedGrowth*n),technique:p.technique+Math.floor(p.techniqueGrowth*n),resistance:p.resistance+Math.floor(p.resistanceGrowth*n)};}
+function totalStats(id){const personal=personalStats(id),gear=equipmentStats(id);if(!personal)return null;const result={...personal};for(const stat of ['attack','defense','speed','technique','resistance','maxHp','maxEp'])result[stat]+=(gear[stat]||0);return result;}
+function learnedTechniques(id){const m=partyMembers[id];if(!m)return [];return (TECHNIQUES[id]||[]).filter(t=>(Number.isInteger(t.level)&&m.level>=t.level)||m.legendarySkills?.includes(t.id));}
+function levelFromExp(exp){let level=1;while(level<50&&exp>=EXP_LEVELS[level])level++;return level;}
+function syncMemberProgression(id,{levelUp=false,refill=false}={}){const m=partyMembers[id];if(!m||!CHARACTER_GROWTH[id])return;const oldHp=m.maxHp||0,oldEp=m.maxEp||0,s=totalStats(id);Object.assign(m,s);m.epLimit=CHARACTER_GROWTH[id].ep.at(-1);m.hpLimit=9999;m.exp=clamp(Math.trunc(m.exp)||0,EXP_LEVELS[m.level-1],m.level<50?EXP_LEVELS[m.level]-1:EXP_LEVELS[49]);m.hp=refill?m.maxHp:clamp((m.hp||0)+(levelUp&&m.hp>0?Math.max(0,m.maxHp-oldHp):0),0,m.maxHp);m.ep=refill?m.maxEp:clamp((m.ep||0)+(levelUp?Math.max(0,m.maxEp-oldEp):0),0,m.maxEp);m.learnedSkills=learnedTechniques(id).map(t=>t.id);}
+function setCharacterLevel(id,level){const m=partyMembers[id];if(!m)return false;level=clamp(Math.trunc(level)||1,1,50);m.level=level;m.exp=EXP_LEVELS[level-1];syncMemberProgression(id,{levelUp:true});renderMenu();return true;}
+function awardExperience(total,ids=partySlots.filter(id=>id&&partyMembers[id]?.hp>0)){const eligible=[...new Set(ids)].filter(id=>partyMembers[id]?.hp>0&&CHARACTER_GROWTH[id]);if(!eligible.length||!Number.isFinite(total)||total<=0)return [];const share=Math.floor(total/eligible.length),reports=[];for(const id of eligible){const m=partyMembers[id],oldLevel=m.level,oldSkills=new Set(learnedTechniques(id).map(t=>t.id));m.exp=Math.min(EXP_LEVELS[49],Math.max(EXP_LEVELS[oldLevel-1],m.exp||0)+share);m.level=levelFromExp(m.exp);syncMemberProgression(id,{levelUp:true});reports.push({id,exp:share,oldLevel,level:m.level,learned:learnedTechniques(id).filter(t=>!oldSkills.has(t.id)).map(t=>t.name)});}renderMenu();return reports;}
+function techniqueDamage(skill,user,target,{hit=0,protection=1}={}){const multiplier=skill.power||1;let damage;if(skill.type==='physical')damage=user.attack*multiplier-Math.max(0,target.defense||0)*(1-(skill.ignoreDefense||0));else damage=user.technique*multiplier*100/(100+Math.max(0,target.resistance||0));const element=skill.elements?.[hit]||skill.element||'none',affinity=target.affinities?.[element]??1;return affinity===0?0:Math.max(1,Math.floor(damage*affinity*protection));}
+function resetProgression(){for(const id of Object.keys(partyMembers)){if(!CHARACTER_GROWTH[id])continue;Object.assign(partyMembers[id],{level:1,exp:0,legendarySkills:[]});syncMemberProgression(id,{refill:true});}}
+Object.assign(EQUIP_ITEMS,{
+ serving_tray:{slot:'weapon',name:'Serving Tray',icon:'file_000000002b6c8209b039a7af1d763843',owner:'seoyoon',description:'An ordinary serving tray. Starter equipment; no stat bonuses.'},
+ burgundy_hair_clip:{slot:'head',name:'Burgundy Hair Clip',icon:'file_00000000081882099a9fec856ee196b5',owner:'seoyoon',description:'A small burgundy hair clip. No stat bonuses.'},
+ waitress_shirt:{slot:'body',name:'Waitress Shirt',icon:'file_000000008c408212811f9cbee7e750e2',owner:'seoyoon',description:'A pale pink waitress shirt. No stat bonuses.'},
+ waitress_trousers:{slot:'legs',name:'Waitress Trousers',icon:'file_00000000ba108209be1dee9a4f62b297',owner:'seoyoon',description:'Plain black work trousers. No stat bonuses.'},
+ simple_shoes:{slot:'shoes',name:'Simple Shoes',icon:'file_000000000cbc82099343a2690d13ee46',owner:'seoyoon',description:'Practical black shoes. No stat bonuses.'}
+});
+const RICCARDO_STARTER_ITEMS=['chipped_pan','secondhand_bandana','secondhand_shirt','secondhand_trousers','secondhand_shoes'];
+const SEOYOON_STARTER_EQUIP={weapon:'serving_tray',head:'burgundy_hair_clip',body:'waitress_shirt',legs:'waitress_trousers',shoes:'simple_shoes'};
+for(const id of RICCARDO_STARTER_ITEMS)EQUIP_ITEMS[id].owner='riccardo';
+function equipSeoyoonStarter(){const slots=equipmentFor('seoyoon');for(const [slot,id] of Object.entries(SEOYOON_STARTER_EQUIP)){equipState.owned[id]=Math.max(1,equipState.owned[id]||0);if(!slots[slot])slots[slot]=id;}}
+const availableBeforeOwners=availableEquip;availableEquip=function(id,member){if(EQUIP_ITEMS[id]?.owner&&EQUIP_ITEMS[id].owner!==member)return 0;return availableBeforeOwners(id,member);};
+// Only Riccardo's five items belong to the initial Equip tutorial.
+grantWorkClothes=function(){for(const id of RICCARDO_STARTER_ITEMS)equipState.owned[id]=Math.max(1,equipState.owned[id]||0);equipmentFor('riccardo').weapon='chipped_pan';equipState.stage='equip';saveEquipState();openEquip(true);};
+const equipmentStatsBeforeGrowth=equipmentStats;equipmentStats=function(id){const result=equipmentStatsBeforeGrowth(id);for(const stat of ['speed','technique','resistance','maxHp','maxEp'])result[stat]=Object.values(equipmentFor(id)).reduce((v,item)=>v+(EQUIP_ITEMS[item]?.[stat]||0),0);return result;};
+const equipChosenBeforeGrowth=equipChosen;equipChosen=function(){const result=equipChosenBeforeGrowth();syncMemberProgression(equipMember);return result;};$('equipConfirm').onclick=equipChosen;
+const closeEquipBeforeGrowth=closeEquip;closeEquip=function(){syncMemberProgression(equipMember);closeEquipBeforeGrowth();};$('equipBack').onclick=closeEquip;
+const updateBeforeGrowth=updateMember;updateMember=function(id,patch){if(!partyMembers[id])return;if(patch.level!==undefined&&patch.exp===undefined)patch={...patch,level:clamp(Math.trunc(patch.level)||1,1,50),exp:EXP_LEVELS[clamp(Math.trunc(patch.level)||1,1,50)-1]};updateBeforeGrowth(id,patch);syncMemberProgression(id);};
+const joinBeforeGrowth=TaraiParty.joinSeoyoon;TaraiParty.joinSeoyoon=function(){equipSeoyoonStarter();syncMemberProgression('seoyoon');const result=joinBeforeGrowth();saveEquipState();return result;};
+Object.assign(ITEM_CATALOG,{
+ staff_meal:{name:'Staff Meal',description:'Restore 100 HP to one conscious ally.',hp:100},
+ espresso_shot:{name:'Espresso Shot',description:'Restore 10 EP to one conscious ally.',ep:10},
+ emergency_snack:{name:'Emergency Snack',description:'Revive one fallen ally with 25% of maximum HP.',revive:.25}
+});
+const inventoryBeforeRevival=renderInventory;renderInventory=function(){inventoryBeforeRevival();const item=ITEM_CATALOG[selectedItem];if(item?.revive)$('useItem').hidden=false;};
+useInventoryItem=function(itemId,memberId){const item=ITEM_CATALOG[itemId],member=partyMembers[memberId];if(!item||!member||!(inventory[itemId]>0)||!partySlots.includes(memberId))return false;let hp=member.hp,ep=member.ep;if(item.revive){if(hp>0){$('itemDetail').textContent='This ally is not knocked out.';return false;}hp=Math.max(1,Math.floor(member.maxHp*item.revive));}else{if(hp<=0){$('itemDetail').textContent='This ally needs a revival item.';return false;}hp=Math.min(member.maxHp,hp+(item.hp||0));ep=Math.min(member.maxEp,ep+(item.ep||0));}if(hp===member.hp&&ep===member.ep){$('itemDetail').textContent='This item would have no effect.';return false;}updateMember(memberId,{hp,ep});inventory[itemId]--;renderInventory();return true;};TaraiInventory.useItem=useInventoryItem;
+const progressionPage=document.createElement('section');progressionPage.id='progressionPage';progressionPage.hidden=true;progressionPage.innerHTML='<h2 id="progressionTitle">STATUS</h2><div id="progressionMembers"></div><div id="progressionBody"></div><button id="progressionBack">BACK</button>';$('rpgMenu').appendChild(progressionPage);
+let progressionView='status',progressionMember='riccardo';
+function renderProgressionPage(){const ids=partySlots.filter(id=>id&&partyMembers[id]?.joined!==false);if(!ids.includes(progressionMember))progressionMember=ids[0]||'riccardo';$('progressionTitle').textContent=progressionView==='skills'?'SKILLS':'STATUS';$('progressionMembers').replaceChildren();for(const id of ids){const b=document.createElement('button');b.textContent=partyMembers[id].name.en;b.setAttribute('aria-pressed',String(id===progressionMember));b.onclick=()=>{progressionMember=id;renderProgressionPage();};$('progressionMembers').appendChild(b);}const body=$('progressionBody');body.replaceChildren();const m=partyMembers[progressionMember];if(progressionView==='skills'){const skills=learnedTechniques(progressionMember);if(!skills.length){const p=document.createElement('p');p.textContent='No techniques learned yet.';body.appendChild(p);}for(const t of skills){const row=document.createElement('article');row.className='technique-card';const title=document.createElement('strong');title.textContent=t.name+' · '+t.ep+' EP';const description=document.createElement('p');description.textContent=t.description;row.append(title,description);body.appendChild(row);}return;}const personal=personalStats(progressionMember),stats=totalStats(progressionMember),next=m.level<50?EXP_LEVELS[m.level]-m.exp:0;const level=document.createElement('p');level.textContent='Lv '+m.level+' / 50 · EXP '+m.exp.toLocaleString('en-US')+(m.level<50?' · Next '+next.toLocaleString('en-US'):' · MAX');body.appendChild(level);for(const [stat,label,value] of [['maxHp','HP',m.hp+'/'+m.maxHp],['maxEp','EP',m.ep+'/'+m.maxEp],['attack','ATK'],['defense','DEF'],['speed','SPD'],['technique','TEC'],['resistance','RES']]){const row=document.createElement('div');row.className='progression-stat';const name=document.createElement('strong');name.textContent=label;const v=document.createElement('span');v.textContent=value||String(stats[stat]);const detail=document.createElement('small');detail.textContent='Base '+personal[stat]+' + Equip '+(stats[stat]-personal[stat]);row.append(name,v,detail);body.appendChild(row);}const p=document.createElement('p');p.className='affinity-note';p.textContent='Fire · Ice · Lightning: normal resistance';body.appendChild(p);}
+function openProgressionPage(view){if(autoMenu)return;progressionView=view;resetInput();$('languagePage').hidden=true;$('inventoryPage').hidden=true;progressionPage.hidden=false;renderProgressionPage();$('progressionBack').focus();}
+$('progressionBack').onclick=()=>{progressionPage.hidden=true;$('menuNav').querySelector('[data-menu-index="'+(progressionView==='skills'?1:3)+'"]')?.focus();};
+const menuBeforeProgression=renderMenu;renderMenu=function(){menuBeforeProgression();for(const [index,view] of [[1,'skills'],[3,'status']])$('menuNav').querySelector('[data-menu-index="'+index+'"]')?.addEventListener('click',()=>openProgressionPage(view));const save=$('menuNav').querySelector('[data-menu-index="5"]');if(save)save.onclick=()=>{if(autoMenu)return;const ok=saveRpgGame();save.textContent=ok?'Saved':'Save failed';};if(!progressionPage.hidden)renderProgressionPage();};
+const closeBeforeProgression=closeMenu;closeMenu=function(){if(!autoMenu)progressionPage.hidden=true;closeBeforeProgression();};
+function saveRpgGame(){try{const data={version:RPG_VERSION,members:partyMembers,slots:partySlots,won,language,inventory,equip:equipState,jobAssigned,menuUnlocked,location:locationId,player:{x:player.x,y:player.y,direction:player.direction},story:typeof nightState==='undefined'?null:{...nightState},storyPhase,storyNight,workUniformEnabled};localStorage.setItem(RPG_SAVE_KEY,JSON.stringify(data));saveEquipState();return true;}catch(_){return false;}}
+function readRpgSave(){try{const data=JSON.parse(localStorage.getItem(RPG_SAVE_KEY));return data?.version===RPG_VERSION&&partyMembers.riccardo&&['city','office','hongdeon','restaurant','quarters'].includes(data.location)&&['return-inside','after-battle-dialogue','go-to-bed','morning'].includes(data.story?.phase)?data:null;}catch(_){return null;}}
+const beginBeforeProgression=beginIntro;beginIntro=function(){progressionPage.hidden=true;beginBeforeProgression();resetProgression();equipSeoyoonStarter();renderMenu();};
+resetProgression();equipSeoyoonStarter();
+battleStats=function(){return totalStats('riccardo');};
+Object.assign(TaraiParty,{updateMember,getStats:totalStats,getBaseStats:personalStats,addExperience:awardExperience,setLevel:setCharacterLevel});
+window.TaraiProgression={maxLevel:50,experienceTable:EXP_LEVELS.slice(),profiles:CHARACTER_GROWTH,techniques:TECHNIQUES,getStats:totalStats,getBaseStats:personalStats,getSkills:learnedTechniques,addExperience:awardExperience,setLevel:setCharacterLevel,damage:techniqueDamage,save:saveRpgGame};
+
+/* Skills are usable once learned; the first Lv1 tutorial remains ATK-only. */
+let selectedBattleSkill=null,battleGuard=false;
+const battleSkillsButton=battleScreen.querySelector('#battleCommands button:nth-child(2)');battleSkillsButton.dataset.battleCommand='skills';
+const battleSkillsList=document.createElement('div');battleSkillsList.id='battleSkillsList';battleSkillsList.hidden=true;battleSkillsList.setAttribute('aria-label','Learned techniques');battleScreen.appendChild(battleSkillsList);
+function closeBattleSkills(){battleSkillsList.hidden=true;}
+function openBattleSkills(){if(firstBattlePhase!=='command')return;resetInput();battleSkillsList.replaceChildren();for(const skill of learnedTechniques('riccardo')){const b=document.createElement('button');b.textContent=skill.name+' · '+skill.ep+' EP';const d=document.createElement('small');d.textContent=skill.description;b.appendChild(d);b.disabled=battleMember().ep<skill.ep;b.onclick=()=>{if(battleMember().ep<skill.ep)return;selectedBattleSkill=skill;closeBattleSkills();if(skill.target==='self')void performFirstBattleAttack(firstBattleFighters.find(f=>f.kind==='riccardo'));else{firstBattlePhase='target';battleHint(skill.name+' · Tap a target.');paintFirstBattle();}};battleSkillsList.appendChild(b);}const cancel=document.createElement('button');cancel.textContent='CANCEL';cancel.onclick=closeBattleSkills;battleSkillsList.appendChild(cancel);battleSkillsList.hidden=false;}
+battleSkillsButton.onclick=()=>{if(!battleSkillsList.hidden){closeBattleSkills();return;}if(firstBattlePhase==='target'){selectedBattleSkill=null;firstBattlePhase='command';paintFirstBattle();}openBattleSkills();};
+const paintBeforeSkills=paintFirstBattle;paintFirstBattle=function(){paintBeforeSkills();const available=learnedTechniques('riccardo').length>0&&(firstBattlePhase==='command'||firstBattlePhase==='target');battleSkillsButton.disabled=!available;battleSkillsButton.classList.toggle('available',available);};
+const attackButtonBeforeSkills=battleAttackButton.onclick;battleAttackButton.onclick=()=>{selectedBattleSkill=null;closeBattleSkills();attackButtonBeforeSkills();};
+const commandBeforeSkills=commandFirstBattle;commandFirstBattle=function(){selectedBattleSkill=null;battleGuard=false;closeBattleSkills();commandBeforeSkills();};
+const damageBeforeGuard=battleDamage;battleDamage=function(attack,defense){const damage=damageBeforeGuard(attack,defense);return firstBattlePhase==='enemy'&&battleGuard?Math.max(1,Math.floor(damage*.5)):damage;};
+const attackBeforeSkills=performFirstBattleAttack;performFirstBattleAttack=async function(target){
+ const skill=selectedBattleSkill;if(!skill)return attackBeforeSkills(target);
+ if(!['command','target'].includes(firstBattlePhase)||!target||target.hp()<=0||battleMember().ep<skill.ep||!learnedTechniques('riccardo').some(t=>t.id===skill.id))return;
+ const epoch=firstBattleEpoch,hero=firstBattleFighters.find(f=>f.kind==='riccardo'),self=target===hero,t=FIRST_BATTLE.timing;firstBattlePhase='acting';closeBattleSkills();selectedBattleSkill=null;updateMember('riccardo',{ep:battleMember().ep-skill.ep});battleHint(skill.name+'!');paintFirstBattle();
+ if(skill.type==='guard'){
+  battleGuard=true;await drawBattlePose(hero,'idle',true);if(!await battlePause(350,epoch))return;await enemyFirstBattleTurn(epoch);return;
+ }
+ if(!self)positionBattleFighter(hero,target.home.x+23,target.home.y);await drawBattlePose(hero,'attack',true);if(!await battlePause(t.impact,epoch))return;
+ for(let hit=0;hit<(skill.hits||1)&&target.hp()>0;hit++){
+  const targetStats=self?battleStats():firstBattleEnemy,damage=techniqueDamage(skill,battleStats(),targetStats,{hit});if(self)updateMember('riccardo',{hp:Math.max(0,battleMember().hp-damage)});else firstBattleEnemy.hp=Math.max(0,firstBattleEnemy.hp-damage);floatBattleDamage(target,damage);battleImpact(target);await drawBattlePose(target,'hurt',true);paintFirstBattle();if(!await battlePause(hit+1<(skill.hits||1)?140:Math.max(t.hurt,t.attack-t.impact),epoch))return;
+ }
+ positionBattleFighter(hero);await drawBattlePose(hero,'idle',true);if(!battleAlive(epoch))return;if(!self&&firstBattleEnemy.hp>0)await drawBattlePose(target,'idle',true);
+ if(battleMember().hp<=0){defeatFirstBattle();return;}if(firstBattleEnemy.hp<=0){await victoryFirstBattle(epoch);return;}if(!await battlePause(300,epoch))return;await enemyFirstBattleTurn(epoch);
+};
+const closeBattleBeforeSkills=closeFirstBattle;closeFirstBattle=function(){selectedBattleSkill=null;battleGuard=false;closeBattleSkills();closeBattleBeforeSkills();};
+
+/* FIRST NIGHT · return, conversation, upstairs, bed choice and morning */
+const FIRST_NIGHT_TIMING={dialogueFade:650,sleepFade:1500,black:3000};
+const FIRST_NIGHT_ROOM={bed:{x:170,y:350,radius:85},wake:{x:190,y:350,direction:'left'},seoyoon:{x:700,y:420,direction:'down'}};
+const RETURN_NIGHT_LINES=[
+ ['Seoyoon','You’re supposed to throw that away.'],
+ ['Riccardo','Someone attacked me outside.'],
+ ['Seoyoon','What? Are you hurt?'],
+ ['Riccardo','A few scratches. He kept saying he was hungry. I told him we were closed, but he just came at me.'],
+ ['Seoyoon','Probably drunk. Or on something.'],
+ ['Riccardo','You didn’t see him. There was something wrong with his face.'],
+ ['Seoyoon','Did he follow you?'],
+ ['Riccardo','I don’t think so.'],
+ ['Seoyoon','Okay. I’ll lock the door. If he comes back, we’ll call the police.'],
+ ['Riccardo','You’re taking this surprisingly well.'],
+ ['Seoyoon','I’ve worked late shifts here for three years. You meet strange people.'],
+ ['Riccardo','I had to hit him with a frying pan.'],
+ ['Seoyoon','Then I’m glad you hadn’t thrown it away yet.'],
+ ['Riccardo','That’s not really the point.'],
+ ['Seoyoon','Come on. Let’s get some sleep. If you’re still worried, we’ll talk about it tomorrow.'],
+ ['Riccardo','Right. Tomorrow.']
+];
+let nightState={phase:'before-victory',firstVictoryReward:false},nightEpoch=0,nightTransition=false,bedDismissed=false;
+const sleepPrompt=document.createElement('section');sleepPrompt.id='sleepPrompt';sleepPrompt.hidden=true;sleepPrompt.setAttribute('role','dialog');sleepPrompt.setAttribute('aria-modal','true');sleepPrompt.setAttribute('aria-labelledby','sleepQuestion');sleepPrompt.innerHTML='<div id="sleepPanel"><p id="sleepQuestion">Would you like to sleep?</p><div class="sleep-choices"><button id="sleepYes">YES</button><button id="sleepNo">NO</button></div></div>';game.appendChild(sleepPrompt);
+const resumeNightButton=document.createElement('button');resumeNightButton.id='resumeNight';resumeNightButton.textContent='RESUME';resumeNightButton.hidden=true;game.appendChild(resumeNightButton);
+let pendingNightSave=readRpgSave();
+const lockBeforeNight=locked;locked=function(){return nightTransition||!sleepPrompt.hidden||lockBeforeNight();};
+function syncNightSeoyoon(){
+ if(!seoyoonNpc)return;const upstairs=['go-to-bed','morning'].includes(nightState.phase);
+ if(upstairs){const index=npcs.indexOf(seoyoonNpc);if(locationId==='quarters'){if(index<0)npcs.push(seoyoonNpc);Object.assign(seoyoonNpc,FIRST_NIGHT_ROOM.seoyoon,{height:80,moving:false,talking:false});seoyoonNpc.actor.height=80;seoyoonNpc.actor.active=null;drawNpc(seoyoonNpc);}else{if(index>=0)npcs.splice(index,1);seoyoonNpc.actor.node.hidden=true;}}
+ else if(locationId==='restaurant'){Object.assign(seoyoonNpc,{x:535,y:525,height:100});seoyoonNpc.actor.height=100;if(!npcs.includes(seoyoonNpc))npcs.push(seoyoonNpc);drawNpc(seoyoonNpc);}
+}
+function nightObjective(){if(nightState.phase==='return-inside')return locationId==='restaurant'?'Talk to Seoyoon':'Return to Cucchiaio';if(nightState.phase==='go-to-bed')return locationId==='quarters'?'Find your bed · Room on the upper left':'Go upstairs and get some sleep';if(nightState.phase==='morning')return 'Morning · Staff quarters';return null;}
+function refreshNightObjective(){const text=nightObjective();if(text)$('objective').textContent=text;}
+const showBeforeNight=showLocation;showLocation=function(id){showBeforeNight(id);syncNightSeoyoon();refreshNightObjective();};
+const targetsBeforeNight=allTargets;allTargets=function(){const list=targetsBeforeNight();if(locationId==='quarters'&&['go-to-bed','morning'].includes(nightState.phase)&&seoyoonNpc&&!list.some(t=>t.owner===seoyoonNpc))list.push({type:'npc',key:'seoyoon',owner:seoyoonNpc,dog:false});return list;};
+function showReturnNightPage(){const q=dialogue?.firstNight;if(!q)return;const [speaker,text]=RETURN_NIGHT_LINES[q.index];dialogue.type=speaker==='Seoyoon'?'npc':'story';dialogue.target=speaker==='Seoyoon'?{type:'npc',key:'seoyoon',owner:seoyoonNpc,dog:false}:null;setSpeechText(speaker+': '+text);updateInteractionUI();}
+function startReturnNightConversation(){if(!seoyoonNpc||nightTransition||dialogue||locationId!=='restaurant'||nightState.phase!=='return-inside')return;nightState.phase='after-battle-dialogue';resetInput();seoyoonNpc.previousDirection=seoyoonNpc.direction;seoyoonNpc.direction=facing(player.x-seoyoonNpc.x,player.y-seoyoonNpc.y);seoyoonNpc.talking=true;player.direction=facing(seoyoonNpc.x-player.x,seoyoonNpc.y-player.y);drawPlayer();drawNpc(seoyoonNpc);openSpeech([''],{type:'story'});dialogue.firstNight={index:0};showReturnNightPage();}
+const interactBeforeNight=interact;interact=function(t){if(t?.owner?.id==='seoyoon'&&!intro&&!dialogue&&!locked()&&nearTarget(t)){if(nightState.phase==='return-inside'&&locationId==='restaurant'){startReturnNightConversation();return;}if(locationId==='quarters'&&nightState.phase==='go-to-bed'){openSpeech(['Seoyoon: Your room is on the upper left. Get some sleep.'],{type:'npc',target:t});return;}if(nightState.phase==='morning'){openSpeech(['Seoyoon: Good morning.'],{type:'npc',target:t});return;}}return interactBeforeNight(t);};
+async function nightWait(ms,epoch){await wait(ms);return epoch===nightEpoch;}
+async function finishReturnNightConversation(){
+ const epoch=++nightEpoch,fade=$('fade'),previous={transition:fade.style.transition,zIndex:fade.style.zIndex};nightTransition=true;resetInput();closeDialogue(false);if(seoyoonNpc)seoyoonNpc.talking=false;
+ fade.style.zIndex='40';fade.style.transition='opacity '+FIRST_NIGHT_TIMING.dialogueFade+'ms linear';void fade.offsetWidth;fade.classList.add('black');
+ if(!await nightWait(FIRST_NIGHT_TIMING.dialogueFade+40,epoch))return;
+ nightState.phase='go-to-bed';storyPhase='complete';setStoryBusy(false);syncNightSeoyoon();refreshNightObjective();drawPlayer();
+ if(!await nightWait(50,epoch))return;fade.classList.remove('black');
+ if(!await nightWait(FIRST_NIGHT_TIMING.dialogueFade+40,epoch))return;
+ fade.style.transition=previous.transition;fade.style.zIndex=previous.zIndex;nightTransition=false;resetInput();updateInteractionUI();saveRpgGame();
+}
+const advanceBeforeNight=advanceSpeech;advanceSpeech=function(){if(nightTransition)return;const q=dialogue?.firstNight;if(!q)return advanceBeforeNight();if(speechPageIndex+1<speechPages.length){speechPageIndex++;paintBalloonPage();updateInteractionUI();return;}if(q.index+1<RETURN_NIGHT_LINES.length){q.index++;showReturnNightPage();return;}void finishReturnNightConversation();};
+function nearFirstBed(){return locationId==='quarters'&&Math.hypot(player.x-FIRST_NIGHT_ROOM.bed.x,player.y-FIRST_NIGHT_ROOM.bed.y)<=FIRST_NIGHT_ROOM.bed.radius&&player.x>=155&&player.x<=270;}
+function openSleepPrompt(){if(nightState.phase!=='go-to-bed'||!nearFirstBed()||dialogue||locked()||intro||editor.open)return;resetInput();clearMarkers();doorButton.hidden=true;portalButton.hidden=true;sleepPrompt.hidden=false;const panel=$('sleepPanel');if(dialogueSkin)panel.style.borderImageSource='url("'+dialogueSkin.body+'")';$('sleepNo').focus();}
+function closeSleepPrompt(){sleepPrompt.hidden=true;bedDismissed=true;resetInput();updateInteractionUI();}
+$('sleepNo').onclick=closeSleepPrompt;
+async function sleepUntilMorning(){
+ if(sleepPrompt.hidden||nightState.phase!=='go-to-bed'||nightTransition)return;
+ const epoch=++nightEpoch,fade=$('fade'),previous={transition:fade.style.transition,zIndex:fade.style.zIndex};sleepPrompt.hidden=true;nightTransition=true;nightState.phase='sleeping';resetInput();clearMarkers();
+ fade.style.zIndex='40';fade.style.transition='opacity '+FIRST_NIGHT_TIMING.sleepFade+'ms linear';void fade.offsetWidth;fade.classList.add('black');
+ if(!await nightWait(FIRST_NIGHT_TIMING.sleepFade+40,epoch))return;
+ if(!await nightWait(FIRST_NIGHT_TIMING.black,epoch))return;
+ nightState.phase='morning';storyNight=false;paintStoryNight();Object.assign(player,FIRST_NIGHT_ROOM.wake,{moving:false});nearestFree(player);drawPlayer();updateCamera();syncNightSeoyoon();
+ for(const id of partySlots.filter(Boolean))syncMemberProgression(id,{refill:true});renderMenu();refreshNightObjective();
+ if(!await nightWait(50,epoch))return;fade.classList.remove('black');
+ if(!await nightWait(FIRST_NIGHT_TIMING.sleepFade+40,epoch))return;
+ fade.style.transition=previous.transition;fade.style.zIndex=previous.zIndex;nightTransition=false;bedDismissed=true;resetInput();updateInteractionUI();saveRpgGame();
+}
+$('sleepYes').onclick=()=>void sleepUntilMorning();
+sleepPrompt.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeSleepPrompt();}if(e.key==='Tab'){e.preventDefault();(document.activeElement===$('sleepYes')?$('sleepNo'):$('sleepYes')).focus();}});
+const portalBeforeNight=useCucchiaioPortal;useCucchiaioPortal=async function(p){await portalBeforeNight(p);syncNightSeoyoon();refreshNightObjective();if(['return-inside','go-to-bed','morning'].includes(nightState.phase))saveRpgGame();};
+const victoryBeforeNight=victoryFirstBattle;victoryFirstBattle=async function(epoch){await victoryBeforeNight(epoch);if(!battleAlive(epoch)||firstBattlePhase!=='victory'||nightState.firstVictoryReward)return;nightState.firstVictoryReward=true;const reports=awardExperience(10,['riccardo']);const extra=reports.flatMap(r=>[r.level>r.oldLevel?'Riccardo reached Lv '+r.level+'.':'',...r.learned.map(n=>'Learned '+n+'!')]).filter(Boolean);showBattleResult('VICTORY','10 EXP earned.'+(extra.length?' '+extra.join(' '):''));};
+const continueBeforeNight=$('battleContinue').onclick;$('battleContinue').onclick=()=>{const won=firstBattlePhase==='victory';continueBeforeNight();if(won&&nightState.phase==='before-victory'){nightState.phase='return-inside';storyPhase='complete';storyCamera=null;refreshNightObjective();saveRpgGame();}};
+const uiBeforeNight=updateInteractionUI;updateInteractionUI=function(){uiBeforeNight();if(nightTransition||!sleepPrompt.hidden){clearMarkers();portalButton.hidden=true;doorButton.hidden=true;}refreshNightObjective();};
+const travelBeforeNight=updateTravel;updateTravel=function(dt){travelBeforeNight(dt);resumeNightButton.hidden=!(ready&&intro&&pendingNightSave&&!nightTransition);if(nightState.phase==='go-to-bed'&&locationId==='quarters'){if(!nearFirstBed())bedDismissed=false;else if(!bedDismissed&&!dialogue&&!locked()&&!editor.open&&!intro)openSleepPrompt();}};
+const beginBeforeNight=beginIntro;beginIntro=function(){nightEpoch++;nightState={phase:'before-victory',firstVictoryReward:false};nightTransition=false;bedDismissed=false;sleepPrompt.hidden=true;resumeNightButton.hidden=true;const fade=$('fade');fade.style.transition='';fade.style.zIndex='';fade.classList.remove('black');if(seoyoonNpc){seoyoonNpc.talking=false;Object.assign(seoyoonNpc,{x:535,y:525,height:100});seoyoonNpc.actor.height=100;}beginBeforeNight();};
+async function resumeNightGame(){
+ const data=readRpgSave();if(!data||nightTransition)return false;const epoch=++nightEpoch;nightTransition=true;resumeNightButton.hidden=true;resetInput();const fade=$('fade');fade.style.zIndex='40';fade.style.transition='none';fade.classList.add('black');
+ try{
+  await Promise.all([isInterior(data.location)?loadInteriorImage(data.location):loadHongdeonMap(),loadSeoyoon(),loadDoorSprites(),loadWorkUniform()]);if(epoch!==nightEpoch)return false;
+  closeDialogue(false);intro=false;film.phase='play';ending=false;menuOpen=false;autoMenu=false;transitioning=false;destinationOpen=false;officeSequence=null;travelScene=null;$('rpgMenu').hidden=true;$('destinations').hidden=true;$('trainWindow').hidden=true;progressionPage.hidden=true;equipPage.hidden=true;sleepPrompt.hidden=true;
+  for(const id of ['riccardo','seoyoon']){const saved=data.members?.[id],m=partyMembers[id];if(!saved)continue;const level=clamp(Math.trunc(saved.level)||1,1,50);Object.assign(m,{level,exp:clamp(Math.trunc(saved.exp)||EXP_LEVELS[level-1],EXP_LEVELS[level-1],EXP_LEVELS[49]),hp:Math.max(0,Number(saved.hp)||0),ep:Math.max(0,Number(saved.ep)||0),joined:id==='riccardo'?true:!!saved.joined});}
+  partySlots.splice(0,4,...Array.from({length:4},(_,i)=>i===0?'riccardo':(data.slots?.[i]==='seoyoon'&&partyMembers.seoyoon.joined?'seoyoon':null)));for(let i=2;i<4;i++)if(partySlots[i]&&partySlots.indexOf(partySlots[i])!==i)partySlots[i]=null;
+  equipState=freshEquipState();equipState.stage=['new','equip','after','done'].includes(data.equip?.stage)?data.equip.stage:'done';for(const [id,n] of Object.entries(data.equip?.owned||{}))if(EQUIP_ITEMS[id]&&Number.isFinite(n)&&n>0)equipState.owned[id]=clamp(Math.trunc(n),0,99);for(const id of ['riccardo','seoyoon'])for(const [slot,item] of Object.entries(data.equip?.members?.[id]||{}))if(EQUIP_ITEMS[item]?.owner===id&&EQUIP_ITEMS[item].slot===slot&&equipState.owned[item]>0)equipmentFor(id)[slot]=item;equipSeoyoonStarter();for(const id of ['riccardo','seoyoon'])syncMemberProgression(id);
+  inventory={};for(const [id,n] of Object.entries(data.inventory||{}))if(ITEM_CATALOG[id]&&Number.isFinite(n))inventory[id]=clamp(Math.trunc(n),0,999);won=clamp(Math.trunc(data.won)||0,0,LIMITS.won);language=data.language==='ko'?'ko':'en';jobAssigned=!!data.jobAssigned;menuUnlocked=!!data.menuUnlocked;
+  nightState={phase:data.story.phase==='after-battle-dialogue'?'return-inside':data.story.phase,firstVictoryReward:!!data.story.firstVictoryReward};storyPhase='complete';storyNight=nightState.phase!=='morning';storyCamera=null;storyEncounter=null;setStoryBusy(false);workUniformEnabled=!!data.workUniformEnabled;
+  showLocation(data.location);Object.assign(player,{x:Number(data.player?.x)||CUCCHIAIO[data.location]?.start.x||1360,y:Number(data.player?.y)||CUCCHIAIO[data.location]?.start.y||1950,direction:Object.hasOwn(VECTORS,data.player?.direction)?data.player.direction:'down',moving:false});nearestFree(player);drawPlayer();updateCamera();syncNightSeoyoon();renderMenu();refreshNightObjective();bedDismissed=nearFirstBed();
+  if(!await nightWait(50,epoch))return false;fade.style.transition='opacity 650ms linear';fade.classList.remove('black');if(!await nightWait(700,epoch))return false;fade.style.transition='';fade.style.zIndex='';nightTransition=false;updateInteractionUI();return true;
+ }catch(e){if(epoch===nightEpoch){nightTransition=false;fade.classList.remove('black');fade.style.transition='';fade.style.zIndex='';notice('Unable to resume: '+e.message);}return false;}
+}
+resumeNightButton.onclick=()=>void resumeNightGame();
+window.TaraiNight={getState:()=>({...nightState,transitioning:nightTransition,sleepPrompt:!sleepPrompt.hidden}),timing:FIRST_NIGHT_TIMING,room:FIRST_NIGHT_ROOM,resume:resumeNightGame};
 
 
 /* 21 · AVVIO */
