@@ -267,7 +267,7 @@ window.addEventListener('click',handleDestinationActivation,true);
 /* 06 · CONFIGURAZIONE */
 const CONFIG={
   map:"file_0000000011348209b4f72c4afa5f7456.png",width:1024,height:1536,
-  start:{x:512,y:448},entrance:{x:512,y:366},speed:135,radius:5,spriteHeight:54,
+  start:{x:512,y:448},entrance:{x:512,y:366},speed:168.75,radius:5,spriteHeight:54,
   zoom:1.35,minZoom:.7,maxZoom:2.8,
   introZoom:.95,panSeconds:8,trainArrival:2.04,descendSeconds:1.8,
   bus:{width:210,groundY:648,speedMin:90,speedMax:115,waitMin:3,waitMax:8,hitHeight:15},
@@ -625,7 +625,7 @@ function updateIntro(dt){
   const t=smooth(film.time/CONFIG.descendSeconds);film.anchor={x:512,y:90+(448-90)*t};zoom=CONFIG.introZoom+(CONFIG.zoom-CONFIG.introZoom)*t;
   if(film.time>=CONFIG.descendSeconds){film.phase="exit";film.time=0;film.anchor={x:512,y:448};zoom=CONFIG.zoom;}
  }else if(film.phase==="exit"){
-  const old=player.y;player.y=Math.min(CONFIG.start.y,player.y+75*dt);player.moving=player.y>old;
+  const old=player.y;player.y=Math.min(CONFIG.start.y,player.y+93.75*dt);player.moving=player.y>old;
   if(player.y>=CONFIG.start.y){player.moving=false;film.phase="speech";openSpeech(INTRO_LINES,{type:"intro"});}
  }
 }
@@ -1126,7 +1126,7 @@ function buildRoomDoors(){clearRoomDoors();if(locationId!=='quarters')return;
  updateRoomDoors(0);
 }
 function updateRoomDoors(dt){if(locationId!=='quarters')return;for(const d of roomDoors){
- const near=(Math.abs(player.x-(d.x+d.w/2))<d.w/2+24&&Math.abs(player.y-d.y)<100)||(morningMotion&&Math.abs(morningMotion.subject.x-(d.x+d.w/2))<d.w/2+24&&Math.abs(morningMotion.subject.y-d.y)<100);
+ const near=(Math.abs(player.x-(d.x+d.w/2))<d.w/2+24&&Math.abs(player.y-d.y)<100)||([...morningMotions.values()].some(m=>Math.abs(m.subject.x-(d.x+d.w/2))<d.w/2+24&&Math.abs(m.subject.y-d.y)<100));
  if(near&&d.amount===0)d.side=player.y>d.y?'up':'down';
  d.amount=clamp(d.amount+(near?1:-1)*dt*5,0,1);
  const open=d.amount>.55,state=open?d.side:'closed';if(d.state!==state){d.node.src=doorSprites[state]||DOOR_FILES[state];d.state=state;}
@@ -1687,7 +1687,7 @@ interact=function(t){
   if(storyPhase==='outside-ready'){openSpeech(['Seoyoon: The bins are outside. Then I’ll show you your room.'],{type:'npc',target:t});return;}
  }return interactBeforeDinner(t);
 };
-function hungrySpriteHalfWidth(asset=hungryWalkAsset){return asset?HONGDEON.playerHeight*asset.b.w/asset.b.h/2:HONGDEON.playerHeight*.4;}
+function hungrySpriteHalfWidth(asset=hungryWalkAsset){return asset?HONGDEON.playerHeight*1.25*asset.b.w/asset.b.h/2:HONGDEON.playerHeight*1.25*.4;}
 function hungryRouteClear(spawn,asset=hungryWalkAsset){
  const radius=10,half=hungrySpriteHalfWidth(asset);
  // Anche il bordo destro dello sprite deve restare fuori dall'inquadratura.
@@ -1707,7 +1707,7 @@ async function startHungryEncounter(candidate=null){
  let asset;try{asset=await loadHungryWalk();}catch(e){if(!storyValid(epoch))return;storyPhase='outside-walk';storyNextSpawnCheck=storyDistance+12;storyLastPosition={x:player.x,y:player.y};setStoryBusy(false);$('status').textContent=e.message;return;}
  if(!storyValid(epoch))return;
  if(!hungryRouteClear(spawn,asset)){storyPhase='outside-walk';storyNextSpawnCheck=storyDistance+12;setStoryBusy(false);return;}
- storyEnemy={id:'hungry_stranger',name:'Stranger',...spawn,direction:'right',height:HONGDEON.playerHeight,radius:9,moving:false,talking:false,actor:createActor(HONGDEON.playerHeight),idleAssets:{right:asset},walkAssets:{right:asset},animation:asset,asset};storyEnemy.actor.node.hidden=true;
+ storyEnemy={id:'hungry_stranger',name:'Stranger',...spawn,direction:'right',height:HONGDEON.playerHeight*1.25,radius:9,moving:false,talking:false,actor:createActor(HONGDEON.playerHeight*1.25),idleAssets:{right:asset},walkAssets:{right:asset},animation:asset,asset};storyEnemy.actor.node.hidden=true;
  storyPhase='encounter';openSpeech(['Stranger: Hungry…'],{type:'story'});dialogue.offscreenHungryCall=true;updateInteractionUI();
  if(!await storyWait(STORY_TIMING.call,epoch))return;
  closeDialogue(false);player.direction='left';player.moving=false;drawPlayer();
@@ -1998,7 +1998,7 @@ async function sleepUntilMorning(){
  if(!await nightWait(FIRST_NIGHT_TIMING.sleepFade+40,epoch))return;
  if(!await nightWait(FIRST_NIGHT_TIMING.black,epoch))return;
  nightState.phase=repeatRest?'morning-complete':'morning';storyNight=false;paintStoryNight();Object.assign(player,FIRST_NIGHT_ROOM.wake,{moving:false});nearestFree(player);drawPlayer();updateCamera();syncNightSeoyoon();
- for(const id of partySlots.filter(Boolean))syncMemberProgression(id,{refill:true});renderMenu();refreshNightObjective();
+ for(const id of partySlots.filter(Boolean))syncMemberProgression(id,{refill:true});renderMenu();refreshNightObjective();if(!repeatRest)void startMorningScene();
  if(!await nightWait(50,epoch))return;fade.classList.remove('black');
  if(!await nightWait(FIRST_NIGHT_TIMING.sleepFade+40,epoch))return;
  fade.style.transition=previous.transition;fade.style.zIndex=previous.zIndex;nightTransition=false;bedDismissed=true;resetInput();updateInteractionUI();saveRpgGame();
@@ -2021,7 +2021,7 @@ async function resumeNightGame(){
   equipState=freshEquipState();equipState.stage=['new','equip','after','done'].includes(data.equip?.stage)?data.equip.stage:'done';for(const [id,n] of Object.entries(data.equip?.owned||{}))if(EQUIP_ITEMS[id]&&Number.isFinite(n)&&n>0)equipState.owned[id]=clamp(Math.trunc(n),0,99);for(const id of ['riccardo','seoyoon'])for(const [slot,item] of Object.entries(data.equip?.members?.[id]||{}))if(EQUIP_ITEMS[item]?.owner===id&&EQUIP_ITEMS[item].slot===slot&&equipState.owned[item]>0)equipmentFor(id)[slot]=item;equipSeoyoonStarter();for(const id of ['riccardo','seoyoon'])syncMemberProgression(id);
   inventory={};for(const [id,n] of Object.entries(data.inventory||{}))if(ITEM_CATALOG[id]&&Number.isFinite(n))inventory[id]=clamp(Math.trunc(n),0,999);won=clamp(Math.trunc(data.won)||0,0,LIMITS.won);language=data.language==='ko'?'ko':'en';jobAssigned=!!data.jobAssigned;menuUnlocked=!!data.menuUnlocked;
   nightState={phase:data.story.phase==='after-battle-dialogue'?'return-inside':data.story.phase,firstVictoryReward:!!data.story.firstVictoryReward};storyPhase='complete';storyNight=!['morning','morning-complete'].includes(nightState.phase);storyCamera=null;storyEncounter=null;setStoryBusy(false);workUniformEnabled=!!data.workUniformEnabled;
-  showLocation(data.location);Object.assign(player,{x:Number(data.player?.x)||CUCCHIAIO[data.location]?.start.x||1360,y:Number(data.player?.y)||CUCCHIAIO[data.location]?.start.y||1950,direction:Object.hasOwn(VECTORS,data.player?.direction)?data.player.direction:'down',moving:false});nearestFree(player);drawPlayer();updateCamera();syncNightSeoyoon();renderMenu();refreshNightObjective();bedDismissed=nearFirstBed();
+  showLocation(data.location);Object.assign(player,{x:Number(data.player?.x)||CUCCHIAIO[data.location]?.start.x||1360,y:Number(data.player?.y)||CUCCHIAIO[data.location]?.start.y||1950,direction:Object.hasOwn(VECTORS,data.player?.direction)?data.player.direction:'down',moving:false});nearestFree(player);drawPlayer();updateCamera();syncNightSeoyoon();renderMenu();refreshNightObjective();bedDismissed=nearFirstBed();if(nightState.phase==='morning')void startMorningScene();
   if(!await nightWait(50,epoch))return false;fade.style.transition='opacity 650ms linear';fade.classList.remove('black');if(!await nightWait(700,epoch))return false;fade.style.transition='';fade.style.zIndex='';nightTransition=false;updateInteractionUI();return true;
  }catch(e){if(epoch===nightEpoch){nightTransition=false;fade.classList.remove('black');fade.style.transition='';fade.style.zIndex='';notice('Unable to resume: '+e.message);}return false;}
 }
@@ -2115,8 +2115,9 @@ const NEW_UI={panel:'Menu/file_00000000c8588209ad0407e6948e7423.png',button:'Men
 Object.values(NEW_UI).forEach(src=>{const image=new Image();image.src=src;});
 const bedMarker=document.createElement('button');bedMarker.id='bedMarker';bedMarker.className='marker object';bedMarker.hidden=true;const bedIcon=document.createElement('img');bedIcon.src=UI_ASSETS.exclamation;bedIcon.alt='!';bedMarker.appendChild(bedIcon);$('interactions').appendChild(bedMarker);bedMarker.onclick=e=>{e.stopPropagation();openSleepPrompt();};
 const partyNotice=document.createElement('section');partyNotice.id='partyNotice';partyNotice.className='confirmation-overlay';partyNotice.hidden=true;partyNotice.setAttribute('role','dialog');partyNotice.setAttribute('aria-modal','true');partyNotice.setAttribute('aria-labelledby','partyNoticeText');partyNotice.innerHTML='<div class="confirmation-panel"><p id="partyNoticeText">Seo Yoon joined the party!</p><div class="confirmation-choices"><button id="partyNoticeOk">OK</button></div></div>';game.appendChild(partyNotice);
-let morningEpoch=0,morningBusy=false,morningMotion=null,morningRunner=null;
+let morningEpoch=0,morningBusy=false,morningMotion=null,morningRunner=null,morningMotions=new Map();
 const MORNING_TIMING={walk:175,look:1000};
+const MORNING_WINDOW={riccardo:{x:450,y:1240},seoyoon:{x:530,y:1240},backRiccardo:{x:450,y:1190},backSeoyoon:{x:530,y:1190}};
 const MORNING_LINES=[
  ['Seoyoon','Riccardo, are you awake?'],['Riccardo','Yeah… What’s going on?'],['Seoyoon','Come and look.','window'],
  ['Riccardo','What the… Why is everyone running?'],['Seoyoon','Look over by the intersection.'],['Riccardo','Is that man biting him?!'],['Seoyoon','Step away from the window!','step-back'],
@@ -2132,16 +2133,19 @@ translateLines(MORNING_LINES,[
 const morningLockBefore=locked;locked=function(){return morningBusy||!partyNotice.hidden||morningLockBefore();};
 function bedAvailable(){return ['go-to-bed','morning','morning-complete'].includes(nightState.phase);}
 openSleepPrompt=function(){if(!bedAvailable()||!nearFirstBed()||dialogue||locked()||intro||editor.open)return;resetInput();clearMarkers();bedMarker.hidden=true;doorButton.hidden=true;portalButton.hidden=true;sleepPrompt.hidden=false;$('sleepPanel').style.borderImageSource='none';$('sleepQuestion').textContent=tr('Would you like to sleep?');localizeUI();$('sleepNo').focus();};
-const renderBeforeScale=drawPlayer;drawPlayer=function(){const height=locationId==='restaurant'?125:locationId==='hongdeon'?HONGDEON.playerHeight*1.25:isInterior(locationId)?80:locationId==='office'?OFFICE_VIEW.playerHeight:CONFIG.spriteHeight;if(player.actor.height!==height){player.actor.height=height;player.actor.active=null;}if(morningMotion?.subject===player)player.moving=true;renderBeforeScale();};
+const renderBeforeScale=drawPlayer;drawPlayer=function(){const height=locationId==='restaurant'?125:locationId==='hongdeon'?HONGDEON.playerHeight*1.25:isInterior(locationId)?80:locationId==='office'?OFFICE_VIEW.playerHeight:CONFIG.spriteHeight;if(player.actor.height!==height){player.actor.height=height;player.actor.active=null;}if(morningMotions.has(player))player.moving=true;renderBeforeScale();};
 const npcBeforeScale=drawNpc;drawNpc=function(n){if(n.id==='seoyoon'){if(partyMembers.seoyoon.joined&&!morningBusy){n.actor.node.hidden=true;return;}const height=locationId==='restaurant'?125:locationId==='hongdeon'?HONGDEON.playerHeight*1.25:80;if(n.height!==height||n.actor.height!==height){n.height=height;n.actor.height=height;n.actor.active=null;}}npcBeforeScale(n);};
 const syncBeforeMorning=syncNightSeoyoon;syncNightSeoyoon=function(){if(partyMembers.seoyoon.joined){const index=npcs.indexOf(seoyoonNpc);if(index>=0)npcs.splice(index,1);if(seoyoonNpc)seoyoonNpc.actor.node.hidden=true;return;}if(morningBusy)return;syncBeforeMorning();};
 const targetsBeforeMorning=allTargets;allTargets=function(){return targetsBeforeMorning().filter(t=>!(partyMembers.seoyoon.joined&&t.owner?.id==='seoyoon'));};
 // Keep the established camera scale: larger sprites must not zoom the room out.
 const cameraBeforeMorning=updateCamera;updateCamera=function(){const height=player.actor.height;if(locationId==='restaurant')player.actor.height=100;cameraBeforeMorning();player.actor.height=height;};
 const nightObjectiveBeforeMorning=nightObjective;nightObjective=function(){if(nightState.phase==='morning-complete')return tr('Reach the bus stop.');return nightObjectiveBeforeMorning();};
-const uiBeforeMorning=updateInteractionUI;updateInteractionUI=function(){uiBeforeMorning();bedMarker.hidden=true;
- if(ready&&!intro&&!editor.open&&!dialogue&&!locked()&&bedAvailable()&&nearFirstBed()){
-  const point=screenPosition({x:player.x,y:headY(player)});bedMarker.style.left=point.x+'px';bedMarker.style.top=point.y+'px';bedMarker.setAttribute('aria-label',tr('Would you like to sleep?'));setVisible(bedMarker,true,bedIcon);
+const headBeforeMorning=dialogueHead;dialogueHead=function(){const anchor=headBeforeMorning();if(anchor&&dialogue?.morning)anchor.y-=8;return anchor;};
+const uiBeforeMorning=updateInteractionUI;updateInteractionUI=function(){uiBeforeMorning();
+ const showBed=ready&&!intro&&!editor.open&&!dialogue&&!locked()&&bedAvailable()&&nearFirstBed();
+ setVisible(bedMarker,showBed,bedIcon);
+ if(showBed){
+  const point=screenPosition({x:player.x,y:headY(player)});bedMarker.style.left=point.x+'px';bedMarker.style.top=point.y+'px';bedMarker.setAttribute('aria-label',tr('Would you like to sleep?'));
  }
  const bubble=$('speech');bubble.classList.toggle('offscreen-left',!!dialogue?.offscreenHungryCall);if(dialogue?.offscreenHungryCall){dialogueTail.hidden=true;bubble.classList.remove('aligned-speech');bubble.style.borderImageSource='none';}
  if(morningBusy||!partyNotice.hidden){clearMarkers();bedMarker.hidden=true;portalButton.hidden=true;doorButton.hidden=true;}
@@ -2156,16 +2160,17 @@ function cinematicPath(subject,target){
  for(let i=0;i<queue.length;i++){const p=queue[i];if(p.x===end.x&&p.y===end.y){found=p;break;}for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const x=p.x+dx,y=p.y+dy,k=key(x,y);if(parents.has(k)||!allowed(x,y))continue;parents.set(k,p);queue.push({x,y});}}
  if(!found)throw Error('No route for morning scene');const points=[];while(found){points.push({x:found.x*step,y:found.y*step});found=parents.get(key(found.x,found.y));}points.reverse();return points;
 }
-function moveMorning(subject,target,epoch){return new Promise((resolve,reject)=>{let route;try{route=cinematicPath(subject,target);}catch(e){reject(e);return;}morningMotion={subject,route,index:0,resolve,epoch};});}
-function updateMorningMotion(dt){const motion=morningMotion;if(!motion)return;if(motion.epoch!==morningEpoch){morningMotion=null;motion.resolve(false);return;}let budget=MORNING_TIMING.walk*dt;const n=motion.subject;
+function moveMorning(subject,target,epoch){return new Promise((resolve,reject)=>{let route;try{route=cinematicPath(subject,target);}catch(e){reject(e);return;}const motion={subject,route,index:0,resolve,epoch};morningMotions.set(subject,motion);morningMotion=motion;});}
+function updateMorningMotion(dt){for(const motion of [...morningMotions.values()]){
+ if(motion.epoch!==morningEpoch){morningMotions.delete(motion.subject);motion.resolve(false);continue;}const n=motion.subject;let budget=MORNING_TIMING.walk*(n===player?1.25:1)*dt;
  while(budget>0&&motion.index<motion.route.length){const to=motion.route[motion.index],dx=to.x-n.x,dy=to.y-n.y,d=Math.hypot(dx,dy);if(d<.01){motion.index++;continue;}n.direction=facing(dx,dy);const amount=Math.min(d,budget);n.x+=dx/d*amount;n.y+=dy/d*amount;budget-=amount;}
- const finished=motion.index>=motion.route.length;n.moving=!finished;if(finished)morningMotion=null;if(n===player)drawPlayer();else drawNpc(n);
- if(finished)motion.resolve(true);
+ const finished=motion.index>=motion.route.length;n.moving=!finished;if(finished)morningMotions.delete(n);if(n===player)drawPlayer();else drawNpc(n);if(finished)motion.resolve(true);
+ }morningMotion=morningMotions.values().next().value||null;
 }
 function showMorningPage(){const q=dialogue?.morning;if(!q)return;const [who,text]=MORNING_LINES[q.index];dialogue.type=who==='Riccardo'?'story':'npc';dialogue.target=who==='Riccardo'?null:{type:'npc',key:'seoyoon',owner:seoyoonNpc,dog:false};setSpeechText(who+': '+text);updateInteractionUI();}
 async function morningAction(action,epoch){if(!action)return true;morningBusy=true;resetInput();closeDialogue(false);if(action==='window'){
- await moveMorning(player,{x:220,y:190},epoch);if(epoch!==morningEpoch)return false;await moveMorning(seoyoonNpc,{x:280,y:190},epoch);player.direction=seoyoonNpc.direction='up';
- }else if(action==='step-back'){await moveMorning(player,{x:220,y:240},epoch);player.direction='up';}
+ await Promise.all([moveMorning(player,MORNING_WINDOW.riccardo,epoch),moveMorning(seoyoonNpc,MORNING_WINDOW.seoyoon,epoch)]);if(epoch!==morningEpoch)return false;player.direction=seoyoonNpc.direction='down';
+ }else if(action==='step-back'){await Promise.all([moveMorning(player,MORNING_WINDOW.backRiccardo,epoch),moveMorning(seoyoonNpc,MORNING_WINDOW.backSeoyoon,epoch)]);if(epoch!==morningEpoch)return false;player.direction=seoyoonNpc.direction='down';}
  else if(action==='phone-pause'){await wait(700);}
  else if(action==='approach'){await moveMorning(seoyoonNpc,{x:player.x+40,y:player.y},epoch);player.direction=facing(seoyoonNpc.x-player.x,seoyoonNpc.y-player.y);seoyoonNpc.direction=facing(player.x-seoyoonNpc.x,player.y-seoyoonNpc.y);}
  else if(action==='join'){
@@ -2175,8 +2180,8 @@ async function morningAction(action,epoch){if(!action)return true;morningBusy=tr
 async function startMorningScene(){
  if(morningRunner||nightState.phase!=='morning'||locationId!=='quarters'||partyMembers.seoyoon.joined)return;
  const epoch=++morningEpoch;morningRunner=true;morningBusy=true;resetInput();nightState.morningStarted=true;
- try{await loadSeoyoon();if(epoch!==morningEpoch)return;Object.assign(seoyoonNpc,FIRST_NIGHT_ROOM.seoyoon,{moving:false,talking:false});if(!npcs.includes(seoyoonNpc))npcs.push(seoyoonNpc);drawNpc(seoyoonNpc);
-  await moveMorning(seoyoonNpc,{x:260,y:400},epoch);if(epoch!==morningEpoch)return;seoyoonNpc.direction=facing(player.x-seoyoonNpc.x,player.y-seoyoonNpc.y);player.direction=facing(seoyoonNpc.x-player.x,seoyoonNpc.y-player.y);drawPlayer();drawNpc(seoyoonNpc);morningBusy=false;openSpeech([''],{type:'story'});dialogue.morning={index:0};showMorningPage();
+ try{await loadSeoyoon();if(epoch!==morningEpoch)return;Object.assign(seoyoonNpc,FIRST_NIGHT_ROOM.seoyoon,{moving:true,talking:false});if(!npcs.includes(seoyoonNpc))npcs.push(seoyoonNpc);drawNpc(seoyoonNpc);
+  await moveMorning(seoyoonNpc,{x:280,y:player.y},epoch);if(epoch!==morningEpoch)return;seoyoonNpc.direction=facing(player.x-seoyoonNpc.x,player.y-seoyoonNpc.y);player.direction=facing(seoyoonNpc.x-player.x,seoyoonNpc.y-player.y);drawPlayer();drawNpc(seoyoonNpc);morningBusy=false;openSpeech([''],{type:'story'});dialogue.morning={index:0};showMorningPage();
  }catch(e){if(epoch===morningEpoch){morningBusy=false;morningRunner=null;nightState.morningStarted=false;notice(tr('Unable to start the scene. Please try again.'));console.error(e);}}
 }
 const advanceBeforeMorning=advanceSpeech;advanceSpeech=function(){if(morningBusy)return;const q=dialogue?.morning;if(!q)return advanceBeforeMorning();if(speechPageIndex+1<speechPages.length){speechPageIndex++;paintBalloonPage();updateInteractionUI();return;}const index=q.index,action=MORNING_LINES[index][2],epoch=morningEpoch;
@@ -2186,7 +2191,7 @@ const advanceBeforeMorning=advanceSpeech;advanceSpeech=function(){if(morningBusy
 $('partyNoticeOk').onclick=async()=>{if(partyNotice.hidden)return;const epoch=morningEpoch;partyNotice.hidden=true;morningBusy=true;player.direction='down';drawPlayer();await wait(MORNING_TIMING.look);if(epoch!==morningEpoch)return;morningBusy=false;morningRunner=null;nightState.phase='morning-complete';nightState.morningStarted=false;refreshNightObjective();resetInput();updateInteractionUI();saveRpgGame();};
 partyNotice.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('partyNoticeOk').click();}if(e.key==='Tab'){e.preventDefault();$('partyNoticeOk').focus();}});
 const travelBeforeMorning=updateTravel;updateTravel=function(dt){travelBeforeMorning(dt);updateMorningMotion(dt);if(nightState.phase==='morning'&&!nightTransition&&!morningRunner&&!dialogue&&!intro&&!editor.open&&!menuOpen)void startMorningScene();};
-const beginBeforeMorning=beginIntro;beginIntro=function(){morningEpoch++;if(morningMotion){morningMotion.resolve(false);morningMotion=null;}morningBusy=false;morningRunner=null;partyNotice.hidden=true;bedMarker.hidden=true;beginBeforeMorning();if(savedLanguage())language=savedLanguage();localizeUI();};
+const beginBeforeMorning=beginIntro;beginIntro=function(){morningEpoch++;for(const motion of morningMotions.values())motion.resolve(false);morningMotions.clear();morningMotion=null;morningBusy=false;morningRunner=null;partyNotice.hidden=true;bedMarker.hidden=true;beginBeforeMorning();if(savedLanguage())language=savedLanguage();localizeUI();};
 const resumeBeforeMorning=resumeNightGame;resumeNightGame=async function(){const result=await resumeBeforeMorning();if(result){if(savedLanguage())setGameLanguage(savedLanguage(),{persist:false});syncNightSeoyoon();}return result;};resumeNightButton.onclick=()=>void resumeNightGame();
 window.TaraiMorning={getState:()=>({phase:nightState.phase,busy:morningBusy,index:dialogue?.morning?.index??null,notice:!partyNotice.hidden,joined:partyMembers.seoyoon.joined}),start:startMorningScene};
 
