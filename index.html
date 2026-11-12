@@ -76,6 +76,8 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 .party-fire-hit{position:absolute;z-index:31;pointer-events:none;transform:translate(-50%,-50%);background:conic-gradient(from 20deg,transparent 0 8%,#ff6331 8% 15%,transparent 15% 25%,#ffb532 25% 36%,transparent 36% 46%,#fff3a1 46% 55%,transparent 55% 65%,#ff7637 65% 75%,transparent 75%);clip-path:polygon(50% 0,62% 30%,85% 12%,75% 42%,100% 52%,71% 63%,88% 95%,56% 77%,38% 100%,32% 69%,0 75%,23% 51%,8% 20%,39% 31%);animation:partyFlame .35s ease-out forwards}
 @keyframes partyFlame{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-65%) scale(1.25)}}
 
+
+#testShortcuts{position:absolute;left:12px;bottom:max(12px, env(safe-area-inset-bottom));z-index:21;display:flex;gap:6px;max-width:calc(100% - 24px);pointer-events:none}#testShortcuts>button{pointer-events:auto;white-space:nowrap}#testChaosExitButton{font-size:10px;font-weight:700;padding:8px 10px;min-height:36px;background:rgba(18,39,49,.22);border-color:rgba(247,213,128,.35);color:rgba(255,244,210,.7);box-shadow:none}
 </style>
 <style>
 #equipPage{position:absolute;inset:0;z-index:30;background:#182e2f;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;color:#3b2414;font-family:Georgia,'Noto Sans KR',serif}
@@ -2287,7 +2289,7 @@ const originalRetryBattle=$('battleRetry').onclick;$('battleRetry').onclick=()=>
 window.TaraiPartyBattle={start:startRescueBattle,getState:()=>partyBattle?{phase:firstBattlePhase,current:partyBattle.current,queue:[...partyBattle.queue],fighters:firstBattleFighters.map(f=>({id:f.id,kind:f.kind,hp:f.hp(),home:f.home,guard:f.guard})),rewarded:partyBattle.rewarded}:null};
 
 /* Morning Hongdeon: four fleeing civilians, reveal camera, rescue and MART lead. */
-const CHAOS={map:'Map/ad4f8dea-47b5-46d6-9681-38d6fa32b62d.png',victim:{file:'Npc/persona_seduta_spaventata.gif',x:1080,y:3020,height:78},enemy:{file:'Enemy/nemico_mappa_attacco_giu-1.gif',x:1080,y:2920,height:HONGDEON.playerHeight*1.5625},pan:1100,triggerDistance:180,
+const CHAOS={map:'Map/file_00000000c6188209b8ccfd9bdac27c51.png',victim:{file:'Npc/persona_seduta_spaventata.gif',x:1080,y:3020,height:78},enemy:{file:'Enemy/nemico_mappa_attacco_giu-1.gif',x:1080,y:2920,height:HONGDEON.playerHeight*1.5625},pan:1100,triggerDistance:180,
  civilians:[
  {file:'Npc/file_000000000c4c81fda7d862734d1541d2.gif',x:1000,y:2050,height:106,line:'Run!'},
  {file:'Npc/file_00000000f9608212a185e7ce98e4f087.gif',x:1740,y:2120,height:106,line:'Stay away from them!'},
@@ -2347,9 +2349,45 @@ window.TaraiChaos={config:CHAOS,getState:()=>({...chaosProgress(),busy:chaosBusy
 
 TaraiNight.resume=resumeNightGame;
 
+
+/* Temporary companion shortcut beside TEST HONGDEON. */
+let chaosTestJumping=false;
+const chaosTestButton=document.createElement('button');chaosTestButton.id='testChaosExitButton';chaosTestButton.textContent='TEST USCITA';chaosTestButton.type='button';chaosTestButton.hidden=true;chaosTestButton.disabled=true;chaosTestButton.setAttribute('aria-label','Salta all’uscita di Riccardo e Seo Yoon dal ristorante');
+const testShortcuts=document.createElement('div');testShortcuts.id='testShortcuts';game.append(testShortcuts);testShortcuts.append(testHongButton,chaosTestButton);Object.assign(testHongButton.style,{position:'static',left:'auto',bottom:'auto'});
+const beforeShortcutLock=locked;locked=function(){return chaosTestJumping||beforeShortcutLock();};
+function paintTestShortcuts(){chaosTestButton.hidden=!ENABLE_HONGDEON_TEST||testHongButton.hidden||firstBattleActive;chaosTestButton.disabled=!ready||transitioning||nightTransition||morningBusy||storyBusy||equipTransition||chaosBusy||chaosTestJumping||firstBattleActive;testShortcuts.hidden=testHongButton.hidden&&chaosTestButton.hidden;}
+const beforeShortcutTravel=updateTravel;updateTravel=function(dt){if(chaosTestJumping){paintTestShortcuts();return;}beforeShortcutTravel(dt);paintTestShortcuts();};
+async function jumpToChaosExitTest(){
+ if(!ENABLE_HONGDEON_TEST||!ready||chaosTestJumping||transitioning||nightTransition||morningBusy||storyBusy||equipTransition||chaosBusy||firstBattleActive||editor.open)return;
+ chaosTestJumping=true;paintTestShortcuts();resetInput();const fade=$('fade'),previous={transition:fade.style.transition,zIndex:fade.style.zIndex};
+ try{
+  // Validate assets before replacing the active scene.
+  await Promise.all([loadChaosImage(),loadChaosActors(),loadWorkUniform(),loadSeoyoon(),loadDoorSprites()]);
+  fade.style.zIndex='40';fade.style.transition='opacity 400ms linear';void fade.offsetWidth;fade.classList.add('black');await wait(430);
+  sceneEpoch++;storyEpoch++;nightEpoch++;morningEpoch++;chaosEpoch++;trainRun++;
+  for(const motion of morningMotions.values())motion.resolve(false);morningMotions.clear();morningMotion=null;morningRunner=null;morningBusy=false;
+  closeDialogue(false);reactionTime=0;dialogueGesture=null;intro=false;film.phase='play';ending=false;menuOpen=false;autoMenu=false;transitioning=false;destinationOpen=false;officeSequence=null;travelScene=null;
+  nightTransition=false;chaosBusy=false;chaosCamera=null;chaosCompanionVisible=false;chaosExitTime=0;chaosBubbleTime=0;chaosCivilianIndex=0;civilianBalloon.hidden=true;
+  nightState={phase:'morning-complete',firstVictoryReward:true,chaos:{stage:'new',revealed:false}};storyPhase='complete';storyNight=false;storyCamera=null;storyEncounter=null;storyDistance=0;storyLastPosition=null;setStoryBusy(false);workUniformEnabled=true;
+  if(storyEnemy){storyEnemy.actor.node.remove();storyEnemy=null;}storyNightLighting.hidden=true;scene.classList.remove('story-night');
+  for(const id of ['rpgMenu','inventoryPage','languagePage','destinations','trainWindow'])$(id).hidden=true;
+  $('rpgMenu').classList.remove('auto');game.classList.remove('travel-ending','battle-active','battle-entering');equipPage.hidden=true;progressionPage.hidden=true;sleepPrompt.hidden=true;partyNotice.hidden=true;resumeNightButton.hidden=true;dinnerMontage.hidden=true;
+  equipTutorial=false;equipTransition=false;equipPage.inert=false;jobAssigned=true;menuUnlocked=true;
+  equipState=freshEquipState();equipState.stage='done';for(const id of RICCARDO_STARTER_ITEMS){equipState.owned[id]=1;equipmentFor('riccardo')[EQUIP_ITEMS[id].slot]=id;}equipSeoyoonStarter();
+  partyMembers.riccardo.joined=true;partyMembers.seoyoon.joined=true;partySlots.splice(0,4,'riccardo','seoyoon',null,null);resetProgression();for(const id of ['riccardo','seoyoon'])syncMemberProgression(id,{refill:true});inventory={};
+  hongMapImage=chaosImage;showLocation('hongdeon');Object.assign(player,{x:1360,y:1950,direction:'down',moving:false});nearestFree(player);drawPlayer();syncNightSeoyoon();syncChaosActors();updateCamera();renderMenu();refreshNightObjective();clearMarkers();resetInput();
+  await wait(50);fade.classList.remove('black');await wait(430);
+ }catch(e){console.error(e);notice('Unable to start the exit test: '+e.message);}
+ finally{fade.classList.remove('black');fade.style.transition=previous.transition;fade.style.zIndex=previous.zIndex;chaosTestJumping=false;paintTestShortcuts();updateInteractionUI();}
+}
+function handleChaosTestTap(event){const button=event.target?.closest?.('#testChaosExitButton');if(!button||button.disabled||button.hidden)return;event.preventDefault();event.stopImmediatePropagation();dialogueGesture=null;suppressDialogClickUntil=performance.now()+500;void jumpToChaosExitTest();}
+window.addEventListener('pointerup',handleChaosTestTap,true);window.addEventListener('click',handleChaosTestTap,true);
+paintTestShortcuts();TaraiChaos.testExit=jumpToChaosExitTest;
+
 </script>
 </body>
 </html>
+
 
 
 
