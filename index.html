@@ -1687,7 +1687,7 @@ interact=function(t){
   if(storyPhase==='outside-ready'){openSpeech(['Seoyoon: The bins are outside. Then I’ll show you your room.'],{type:'npc',target:t});return;}
  }return interactBeforeDinner(t);
 };
-function hungrySpriteHalfWidth(asset=hungryWalkAsset){return asset?HONGDEON.playerHeight*1.25*asset.b.w/asset.b.h/2:HONGDEON.playerHeight*1.25*.4;}
+function hungrySpriteHalfWidth(asset=hungryWalkAsset){return asset?HONGDEON.playerHeight*1.5625*asset.b.w/asset.b.h/2:HONGDEON.playerHeight*1.5625*.4;}
 function hungryRouteClear(spawn,asset=hungryWalkAsset){
  const radius=10,half=hungrySpriteHalfWidth(asset);
  // Anche il bordo destro dello sprite deve restare fuori dall'inquadratura.
@@ -1707,7 +1707,7 @@ async function startHungryEncounter(candidate=null){
  let asset;try{asset=await loadHungryWalk();}catch(e){if(!storyValid(epoch))return;storyPhase='outside-walk';storyNextSpawnCheck=storyDistance+12;storyLastPosition={x:player.x,y:player.y};setStoryBusy(false);$('status').textContent=e.message;return;}
  if(!storyValid(epoch))return;
  if(!hungryRouteClear(spawn,asset)){storyPhase='outside-walk';storyNextSpawnCheck=storyDistance+12;setStoryBusy(false);return;}
- storyEnemy={id:'hungry_stranger',name:'Stranger',...spawn,direction:'right',height:HONGDEON.playerHeight*1.25,radius:9,moving:false,talking:false,actor:createActor(HONGDEON.playerHeight*1.25),idleAssets:{right:asset},walkAssets:{right:asset},animation:asset,asset};storyEnemy.actor.node.hidden=true;
+ storyEnemy={id:'hungry_stranger',name:'Stranger',...spawn,direction:'right',height:HONGDEON.playerHeight*1.5625,radius:9,moving:false,talking:false,actor:createActor(HONGDEON.playerHeight*1.5625),idleAssets:{right:asset},walkAssets:{right:asset},animation:asset,asset};storyEnemy.actor.node.hidden=true;
  storyPhase='encounter';openSpeech(['Stranger: Hungry…'],{type:'story'});dialogue.offscreenHungryCall=true;updateInteractionUI();
  if(!await storyWait(STORY_TIMING.call,epoch))return;
  closeDialogue(false);player.direction='left';player.moving=false;drawPlayer();
@@ -2133,12 +2133,12 @@ translateLines(MORNING_LINES,[
 const morningLockBefore=locked;locked=function(){return morningBusy||!partyNotice.hidden||morningLockBefore();};
 function bedAvailable(){return ['go-to-bed','morning','morning-complete'].includes(nightState.phase);}
 openSleepPrompt=function(){if(!bedAvailable()||!nearFirstBed()||dialogue||locked()||intro||editor.open)return;resetInput();clearMarkers();bedMarker.hidden=true;doorButton.hidden=true;portalButton.hidden=true;sleepPrompt.hidden=false;$('sleepPanel').style.borderImageSource='none';$('sleepQuestion').textContent=tr('Would you like to sleep?');localizeUI();$('sleepNo').focus();};
-const renderBeforeScale=drawPlayer;drawPlayer=function(){const height=locationId==='restaurant'?125:locationId==='hongdeon'?HONGDEON.playerHeight*1.25:isInterior(locationId)?80:locationId==='office'?OFFICE_VIEW.playerHeight:CONFIG.spriteHeight;if(player.actor.height!==height){player.actor.height=height;player.actor.active=null;}if(morningMotions.has(player))player.moving=true;renderBeforeScale();};
-const npcBeforeScale=drawNpc;drawNpc=function(n){if(n.id==='seoyoon'){if(partyMembers.seoyoon.joined&&!morningBusy){n.actor.node.hidden=true;return;}const height=locationId==='restaurant'?125:locationId==='hongdeon'?HONGDEON.playerHeight*1.25:80;if(n.height!==height||n.actor.height!==height){n.height=height;n.actor.height=height;n.actor.active=null;}}npcBeforeScale(n);};
+const renderBeforeScale=drawPlayer;drawPlayer=function(){const height=locationId==='restaurant'?125:locationId==='hongdeon'?HONGDEON.playerHeight*1.25:isInterior(locationId)?100:locationId==='office'?OFFICE_VIEW.playerHeight:CONFIG.spriteHeight;if(player.actor.height!==height){player.actor.height=height;player.actor.active=null;}if(morningMotions.has(player))player.moving=true;renderBeforeScale();};
+const npcBeforeScale=drawNpc;drawNpc=function(n){if(n.id==='seoyoon'){if(partyMembers.seoyoon.joined&&!morningBusy){n.actor.node.hidden=true;return;}const height=locationId==='restaurant'?125:locationId==='hongdeon'?HONGDEON.playerHeight*1.25:100;if(n.height!==height||n.actor.height!==height){n.height=height;n.actor.height=height;n.actor.active=null;}}npcBeforeScale(n);};
 const syncBeforeMorning=syncNightSeoyoon;syncNightSeoyoon=function(){if(partyMembers.seoyoon.joined){const index=npcs.indexOf(seoyoonNpc);if(index>=0)npcs.splice(index,1);if(seoyoonNpc)seoyoonNpc.actor.node.hidden=true;return;}if(morningBusy)return;syncBeforeMorning();};
 const targetsBeforeMorning=allTargets;allTargets=function(){return targetsBeforeMorning().filter(t=>!(partyMembers.seoyoon.joined&&t.owner?.id==='seoyoon'));};
 // Keep the established camera scale: larger sprites must not zoom the room out.
-const cameraBeforeMorning=updateCamera;updateCamera=function(){const height=player.actor.height;if(locationId==='restaurant')player.actor.height=100;cameraBeforeMorning();player.actor.height=height;};
+const cameraBeforeMorning=updateCamera;updateCamera=function(){const height=player.actor.height;if(isInterior(locationId))player.actor.height=locationId==='restaurant'?100:80;cameraBeforeMorning();player.actor.height=height;};
 const nightObjectiveBeforeMorning=nightObjective;nightObjective=function(){if(nightState.phase==='morning-complete')return tr('Reach the bus stop.');return nightObjectiveBeforeMorning();};
 const headBeforeMorning=dialogueHead;dialogueHead=function(){const anchor=headBeforeMorning();if(anchor&&dialogue?.morning)anchor.y-=8;return anchor;};
 const uiBeforeMorning=updateInteractionUI;updateInteractionUI=function(){uiBeforeMorning();
