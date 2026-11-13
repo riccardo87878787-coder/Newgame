@@ -107,6 +107,36 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 #rewardContinue{position:absolute;bottom:0;left:3%;right:3%;height:7.3%;display:grid;place-items:center;color:#f5ead5;font-size:3.8cqw}
 @media(prefers-reduced-motion:reduce){#menuCurtain{transition-duration:120ms}}
 
+#battleStatus{position:relative;padding:4% 4%;min-height:0}
+#battleStatus>#battleName,#battleStatus>.battle-stat,#battleStatus>#battleHint,#battleStatus>#battleAccuracy{display:none!important}
+#battleRoster{height:100%;display:grid;grid-template-rows:repeat(4,minmax(0,1fr));gap:2.5%;color:#fff3d8;min-height:0}
+.battle-roster-member{min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;gap:2px;overflow:hidden}
+.battle-roster-member>strong{font:800 3.1cqw/1.1 Arial,'Noto Sans KR',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.battle-roster-member.ko>strong{color:#c0a3a3}
+.roster-stat{display:grid;grid-template-columns:17% 1fr;align-items:center;gap:3%;font:800 2.3cqw/1 Arial,'Noto Sans KR',sans-serif}
+.roster-meter{height:2.3cqh;min-height:10px;position:relative;border:1px solid #adc9e9;background:#111b30;overflow:hidden}
+.roster-fill{position:absolute;inset:0 auto 0 0;background:linear-gradient(#82f343,#23cc08);transition:width .18s}.roster-meter.ep .roster-fill{background:linear-gradient(#40c5ff,#0068f5)}
+.roster-value{position:absolute;inset:0;display:grid;place-items:center;font:800 2.4cqw/1 Arial,'Noto Sans KR',sans-serif;color:white;text-shadow:1px 1px #000,-1px -1px #000}
+#victoryBanner{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:3px 10px;gap:3px;white-space:normal;overflow-wrap:anywhere;line-height:1.15;z-index:51}
+#victoryBanner:disabled{opacity:1;cursor:default;pointer-events:none}
+#victoryBanner.battle-action-banner{font-size:clamp(12px,3.3vw,19px);letter-spacing:0}
+.action-main{display:block}.action-effect{display:block;font-size:.8em;color:#efd29d}
+/* Cover the two baked-in wide frames with a matching patch of their own parchment. */
+#rewardsScreen:before{content:'';position:absolute;left:2%;right:2%;top:8.4%;height:50.6%;background:#f5e8cf url('Menu/file_000000000edc82099ab97cab15255aae.png') 30% 22%/800% auto}
+#rewardParticipants,#rewardParticipants[data-count]{left:3.8%;right:3.8%;top:9.6%;height:48.1%;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:2.1cqw;background:transparent}
+#rewardParticipants .reward-card{border:3px double #bc9853;border-radius:2.2cqw;box-shadow:inset 0 0 0 1px #fff1d1;background:#f5e8cf url('Menu/file_000000000edc82099ab97cab15255aae.png') 30% 22%/800% auto}
+#rewardParticipants .reward-card:before{content:'';position:absolute;left:0;top:0;bottom:0;width:3%;background:#326368;z-index:1}
+#rewardParticipants .reward-portrait{inset:0 auto 0 0;width:43%;height:100%;object-fit:cover;object-position:9% center}
+#rewardParticipants .reward-data{left:46%;right:4%;top:7%;bottom:7%;font-size:2.6cqw;gap:1px}
+#rewardParticipants .reward-data>strong:first-child{font-size:3.2cqw;overflow-wrap:anywhere}
+#rewardParticipants .reward-data>strong:nth-child(3){font-size:2.8cqw}
+#rewardParticipants .reward-data small{font-size:2.2cqw}
+#rewardParticipants .reward-exp-meter{height:2.1cqw;min-height:6px}
+/* Fixed row proportions keep the names clear of both meters at four-party density. */
+.battle-roster-member{display:grid;grid-template-rows:28% 30% 30%;gap:0;align-content:space-between;overflow:hidden}
+.battle-roster-member>strong{font-size:3cqw;line-height:1;display:block;min-height:0;align-self:center}
+.roster-stat{height:100%;min-height:0}.roster-meter{height:100%;min-height:0}
+
 </style>
 <style>
 #equipPage{position:absolute;inset:0;z-index:30;background:#182e2f;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;color:#3b2414;font-family:Georgia,'Noto Sans KR',serif}
@@ -1540,7 +1570,7 @@ function defeatFirstBattle(){firstBattlePhase='defeat';paintFirstBattle();battle
 async function performFirstBattleAttack(target){
  if(firstBattlePhase!=='target'||target.hp()<=0)return;
  const epoch=firstBattleEpoch,hero=firstBattleFighters.find(f=>f.kind==='riccardo'),self=target===hero,t=FIRST_BATTLE.timing;
- firstBattlePhase='acting';paintFirstBattle();battleHint(self?'Riccardo attacks himself!':'Riccardo attacks!');
+ firstBattlePhase='acting';paintFirstBattle();battleHint(language==='ko'?'리카르도 · ATK 사용':'Riccardo uses ATK');
  if(!self)positionBattleFighter(hero,target.home.x+23,target.home.y);
  await drawBattlePose(hero,'attack',true);if(!battleAlive(epoch))return;
  if(!await battlePause(t.impact,epoch))return;
@@ -1556,7 +1586,7 @@ async function performFirstBattleAttack(target){
  await enemyFirstBattleTurn(epoch);
 }
 async function enemyFirstBattleTurn(epoch){
- if(!battleAlive(epoch))return;firstBattlePhase='enemy';paintFirstBattle();battleHint('The stranger attacks!');
+ if(!battleAlive(epoch))return;firstBattlePhase='enemy';paintFirstBattle();battleHint(language==='ko'?'낯선 사람 · ATK 사용':'Hungry stranger uses ATK');
  const enemy=firstBattleFighters.find(f=>f.kind==='enemy'),hero=firstBattleFighters.find(f=>f.kind==='riccardo'),t=FIRST_BATTLE.timing;
  positionBattleFighter(enemy,hero.home.x-23,hero.home.y);await drawBattlePose(enemy,'attack',true);if(!battleAlive(epoch))return;
  if(!await battlePause(t.enemyImpact,epoch))return;
@@ -1965,8 +1995,7 @@ const damageBeforeGuard=battleDamage;battleDamage=function(attack,defense){const
 const attackBeforeSkills=performFirstBattleAttack;performFirstBattleAttack=async function(target){
  const skill=selectedBattleSkill;if(!skill)return attackBeforeSkills(target);
  if(!['command','target'].includes(firstBattlePhase)||!target||target.hp()<=0||battleMember().ep<skill.ep||!learnedTechniques('riccardo').some(t=>t.id===skill.id))return;
- const epoch=firstBattleEpoch,hero=firstBattleFighters.find(f=>f.kind==='riccardo'),self=target===hero,t=FIRST_BATTLE.timing;firstBattlePhase='acting';closeBattleSkills();selectedBattleSkill=null;updateMember('riccardo',{ep:battleMember().ep-skill.ep});battleHint(skill.name+'!');paintFirstBattle();
- if(!await playSkillAura(hero,epoch))return;
+ const epoch=firstBattleEpoch,hero=firstBattleFighters.find(f=>f.kind==='riccardo'),self=target===hero,t=FIRST_BATTLE.timing;firstBattlePhase='acting';closeBattleSkills();selectedBattleSkill=null;updateMember('riccardo',{ep:battleMember().ep-skill.ep});battleHint(language==='ko'?'리카르도 · '+tr(skill.name)+' 사용':'Riccardo uses '+tr(skill.name));paintFirstBattle();
  if(skill.type==='guard'){
   battleGuard=true;await drawBattlePose(hero,'idle',true);if(!await battlePause(350,epoch))return;await enemyFirstBattleTurn(epoch);return;
  }
@@ -2312,7 +2341,6 @@ async function partyMelee(user,target,skill,epoch){
 async function partyFinishAction(epoch){if(!battleAlive(epoch))return;for(const f of firstBattleFighters){if(f.hp()<=0){if(f.kind==='enemy')f.node.classList.add('defeated');else f.node.classList.add('knocked-out');}else if(f.pose==='hurt')await drawBattlePose(f,'idle',true);}paintFirstBattle();if(partyHeroes().every(f=>f.hp()<=0)){firstBattlePhase='defeat';battleHint(tr('Party defeated.'));showBattleResult(tr('DEFEAT'),tr('Try the battle again.'),true);return;}if(partyEnemies().every(f=>f.hp()<=0)){await victoryFirstBattle(epoch);return;}if(!await battlePause(200,epoch))return;await nextPartyTurn(epoch);}
 const originalPerformBattle=performFirstBattleAttack;performFirstBattleAttack=async function(target){if(!partyBattle)return originalPerformBattle(target);const user=currentPartyFighter(),skill=selectedBattleSkill;if(firstBattlePhase!=='target'||!user?.member||user.hp()<=0||target.hp()<=0)return;if(skill&&(!learnedTechniques(user.member).some(t=>t.id===skill.id)||partyMembers[user.member].ep<skill.ep))return;
  const epoch=firstBattleEpoch;firstBattlePhase='acting';selectedBattleSkill=null;closeBattleSkills();if(skill)updateMember(user.member,{ep:partyMembers[user.member].ep-skill.ep});paintFirstBattle();battleHint(partyName(user)+' · '+(skill?tr(skill.name):'ATK'));
- if(skill&&!await playSkillAura(user,epoch))return;
  if(skill?.type==='guard'){user.guard=true;await battlePause(350,epoch);}else if(skill?.id==='scorching_tray')await partyFire(user,target,skill,epoch);else if(skill?.id==='shocking_tray')await partyLightning(user,target,skill,epoch);else await partyMelee(user,target,skill,epoch);if(battleAlive(epoch))await partyFinishAction(epoch);
 };
 async function nextPartyTurn(epoch){if(!battleAlive(epoch))return;if(!partyBattle.queue.length)partyBattle.queue=firstBattleFighters.filter(f=>f.hp()>0).sort((a,b)=>partyStats(b).speed-partyStats(a).speed).map(f=>f.id);let f;while(partyBattle.queue.length){const nextId=partyBattle.queue.shift();f=firstBattleFighters.find(f=>f.id===nextId);if(f?.hp()>0)break;f=null;}if(!f)return nextPartyTurn(epoch);partyBattle.current=f.id;
@@ -2470,15 +2498,15 @@ const DUNGEON_COMBAT_FILES={
  stockkeeper:{idle:'Enemy/magazziniere_guardia.gif',attack:'Enemy/magazziniere_attacco.gif',hurt:'Enemy/magazziniere_danno.gif',skill:'Enemy/magazziniere_heavy_delivery.gif'},
  courier:{idle:'Enemy/fattorino_guardia.gif',attack:'Enemy/fattorino_attacco.gif',hurt:'Enemy/fattorino_danno.gif'}
 };
-const PRICE_CHECK={id:'price_check',name:'Price Check',type:'fixed',fixedDamage:6,accuracyPenalty:20,duration:2};
+const PRICE_CHECK={id:'price_check',name:'Price Check',type:'fixed',fixedDamage:18,accuracyPenalty:20,duration:2};
 const HEAVY_DELIVERY={id:'heavy_delivery',name:'Heavy Delivery',type:'physical',power:1.5};
 let dungeonCombatPromise=null,dungeonCombatAssets=null;
-const SKILL_AURA_MS=1500;
+
 async function loadDungeonCombat(){
  if(dungeonCombatAssets)return dungeonCombatAssets;if(dungeonCombatPromise)return dungeonCombatPromise;
  dungeonCombatPromise=(async()=>{const enemies={},fx={};await Promise.all([
  ...Object.entries(DUNGEON_COMBAT_FILES).map(async([id,files])=>{enemies[id]={};await Promise.all(Object.entries(files).map(async([pose,file])=>{const a=await battleAsset(file);Object.assign(a,ENEMY_ASSET_META[file]);enemies[id][pose]=a;}));}),
- ...Object.entries({aura:'Equip/Icone/aura_attivazione_skill.gif',beam:'icons/raggio_rosso_price_check.gif',box:'icons/scatolone_in_volo.gif',break:'icons/scatolone_impatto.gif'}).map(async([id,file])=>fx[id]=await battleAsset(file))]);return dungeonCombatAssets={enemies,fx};})();
+ ...Object.entries({beam:'icons/raggio_rosso_price_check.gif',box:'icons/scatolone_in_volo.gif',break:'icons/scatolone_impatto.gif'}).map(async([id,file])=>fx[id]=await battleAsset(file))]);return dungeonCombatAssets={enemies,fx};})();
  try{return await dungeonCombatPromise;}catch(e){dungeonCombatPromise=null;throw e;}
 }
 const partyLoadBeforeDungeon=loadPartyBattle;loadPartyBattle=async function(){const [a]=await Promise.all([partyLoadBeforeDungeon(),loadDungeonCombat()]);return a;};
@@ -2494,12 +2522,7 @@ const poseBeforeDungeon=drawBattlePose;drawBattlePose=function(f,pose,restart=fa
 const statsBeforeDungeon=partyStats;partyStats=function(f){const s=statsBeforeDungeon(f);return f.precisionDebuff?{...s,accuracy:Math.max(0,(s.accuracy??100)-f.precisionDebuff.amount)}:s;};
 function applyPriceCheck(target){target.precisionDebuff={amount:20,turns:2};}
 function finishAccuracyTurn(f){if(f?.precisionDebuff&&--f.precisionDebuff.turns<=0)f.precisionDebuff=null;}
-async function playSkillAura(f,epoch){
- await loadDungeonCombat();if(!battleAlive(epoch))return false;
- const size=f.height*1.90,stage=$('battleStage'),x=f.x/100*stage.clientWidth,y=f.y/100*stage.clientHeight;
- const e=effectImage(dungeonCombatAssets.fx.aura,{left:(x-size/2)+'px',top:(y-size*.76)+'px',width:size+'px',height:size+'px',zIndex:'7'});
- try{return await battlePause(SKILL_AURA_MS,epoch);}finally{e.remove();}
-}
+
 partyHit=async function(user,target,skill,epoch){
  if(!battleAlive(epoch))return;if(!normalAttackHits(partyStats(user),skill)){floatBattleMiss(target);paintFirstBattle();return;}
  const protection=target.guard?.valueOf()?0.5:1;
@@ -2545,7 +2568,7 @@ nextPartyTurn=async function(epoch){
  firstBattlePhase='enemy';paintFirstBattle();const targets=partyHeroes().filter(h=>h.hp()>0),target=targets.find(h=>h.guard)||targets[Math.floor(Math.random()*targets.length)],r=Math.random();
  const skill=f.stats.profile==='cashier'&&r<.3?PRICE_CHECK:f.stats.profile==='stockkeeper'&&r<.5?HEAVY_DELIVERY:null;
  battleHint(partyName(f)+' · '+(skill?tr(skill.name):'ATK'));
- if(skill){if(!await playSkillAura(f,epoch))return;if(skill===PRICE_CHECK)await enemyPriceCheck(f,target,epoch);else await enemyHeavyDelivery(f,target,epoch);if(battleAlive(epoch)){const waitMs=fighterReactionMs(target);await battlePause(Math.max(0,waitMs-(skill===PRICE_CHECK?730:300)),epoch);}}
+ if(skill){if(skill===PRICE_CHECK)await enemyPriceCheck(f,target,epoch);else await enemyHeavyDelivery(f,target,epoch);if(battleAlive(epoch)){const waitMs=fighterReactionMs(target);await battlePause(Math.max(0,waitMs-(skill===PRICE_CHECK?730:300)),epoch);}}
  else await partyMelee(f,target,null,epoch);
  if(battleAlive(epoch))await partyFinishAction(epoch);
 };
@@ -2747,9 +2770,59 @@ runCommand.onclick=async()=>{if(partyBattle?.kind!=='mart'||firstBattlePhase!=='
 [['YOU WIN','승리'],['Open battle rewards','전투 보상 열기'],['BATTLE RESULTS','전투 결과'],['ITEMS OBTAINED','획득 아이템'],['LEVEL UP!','레벨 업!'],['TAP TO CONTINUE','터치하여 계속'],['Tap to skip','터치하여 건너뛰기'],['Unable to load rewards. Tap to retry.','보상을 불러올 수 없습니다. 터치하여 다시 시도하세요.'],['Staff Meal','직원 식사'],['Espresso Shot','에스프레소 샷'],['Emergency Snack','비상 간식']].forEach(p=>bilingual(...p));
 window.TaraiRewards={rules:ENEMY_REWARDS,roll:rollEnemyRewards,getState:()=>victoryRewards?{phase:victoryRewards.phase,won:victoryRewards.won,items:{...victoryRewards.items},claimed:victoryRewards.claimed}:null};
 
+/* Fixed party status, shared action banner, and four reward slots. */
+const WAREHOUSE_BATTLE_BACKGROUND='Menu/file_000000003c7882098ddccbeba47476df.png';
+let warehouseBattleImage=null,warehouseBattleLoad=null;
+async function loadWarehouseBattleBackground(){if(warehouseBattleImage)return warehouseBattleImage;if(!warehouseBattleLoad)warehouseBattleLoad=loadDungeonImage(WAREHOUSE_BATTLE_BACKGROUND).then(im=>warehouseBattleImage=im).catch(e=>{warehouseBattleLoad=null;throw e;});return warehouseBattleLoad;}
+const loadBeforeWarehouse=loadPartyBattle;loadPartyBattle=async function(){const[a]=await Promise.all([loadBeforeWarehouse(),loadWarehouseBattleBackground()]);return a;};
+const buildBeforeWarehouse=buildPartyFighters;buildPartyFighters=async function(){await buildBeforeWarehouse();if(partyBattle?.kind==='mart')$('battleBackground').src=warehouseBattleImage.src;};
+const roster=document.createElement('div');roster.id='battleRoster';$('battleStatus').append(roster);const rosterRows=new Map();
+function battlePartyIds(){return(partyBattle?.members||['riccardo']).filter(id=>partyMembers[id]).slice(0,4);}
+function paintPartyRoster(){const ids=battlePartyIds();for(const[id,row]of rosterRows)if(!ids.includes(id)){row.node.remove();rosterRows.delete(id);}
+ for(const id of ids){let row=rosterRows.get(id);if(!row){const node=document.createElement('article'),name=document.createElement('strong');node.className='battle-roster-member';node.dataset.member=id;node.append(name);const values={};for(const stat of ['hp','ep']){const line=document.createElement('div'),label=document.createElement('span'),meter=document.createElement('div'),fill=document.createElement('span'),value=document.createElement('span');label.textContent=stat.toUpperCase();line.className='roster-stat';meter.className='roster-meter '+stat;fill.className='roster-fill';value.className='roster-value';meter.append(fill,value);line.append(label,meter);node.append(line);values[stat]={fill,value};}row={node,name,...values};rosterRows.set(id,row);}
+  roster.append(row.node);const m=partyMembers[id];row.name.textContent=m.name[language]||m.name.en;row.node.classList.toggle('ko',m.hp<=0);
+  for(const stat of ['hp','ep']){const max=m[stat==='hp'?'maxHp':'maxEp']||0;row[stat].value.textContent=m[stat]+'/'+max;row[stat].fill.style.width=(max?clamp(m[stat]/max*100,0,100):0)+'%';}
+ }
+}
+let actionEpoch=-1,actionMessage='',effectMessage='',effectTimer=0;
+function fighterDisplayName(f){if(!f)return partyMembers.riccardo.name[language]||'Riccardo';if(f.kind==='enemy')return tr(f.stats?.name||'Hungry stranger');const m=partyMembers[f.member||f.kind];return m?(m.name[language]||m.name.en):partyName(f);}
+function actionSentence(f,move){const name=fighterDisplayName(f);return language==='ko'?name+' · '+tr(move)+' 사용':name+' uses '+tr(move);}
+function resetActionMessages(){actionEpoch=firstBattleEpoch;actionMessage='';effectMessage='';clearTimeout(effectTimer);}
+function paintActionBanner(){
+ if(actionEpoch!==firstBattleEpoch)resetActionMessages();
+ if(!firstBattleActive||battleScreen.hidden||!rewardsScreen.hidden||['opening','exiting'].includes(victoryRewards?.phase)){victoryBanner.hidden=true;return;}
+ const wonBattle=victoryRewards?.phase==='banner';victoryBanner.hidden=false;victoryBanner.disabled=!wonBattle;victoryBanner.tabIndex=wonBattle?0:-1;victoryBanner.classList.toggle('battle-action-banner',!wonBattle);
+ victoryBanner.replaceChildren();const main=document.createElement('span');main.className='action-main';main.textContent=wonBattle?tr('YOU WIN'):(actionMessage||tr('Choose an action.'));victoryBanner.append(main);
+ if(!wonBattle&&effectMessage){const note=document.createElement('span');note.className='action-effect';note.textContent=effectMessage;victoryBanner.append(note);}
+ victoryBanner.setAttribute('aria-label',wonBattle?tr('Open battle rewards'):main.textContent+(effectMessage?' · '+effectMessage:''));
+}
+victoryBanner.setAttribute('aria-live','polite');
+function announceBattleEffect(text){if(!firstBattleActive||victoryRewards)return;if(actionEpoch!==firstBattleEpoch)resetActionMessages();effectMessage=text;clearTimeout(effectTimer);const epoch=firstBattleEpoch;paintActionBanner();effectTimer=setTimeout(()=>{if(epoch!==firstBattleEpoch)return;effectMessage='';paintActionBanner();},2400);}
+const hintBeforeBanner=battleHint;battleHint=function(text){hintBeforeBanner(text);if(actionEpoch!==firstBattleEpoch)resetActionMessages();
+ let message=String(text),current=partyBattle?currentPartyFighter():firstBattleFighters.find(f=>f.kind==='riccardo');
+ const sep=message.indexOf(' · ');if(sep>0&&!message.includes('WON')){const name=message.slice(0,sep),move=message.slice(sep+3);if(move==='ATK'||Object.values(TECHNIQUES).flat().some(s=>tr(s.name)===move)||['Price Check','Heavy Delivery'].some(n=>tr(n)===move))message=language==='ko'?name+' · '+move+' 사용':name+' uses '+move;}
+ if(current&&(message===tr('DEFENSE')||Object.values(ITEM_CATALOG).some(item=>tr(item.name)===message)))message=actionSentence(current,message);
+ if(message===tr('Choose an action.'))message=(current?fighterDisplayName(current)+' · ':'')+message;
+ actionMessage=message;paintActionBanner();
+};
+const paintBeforeRoster=paintFirstBattle;paintFirstBattle=function(){paintBeforeRoster();paintPartyRoster();paintActionBanner();};
+const meleeBeforeAnnouncements=partyMelee;partyMelee=async function(user,target,skill,epoch){battleHint(actionSentence(user,skill?.name||'ATK'));return meleeBeforeAnnouncements(user,target,skill,epoch);};
+const fireBeforeAnnouncements=partyFire;partyFire=async function(user,target,skill,epoch){battleHint(actionSentence(user,skill.name));return fireBeforeAnnouncements(user,target,skill,epoch);};
+const lightningBeforeAnnouncements=partyLightning;partyLightning=async function(user,target,skill,epoch){battleHint(actionSentence(user,skill.name));return lightningBeforeAnnouncements(user,target,skill,epoch);};
+const soloAttackBeforeAnnouncements=performFirstBattleAttack;performFirstBattleAttack=async function(target){if(!partyBattle&&firstBattlePhase==='target'){const f=firstBattleFighters.find(f=>f.kind==='riccardo');battleHint(actionSentence(f,selectedBattleSkill?.name||'ATK'));}return soloAttackBeforeAnnouncements(target);};
+const priceBeforeAnnouncements=applyPriceCheck;applyPriceCheck=function(target){priceBeforeAnnouncements(target);const name=fighterDisplayName(target);announceBattleEffect(language==='ko'?name+' 명중률 −20 · 2턴':name+"’s accuracy −20 for 2 turns");};
+const accuracyBeforeAnnouncements=finishAccuracyTurn;finishAccuracyTurn=function(f){const debuffed=!!f?.precisionDebuff;accuracyBeforeAnnouncements(f);if(debuffed&&!f.precisionDebuff){const name=fighterDisplayName(f);announceBattleEffect(language==='ko'?name+' 명중률 회복':name+"’s accuracy restored");}};
+const missBeforeAnnouncements=floatBattleMiss;floatBattleMiss=function(f){missBeforeAnnouncements(f);announceBattleEffect(fighterDisplayName(f)+' · '+tr('MISS'));};
+const victoryBeforeBanner=victoryFirstBattle;victoryFirstBattle=async function(epoch){await victoryBeforeBanner(epoch);if(battleAlive(epoch))paintActionBanner();};
+const closeBeforeRoster=closeFirstBattle;closeFirstBattle=function(){clearTimeout(effectTimer);actionMessage='';effectMessage='';closeBeforeRoster();victoryBanner.hidden=true;};
+const prepareBeforeGrid=prepareRewards;prepareRewards=function(state){state.members=state.members.slice(0,4);prepareBeforeGrid(state);const slots=$('rewardParticipants');while(slots.children.length<4){const empty=document.createElement('article');empty.className='reward-card reward-empty';empty.setAttribute('aria-hidden','true');slots.append(empty);}};
+// Exported helpers stay aligned with the wrapped live functions.
+TaraiPartyBattle.start=startRescueBattle;TaraiInventory.catalog=ITEM_CATALOG;
+
 </script>
 </body>
 </html>
+
 
 
 
