@@ -315,6 +315,27 @@ button:focus-visible{outline:3px solid #ffda77}button.active{background:#596c49;
 @media(prefers-reduced-motion:reduce){#battleTargetHand{animation:none}}
 
 </style>
+<style>
+#battleSkillsList.styled-skills{display:flex;flex-direction:column;gap:10px;left:2%;right:2%;bottom:34%;max-height:46%;padding:12px;border:3px double #aac7e6;outline:1px solid #324868;border-radius:0;background:linear-gradient(110deg,#060d29,#02071a);box-shadow:inset 0 0 0 1px #283858;color:#fff3d8;font-family:Georgia,'Noto Sans KR',serif}
+.styled-skills h2{flex:none;margin:0;text-align:center;font:bold 4.6cqw/1.2 Georgia,'Noto Sans KR',serif;color:#fff3d8;letter-spacing:.04em}
+.skill-menu-rows{display:flex;flex-direction:column;gap:8px;overflow-y:auto;touch-action:pan-y;min-height:0;max-height:20cqh;flex:0 1 auto}
+#battleSkillsList.styled-skills button{border:3px double #8ba7cb;border-radius:0;background:linear-gradient(100deg,#09132e,#03081c);color:#fff3d8;font:bold 3.7cqw/1.2 Georgia,'Noto Sans KR',serif;box-shadow:none;min-height:42px}
+#battleSkillsList.styled-skills .skill-menu-row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 5% 10px 12%;text-align:left;flex:none}
+.skill-menu-cost{white-space:nowrap;font-variant-numeric:tabular-nums}
+#battleSkillsList.styled-skills .skill-preview{border-color:#f5cf55;background:linear-gradient(90deg,#084a88,#061b45)}
+.skill-preview:before{content:'▸';position:absolute;left:4%;color:#ffd34d}
+#battleSkillsList.styled-skills button:disabled{opacity:1;color:#687184;border-color:#465370;background:#060d29}
+.skill-menu-description{margin:0;flex:none;min-height:3em;padding-top:8px;border-top:1px solid #aac7e6;font:3.25cqw/1.4 Georgia,'Noto Sans KR',serif}
+.skill-menu-footer{display:flex;justify-content:flex-end;flex:none}.skill-menu-footer button{min-width:30%;text-align:center!important;border-color:#f5cf55!important;padding:7px 15px!important}
+.battle-fighter.ko-sprite{filter:none!important;opacity:1!important;transition:none!important}.battle-fighter.ko-sprite img,.battle-fighter.ko-sprite canvas{transition:none!important}
+#hud>.panel{display:none!important}
+#schematicMinimap{position:absolute;z-index:6;top:12px;left:12px;width:clamp(68px,19vw,92px);aspect-ratio:1;padding:0;min-width:0;min-height:0;border:2px double #b0c5d9;border-radius:0;background:#081729a8;opacity:.68;overflow:hidden;touch-action:manipulation}
+#schematicMinimap canvas{display:block;width:100%;height:100%;pointer-events:none}
+#largeMinimap{position:absolute;inset:8%;z-index:44;background:#071323e8;border:3px double #aac7e6;padding:8px;display:grid;place-items:center;touch-action:manipulation}#largeMinimap canvas{width:100%;height:100%;object-fit:contain}
+#martEnterPrompt{z-index:46}.street-fire{position:absolute;pointer-events:none;image-rendering:pixelated}
+#resetButton{margin-left:auto}
+
+</style>
 </head>
 <body>
 <!-- 05 · HTML -->
@@ -2016,8 +2037,8 @@ function openProgressionPage(view){if(autoMenu)return;progressionView=view;reset
 $('progressionBack').onclick=()=>{progressionPage.hidden=true;$('menuNav').querySelector('[data-menu-index="'+(progressionView==='skills'?1:3)+'"]')?.focus();};
 const menuBeforeProgression=renderMenu;renderMenu=function(){menuBeforeProgression();for(const [index,view] of [[1,'skills'],[3,'status']])$('menuNav').querySelector('[data-menu-index="'+index+'"]')?.addEventListener('click',()=>openProgressionPage(view));const save=$('menuNav').querySelector('[data-menu-index="5"]');if(save)save.onclick=()=>{if(autoMenu)return;const ok=saveRpgGame();save.textContent=ok?'Saved':'Save failed';};if(!progressionPage.hidden)renderProgressionPage();};
 const closeBeforeProgression=closeMenu;closeMenu=function(){if(!autoMenu)progressionPage.hidden=true;closeBeforeProgression();};
-function saveRpgGame(){try{const data={version:RPG_VERSION,balanceVersion:1,members:partyMembers,slots:partySlots,won,language,inventory,equip:equipState,jobAssigned,menuUnlocked,location:locationId,player:{x:player.x,y:player.y,direction:player.direction},story:typeof nightState==='undefined'?null:{...nightState},storyPhase,storyNight,workUniformEnabled};if(locationId==='mart-dungeon')data.dungeon={...dungeonProgress(),opened:[...dungeonProgress().opened]};localStorage.setItem(locationId==='mart-dungeon'?DUNGEON_SAVE_KEY:RPG_SAVE_KEY,JSON.stringify(data));if(locationId!=='mart-dungeon')saveEquipState();return true;}catch(_){return false;}}
-function readRpgSave(){try{const data=JSON.parse(localStorage.getItem(RPG_SAVE_KEY));return data?.version===RPG_VERSION&&partyMembers.riccardo&&['city','office','hongdeon','restaurant','quarters'].includes(data.location)&&['return-inside','after-battle-dialogue','go-to-bed','morning','morning-complete'].includes(data.story?.phase)?data:null;}catch(_){return null;}}
+function saveRpgGame(){try{const data={version:RPG_VERSION,balanceVersion:1,members:partyMembers,slots:partySlots,won,language,inventory,equip:equipState,jobAssigned,menuUnlocked,location:locationId,player:{x:player.x,y:player.y,direction:player.direction},story:typeof nightState==='undefined'?null:{...nightState},storyPhase,storyNight,workUniformEnabled};if(locationId==='mart-dungeon')data.dungeon={...dungeonProgress(),opened:[...dungeonProgress().opened]};localStorage.setItem(locationId==='mart-dungeon'&&!storyDungeonMode()?DUNGEON_SAVE_KEY:RPG_SAVE_KEY,JSON.stringify(data));if(locationId!=='mart-dungeon')saveEquipState();return true;}catch(_){return false;}}
+function readRpgSave(){try{const data=JSON.parse(localStorage.getItem(RPG_SAVE_KEY));return data?.version===RPG_VERSION&&partyMembers.riccardo&&['city','office','hongdeon','restaurant','quarters','mart-shop','mart-dungeon'].includes(data.location)&&['return-inside','after-battle-dialogue','go-to-bed','morning','morning-complete'].includes(data.story?.phase)?data:null;}catch(_){return null;}}
 const beginBeforeProgression=beginIntro;beginIntro=function(){progressionPage.hidden=true;beginBeforeProgression();resetProgression();equipSeoyoonStarter();renderMenu();};
 resetProgression();equipSeoyoonStarter();
 battleStats=function(){return totalStats('riccardo');};
@@ -2127,14 +2148,14 @@ const beginBeforeNight=beginIntro;beginIntro=function(){nightEpoch++;nightState=
 async function resumeNightGame(){
  const data=readRpgSave();if(!data||nightTransition)return false;const epoch=++nightEpoch;nightTransition=true;resumeNightButton.hidden=true;resetInput();const fade=$('fade');fade.style.zIndex='40';fade.style.transition='none';fade.classList.add('black');
  try{
-  await Promise.all([isInterior(data.location)?loadInteriorImage(data.location):loadHongdeonMap(),loadSeoyoon(),loadDoorSprites(),loadWorkUniform()]);if(epoch!==nightEpoch)return false;
+  await Promise.all([isWarehouseArea(data.location)?loadWarehouseArea(data.location):isInterior(data.location)?loadInteriorImage(data.location):loadHongdeonMap(),loadSeoyoon(),loadDoorSprites(),loadWorkUniform()]);if(epoch!==nightEpoch)return false;
   closeDialogue(false);intro=false;film.phase='play';ending=false;menuOpen=false;autoMenu=false;transitioning=false;destinationOpen=false;officeSequence=null;travelScene=null;$('rpgMenu').hidden=true;$('destinations').hidden=true;$('trainWindow').hidden=true;progressionPage.hidden=true;equipPage.hidden=true;sleepPrompt.hidden=true;
   for(const id of ['riccardo','seoyoon']){const saved=data.members?.[id],m=partyMembers[id];if(!saved)continue;const level=clamp(Math.trunc(saved.level)||1,1,50);Object.assign(m,{level,exp:clamp(Math.trunc(saved.exp)||EXP_LEVELS[level-1],EXP_LEVELS[level-1],EXP_LEVELS[49]),hp:Math.max(0,Number(saved.hp)||0),ep:Math.max(0,Number(saved.ep)||0),joined:id==='riccardo'?true:!!saved.joined});}
   partySlots.splice(0,4,...Array.from({length:4},(_,i)=>i===0?'riccardo':(data.slots?.[i]==='seoyoon'&&partyMembers.seoyoon.joined?'seoyoon':null)));for(let i=2;i<4;i++)if(partySlots[i]&&partySlots.indexOf(partySlots[i])!==i)partySlots[i]=null;
   equipState=freshEquipState();equipState.stage=['new','equip','after','done'].includes(data.equip?.stage)?data.equip.stage:'done';for(const [id,n] of Object.entries(data.equip?.owned||{}))if(EQUIP_ITEMS[id]&&Number.isFinite(n)&&n>0)equipState.owned[id]=clamp(Math.trunc(n),0,99);for(const id of ['riccardo','seoyoon'])for(const [slot,item] of Object.entries(data.equip?.members?.[id]||{}))if(EQUIP_ITEMS[item]?.owner===id&&EQUIP_ITEMS[item].slot===slot&&equipState.owned[item]>0)equipmentFor(id)[slot]=item;equipSeoyoonStarter();for(const id of ['riccardo','seoyoon'])syncMemberProgression(id);
   inventory={};for(const [id,n] of Object.entries(data.inventory||{}))if(ITEM_CATALOG[id]&&Number.isFinite(n))inventory[id]=clamp(Math.trunc(n),0,999);won=clamp(Math.trunc(data.won)||0,0,LIMITS.won);language=data.language==='ko'?'ko':'en';jobAssigned=!!data.jobAssigned;menuUnlocked=!!data.menuUnlocked;
-  nightState={phase:data.story.phase==='after-battle-dialogue'?'return-inside':data.story.phase,firstVictoryReward:!!data.story.firstVictoryReward};storyPhase='complete';storyNight=!['morning','morning-complete'].includes(nightState.phase);storyCamera=null;storyEncounter=null;setStoryBusy(false);workUniformEnabled=!!data.workUniformEnabled;
-  showLocation(data.location);Object.assign(player,{x:Number(data.player?.x)||CUCCHIAIO[data.location]?.start.x||1360,y:Number(data.player?.y)||CUCCHIAIO[data.location]?.start.y||1950,direction:Object.hasOwn(VECTORS,data.player?.direction)?data.player.direction:'down',moving:false});nearestFree(player);drawPlayer();updateCamera();syncNightSeoyoon();renderMenu();refreshNightObjective();bedDismissed=nearFirstBed();if(nightState.phase==='morning')void startMorningScene();
+  nightState={...data.story,phase:data.story.phase==='after-battle-dialogue'?'return-inside':data.story.phase,firstVictoryReward:!!data.story.firstVictoryReward};storyPhase='complete';storyNight=!['morning','morning-complete'].includes(nightState.phase);storyCamera=null;storyEncounter=null;setStoryBusy(false);workUniformEnabled=!!data.workUniformEnabled;
+  if(data.dungeon)dungeonState={...freshDungeonState(),...data.dungeon};showLocation(data.location);Object.assign(player,{x:Number(data.player?.x)||CUCCHIAIO[data.location]?.start.x||1360,y:Number(data.player?.y)||CUCCHIAIO[data.location]?.start.y||1950,direction:Object.hasOwn(VECTORS,data.player?.direction)?data.player.direction:'down',moving:false});nearestFree(player);drawPlayer();updateCamera();syncNightSeoyoon();renderMenu();refreshNightObjective();bedDismissed=nearFirstBed();if(nightState.phase==='morning')void startMorningScene();
   if(!await nightWait(50,epoch))return false;fade.style.transition='opacity 650ms linear';fade.classList.remove('black');if(!await nightWait(700,epoch))return false;fade.style.transition='';fade.style.zIndex='';nightTransition=false;updateInteractionUI();return true;
  }catch(e){if(epoch===nightEpoch){nightTransition=false;fade.classList.remove('black');fade.style.transition='';fade.style.zIndex='';notice('Unable to resume: '+e.message);}return false;}
 }
@@ -2403,7 +2424,7 @@ const originalRetryBattle=$('battleRetry').onclick;$('battleRetry').onclick=()=>
 window.TaraiPartyBattle={start:startRescueBattle,getState:()=>partyBattle?{phase:firstBattlePhase,current:partyBattle.current,queue:[...partyBattle.queue],fighters:firstBattleFighters.map(f=>({id:f.id,kind:f.kind,hp:f.hp(),home:f.home,guard:f.guard})),rewarded:partyBattle.rewarded}:null};
 
 /* Morning Hongdeon: four fleeing civilians, reveal camera, rescue and MART lead. */
-const CHAOS={map:'Map/file_00000000c6188209b8ccfd9bdac27c51.png',victim:{file:'Npc/persona_seduta_spaventata.gif',x:1080,y:3020,height:78},enemy:{file:'Enemy/nemico_mappa_attacco_giu-1.gif',x:1080,y:2920,height:HONGDEON.playerHeight*1.5625},pan:1100,triggerDistance:180,
+const CHAOS={map:'Map/bca7ef0e-ebef-464c-9313-4596c14176b0.png',victim:{file:'Npc/persona_seduta_spaventata.gif',x:1080,y:3020,height:78},enemy:{file:'Enemy/nemico_mappa_attacco_giu-1.gif',x:1080,y:2920,height:HONGDEON.playerHeight*1.5625},pan:1100,triggerDistance:180,
  civilians:[
  {file:'Npc/file_000000000c4c81fda7d862734d1541d2.gif',x:1000,y:2050,height:106,line:'Run!'},
  {file:'Npc/file_00000000f9608212a185e7ce98e4f087.gif',x:1740,y:2120,height:106,line:'Stay away from them!'},
@@ -2925,7 +2946,7 @@ updateDungeonDoors=function(){for(const d of DUNGEON_DOORS){const unlocked=!d.lo
 };
 
 /* Stable skill identity: the fire boomerang and electric discharge have distinct names. */
-const TECHNIQUE_NAMES={scorching_tray:{en:'Scorching Tray',ko:'작열의 쟁반'},shocking_tray:{en:'Shocking Tray',ko:'전격 쟁반'}};
+const TECHNIQUE_NAMES={scorching_tray:{en:'Scorching Tray',ko:'작열의 쟁반'},shocking_tray:{en:'Static Discharge',ko:'정전기 방출'}};
 function techniqueName(skill){const names=TECHNIQUE_NAMES[skill.id];return names?names[language==='ko'?'ko':'en']:tr(skill.name);}
 for(const skill of TECHNIQUES.seoyoon){const names=TECHNIQUE_NAMES[skill.id];if(names){skill.name=names.en;bilingual(names.en,names.ko);}}
 bilingual('Choose a target','대상을 선택하세요');
@@ -2967,9 +2988,152 @@ $('battleStage').addEventListener('click',event=>{
 const closeBeforeTargetHand=closeFirstBattle;closeFirstBattle=function(){targetHand.hidden=true;battleTargetChoice=null;closeBeforeTargetHand();};
 window.addEventListener('resize',refreshTargetHand);void loadTargetHand();
 
+/* The same frame, palette and font as the existing battle commands. */
+let previewTechnique=null;
+openBattleSkills=function(){if(firstBattlePhase!=='command')return;const actor=targetingActor(),member=actor?.member||'riccardo';resetInput();battleSkillsList.replaceChildren();battleSkillsList.classList.add('styled-skills');
+ const title=document.createElement('h2'),rows=document.createElement('div'),detail=document.createElement('p'),footer=document.createElement('div'),back=document.createElement('button');title.textContent=tr('SKILLS');rows.className='skill-menu-rows';detail.className='skill-menu-description';detail.id='skillMenuDescription';footer.className='skill-menu-footer';back.textContent=tr('BACK');back.onclick=closeBattleSkills;footer.append(back);battleSkillsList.append(title,rows,detail,footer);
+ const skills=learnedTechniques(member),buttons=[];previewTechnique=skills[0]||null;
+ const preview=skill=>{previewTechnique=skill;detail.textContent=tr(skill.description);for(const [id,b]of buttons)b.classList.toggle('skill-preview',id===skill.id);};
+ for(const skill of skills){const b=document.createElement('button'),name=document.createElement('span'),cost=document.createElement('span');b.dataset.skillId=skill.id;b.className='skill-menu-row';name.textContent=techniqueName(skill);cost.textContent=skill.ep+' EP';cost.className='skill-menu-cost';b.append(name,cost);b.disabled=partyMembers[member].ep<skill.ep;b.setAttribute('aria-describedby',detail.id);buttons.push([skill.id,b]);b.onfocus=()=>preview(skill);b.onpointerenter=()=>preview(skill);b.onpointerdown=()=>preview(skill);
+  b.onclick=()=>{if(firstBattlePhase!=='command'||partyMembers[member].ep<skill.ep)return;selectedBattleSkill=skill;closeBattleSkills();firstBattlePhase='target';if(skill.target==='self')void performFirstBattleAttack(actor);else{battleHint(tr('Choose a target'));paintFirstBattle();}};rows.append(b);}
+ if(previewTechnique)preview(previewTechnique);else detail.textContent=tr('No techniques learned yet.');battleSkillsList.hidden=false;
+};
+const closeSkillsBeforeStyled=closeBattleSkills;closeBattleSkills=function(){closeSkillsBeforeStyled();battleSkillsList.classList.remove('styled-skills');};
+const itemsBeforeStyled=itemCommand.onclick;itemCommand.onclick=()=>{battleSkillsList.classList.remove('styled-skills');itemsBeforeStyled();};
+
+const COMBAT_EXTRA_FILES={riccardoItem:'Riccardogif/riccardo_uso_item_gesto.gif',seoyoonItem:'Seoyoon/seoyoon_uso_item_gesto.gif',hp:'Equip/Icone/item_recupero_hp_verde.gif',ep:'Equip/Icone/item_recupero_ep_rosso.gif',revive:'Equip/Icone/item_resurrezione_viola.gif',riccardoKO:'Riccardogif/file_00000000e7588209a1e9783aa7f5f01a.png',seoyoonKO:'Seoyoon/file_00000000b4ac8209a0a488f97a0d9089.png'};
+let combatExtras=null,combatExtraLoad=null;
+function loadCombatExtras(){return combatExtraLoad||(combatExtraLoad=Promise.all(Object.entries(COMBAT_EXTRA_FILES).map(async([id,path])=>[id,await battleAsset(path)])).then(p=>combatExtras=Object.fromEntries(p)).catch(e=>{combatExtraLoad=null;throw e;}));}
+const loadFirstBeforeExtras=loadFirstBattle;loadFirstBattle=async function(){const [assets]=await Promise.all([loadFirstBeforeExtras(),loadCombatExtras()]);assets.riccardo.item=combatExtras.riccardoItem;return assets;};
+const loadPartyBeforeExtras=loadPartyBattle;loadPartyBattle=async function(){const [assets]=await Promise.all([loadPartyBeforeExtras(),loadCombatExtras()]);firstBattleAssets.seoyoon.item=combatExtras.seoyoonItem;return assets;};
+function renderKnockedOut(f){if(!combatExtras)return;const id=f.member||f.kind,a=combatExtras[id+'KO'];if(!a)return;if(f.pose==='ko'&&f.koAsset===a)return;const idle=firstBattleAssets[id].idle;
+ const nodeWidth=idle.bounds.w*f.height/idle.bounds.h,scale=f.height*1.32/a.bounds.w,anchor=a.bounds.x+a.bounds.w/2,ground=a.bounds.y+a.bounds.h,canvas=document.createElement('canvas');canvas.width=a.width;canvas.height=a.height;canvas.getContext('2d').drawImage(a.image,0,0);
+ Object.assign(canvas.style,{position:'absolute',width:a.width*scale+'px',height:a.height*scale+'px',left:(nodeWidth/2-anchor*scale)+'px',top:(f.height-ground*scale)+'px',imageRendering:'pixelated',pointerEvents:'none'});
+ ++f.play;for(const old of f.node.querySelectorAll('img,canvas')){if(old.dataset.temporaryUrl)URL.revokeObjectURL(old.dataset.temporaryUrl);old.remove();}f.node.append(canvas);f.image=canvas;f.pose='ko';f.koAsset=a;f.node.classList.add('ko-sprite');f.node.classList.remove('knocked-out');f.node.style.width=nodeWidth+'px';f.node.style.height=f.height+'px';
+}
+const hpBeforeKO=partySetHP;partySetHP=function(f,value){hpBeforeKO(f,value);if(f.kind!=='enemy'&&f.hp()<=0)renderKnockedOut(f);};
+const poseBeforeKO=drawBattlePose;drawBattlePose=function(f,pose,restart=false){if(f.kind!=='enemy'&&f.hp()<=0){renderKnockedOut(f);return Promise.resolve(true);}f.node.classList.remove('ko-sprite','knocked-out');f.koAsset=null;return poseBeforeKO(f,pose,restart);};
+const paintBeforeKO=paintFirstBattle;paintFirstBattle=function(){for(const f of firstBattleFighters)if(f.kind!=='enemy'&&f.hp()<=0)renderKnockedOut(f);paintBeforeKO();};
+function itemEligible(id,f){const item=ITEM_CATALOG[id],m=partyMembers[f?.member];return !!(item&&m&&inventory[id]>0&&(item.revive?m.hp===0:m.hp>0&&((item.hp&&m.hp<m.maxHp)||(item.ep&&m.ep<m.maxEp))));}
+showCombatItemTargets=function(id){battleSkillsList.classList.remove('styled-skills');battleSkillsList.replaceChildren();for(const f of partyHeroes()){const b=document.createElement('button'),m=partyMembers[f.member];b.dataset.itemTarget=f.member;b.textContent=partyName(f)+' · HP '+m.hp+'/'+m.maxHp+' · EP '+m.ep+'/'+m.maxEp;b.disabled=!itemEligible(id,f);b.onclick=()=>void performCombatItem(id,f);battleSkillsList.append(b);}const back=document.createElement('button');back.textContent=tr('BACK');back.onclick=closeBattleSkills;battleSkillsList.append(back);};
+async function playRecoveryEffect(target,key,epoch){const p=bodyPoint(target),size=target.height*1.6;if(target.hp()<=0)p.y=target.y/100*$('battleStage').clientHeight-target.height*.24;
+ const effect=effectImage(combatExtras[key],{left:(p.x-size/2)+'px',top:(p.y-size/2)+'px',width:size+'px',height:size+'px'});effect.img.classList.add('item-recovery-effect');
+ try{await new Promise((resolve,reject)=>{effect.img.onload=resolve;effect.img.onerror=()=>reject(Error('Unable to play item effect'));if(effect.img.complete&&effect.img.naturalWidth)resolve();});if(!battleAlive(epoch))return false;return await battlePause(1280,epoch);}finally{effect.remove();}
+}
+async function performCombatItem(id,target){if(firstBattlePhase!=='command'||!itemEligible(id,target))return;const user=currentPartyFighter();if(!user?.member||user.hp()<=0)return;const epoch=firstBattleEpoch,item=ITEM_CATALOG[id];firstBattlePhase='acting';selectedBattleSkill=null;closeBattleSkills();battleHint(actionSentence(user,item.name));paintFirstBattle();
+ try{await drawBattlePose(user,'item',true);if(!await battlePause(1200,epoch))return;await drawBattlePose(user,'idle',true);if(!await playRecoveryEffect(target,item.revive?'revive':item.hp?'hp':'ep',epoch))return;
+  if(!battleAlive(epoch))return;if(useInventoryItem(id,target.member)){await drawBattlePose(target,'idle',true);paintFirstBattle();}if(battleAlive(epoch))await partyFinishAction(epoch);
+ }catch(e){console.error(e);if(battleAlive(epoch)){await drawBattlePose(user,'idle',true);commandFirstBattle();notice(e.message);}}
+}
+
+/* Story flags are independent from the separate dungeon test save. */
+const MART_SHOP={map:'Map/e632f69d-d1bd-4806-9e78-21f31c650d8a.png',spawn:{x:500,y:1140},exit:{x:500,y:1158},boxes:{x:550,y:357},outside:{x:1345,y:2630},returnPoint:{x:1345,y:2670},height:64};
+let shopImage=null,shopImageLoad=null,warehouseBusy=false;
+function martProgress(){if(!nightState.mart)nightState.mart={heardPassage:chaosProgress().stage==='done',visited:false,storyDungeon:false,dungeon:null};return nightState.mart;}
+function storyDungeonMode(){return !!nightState?.mart?.storyDungeon;}
+function isWarehouseArea(id){return id==='mart-shop'||id==='mart-dungeon';}
+function loadShopImage(){return shopImageLoad||(shopImageLoad=loadDungeonImage(MART_SHOP.map).then(im=>shopImage=im).catch(e=>{shopImageLoad=null;throw e;}));}
+async function loadWarehouseArea(id){if(id==='mart-shop')await loadShopImage();else await loadDungeon();}
+const shopRects=[[0,0,53,1536],[970,0,54,1536],[0,0,1024,70],[0,1175,1024,361],[55,300,198,755],[180,140,225,186],[460,175,160,170],[650,140,280,220],[360,400,125,510],[616,400,129,510],[880,320,100,810],[320,946,100,100]];
+const shopProps=[{name:'Checkout',baseY:1055,polygon:rect(55,300,198,755)},{name:'Rear shelf',baseY:326,polygon:rect(180,140,225,186)},{name:'Boxes',baseY:345,polygon:rect(460,175,160,170)},{name:'Fridges',baseY:360,polygon:rect(650,140,280,220)},{name:'Snacks west',baseY:910,polygon:rect(360,400,125,510)},{name:'Snacks east',baseY:910,polygon:rect(616,400,129,510)},{name:'Wall shelves',baseY:1130,polygon:rect(880,320,100,810)}];
+const fallenDisplay=[[535,990],[720,1034],[670,1145],[510,1095]];
+registerEditableMap({id:'mart-shop',map:MART_SHOP.map,width:1024,height:1536,version:'mart-shop-v1',world:{collisions:[...shopRects.map(a=>rect(...a)),fallenDisplay],depth:shopProps}});
+const saveBeforeWarehouseStory=saveRpgGame;saveRpgGame=function(){if(locationId==='mart-dungeon'&&storyDungeonMode())martProgress().dungeon={...dungeonProgress(),opened:[...dungeonProgress().opened]};return saveBeforeWarehouseStory();};
+TaraiDungeon.save=saveRpgGame;
+const showBeforeShop=showLocation;showLocation=function(id){if(id!=='mart-shop'){showBeforeShop(id);return;}if(MAP_EDITOR_REGISTRY.has(locationId))persistEditableMap();if(locationId==='hongdeon')hongWorld=world;else if(isInterior(locationId))interiorWorlds[locationId]=world;
+ for(const n of npcs)n.actor.node.hidden=true;npcs.splice(0);for(const a of chaosActors)a.actor.node.hidden=true;if(seoyoonNpc)seoyoonNpc.actor.node.hidden=true;chaosCompanionVisible=false;
+ clearHongDepth();clearRoomDoors();depthNodes.forEach(n=>n.remove());depthNodes=[];clearMarkers();for(const b of markerNodes.values())b.remove();markerNodes.clear();doorButton.hidden=true;portalButton.hidden=true;dungeonLayer.hidden=true;for(const b of dungeonMarkers.values())b.hidden=true;
+ locationId=id;world=editableMapWorld(id);CONFIG.width=1024;CONFIG.height=1536;scene.style.width=mapImage.style.width='1024px';scene.style.height=mapImage.style.height='1536px';mapImage.style.imageRendering='pixelated';mapImage.onload=()=>{if(locationId===id)rebuildDepth();};mapImage.src=shopImage?.src||MART_SHOP.map;for(const v of vehicles)v.actor.node.hidden=true;$('trainWindow').hidden=true;storyNightLighting.hidden=true;scene.classList.remove('story-night');$('editorOpen').hidden=false;if(mapImage.complete&&mapImage.naturalWidth)rebuildDepth();
+};
+const drawBeforeShop=drawPlayer;drawPlayer=function(){if(locationId!=='mart-shop')return drawBeforeShop();if(player.actor.height!==MART_SHOP.height){player.actor.height=MART_SHOP.height;player.actor.active=null;}renderBeforeScale();};
+const cameraBeforeShop=updateCamera;updateCamera=function(){if(locationId!=='mart-shop')return cameraBeforeShop();zoom=.9;camera.x=clamp(player.x-viewWidth/zoom/2,0,Math.max(0,CONFIG.width-viewWidth/zoom));camera.y=clamp(player.y-viewHeight/zoom/2,0,Math.max(0,CONFIG.height-viewHeight/zoom));scene.style.transform='translate('+(-camera.x*zoom)+'px,'+(-camera.y*zoom)+'px) scale('+zoom+')';};
+const targetsBeforeShop=allTargets;allTargets=function(){return locationId==='mart-shop'?[]:targetsBeforeShop();};
+
+const COPYRIGHT_LINES=[['Seoyoon','Wait… those frying-pan spins, and then behind your back… You remind me of that guy from Final—'],['Riccardo','SHH! We don’t have the copyright!'],['Seoyoon','For the pose?'],['Riccardo','As long as it’s a frying pan, we can say I’m cooking.'],['Seoyoon','With the frying pan behind your back?'],['Riccardo','Experimental cooking. Now let’s go.']];
+translateLines(COPYRIGHT_LINES,['잠깐… 프라이팬을 돌리다가 등 뒤로 넘기는 그 자세… 파이널—에 나오는 그 사람 같은데요.','쉿! 우리 저작권 없어요!','그 자세에도요?','프라이팬이니까 요리 중이라고 하면 돼요.','프라이팬을 등 뒤에 놓고요?','실험적인 요리죠. 이제 갑시다.']);
+const paintChaosBeforeCopyright=paintChaosPage;paintChaosPage=function(){const q=dialogue?.chaos;if(q?.kind!=='copyright')return paintChaosBeforeCopyright();const [who,text]=COPYRIGHT_LINES[q.index];dialogue.type=who==='Seoyoon'?'npc':'story';dialogue.target=who==='Seoyoon'?{type:'npc',key:'seoyoon',owner:seoyoonNpc,dog:false}:null;setSpeechText(who+': '+text);updateInteractionUI();};
+finishRescueBattle=async function(){if(chaosBusy||locationId!=='hongdeon')return;const progress=chaosProgress();if(progress.poseSeen)return;progress.stage='rescued';syncChaosActors();const epoch=++chaosEpoch;chaosBusy=true;resetInput();saveRpgGame();chaosCamera={x:player.x,y:player.y};updateCamera();if(!await showChaosCompanion(epoch))return;
+ seoyoonNpc.direction=facing(player.x-seoyoonNpc.x,player.y-seoyoonNpc.y);player.direction=facing(seoyoonNpc.x-player.x,seoyoonNpc.y-player.y);drawNpc(seoyoonNpc);drawPlayer();chaosLines(COPYRIGHT_LINES,'copyright');
+};
+async function talkRescuedMan(){if(locationId!=='hongdeon'||chaosBusy||dialogue||locked()||!['rescued','done'].includes(chaosProgress().stage))return;const epoch=++chaosEpoch;chaosBusy=true;resetInput();chaosProgress().poseSeen=true;
+ if(!await showChaosCompanion(epoch))return;player.direction=facing(CHAOS.victim.x-player.x,CHAOS.victim.y-player.y);drawPlayer();chaosLines(CHAOS_THANKS,'thanks');
+}
+const advanceBeforeWarehouseStory=advanceSpeech;advanceSpeech=function(){const q=dialogue?.chaos;if(!q||!['copyright','thanks'].includes(q.kind))return advanceBeforeWarehouseStory();if(speechPageIndex+1<speechPages.length){speechPageIndex++;paintBalloonPage();updateInteractionUI();return;}
+ const lines=q.kind==='copyright'?COPYRIGHT_LINES:CHAOS_THANKS;if(q.index+1<lines.length){q.index++;paintChaosPage();return;}const kind=q.kind,epoch=chaosEpoch;closeDialogue(false);
+ void(async()=>{await hideChaosCompanion(epoch);if(epoch!==chaosEpoch)return;if(kind==='copyright'){chaosProgress().poseSeen=true;chaosProgress().stage='rescued';}else{chaosProgress().stage='done';martProgress().heardPassage=true;}
+  chaosCamera=null;chaosBusy=false;resetInput();updateCamera();refreshNightObjective();updateInteractionUI();saveRpgGame();})();
+};
+
+const warehousePrompt=document.createElement('section');warehousePrompt.id='martEnterPrompt';warehousePrompt.className='confirmation-overlay';warehousePrompt.hidden=true;warehousePrompt.setAttribute('role','dialog');warehousePrompt.setAttribute('aria-modal','true');warehousePrompt.innerHTML='<div class="confirmation-panel"><p id="martEnterQuestion"></p><div class="confirmation-choices"><button data-yes>YES</button><button data-no>NO</button></div></div>';game.append(warehousePrompt);
+function closeWarehousePrompt(){warehousePrompt.hidden=true;resetInput();updateInteractionUI();}
+function openWarehousePrompt(){if(locationId!=='mart-shop'||locked()||dialogue||Math.hypot(player.x-MART_SHOP.boxes.x,player.y-MART_SHOP.boxes.y)>76)return;resetInput();$('martEnterQuestion').textContent=tr('Remove the boxes and enter?');warehousePrompt.querySelector('[data-yes]').textContent=tr('YES');warehousePrompt.querySelector('[data-no]').textContent=tr('NO');warehousePrompt.hidden=false;updateInteractionUI();warehousePrompt.querySelector('[data-no]').focus();}
+warehousePrompt.querySelector('[data-no]').onclick=closeWarehousePrompt;warehousePrompt.querySelector('[data-yes]').onclick=()=>{warehousePrompt.hidden=true;void changeWarehouseArea('mart-dungeon',DUNGEON.spawn,'up');};
+warehousePrompt.addEventListener('keydown',e=>{if(e.key==='Escape')closeWarehousePrompt();});
+const warehouseLockBefore=locked;locked=function(){return warehouseBusy||!warehousePrompt.hidden||warehouseLockBefore();};
+async function changeWarehouseArea(to,spawn,direction){if(warehouseBusy)return;warehouseBusy=true;resetInput();const epoch=sceneEpoch,fade=$('fade'),previous={transition:fade.style.transition,zIndex:fade.style.zIndex};fade.style.zIndex='45';fade.style.transition='opacity 600ms linear';
+ try{await Promise.all([to==='hongdeon'?loadChaosImage():loadWarehouseArea(to),loadWorkUniform()]);if(epoch!==sceneEpoch)return;fade.classList.add('black');await wait(650);if(epoch!==sceneEpoch)return;saveWorld();
+  const progress=martProgress();if(locationId==='mart-dungeon')progress.dungeon={...dungeonProgress(),opened:[...dungeonProgress().opened]};progress.storyDungeon=to==='mart-dungeon';progress.visited=true;
+  if(to==='mart-dungeon'){dungeonState=progress.dungeon?{...freshDungeonState(),...progress.dungeon,opened:[...progress.dungeon.opened]}:freshDungeonState();dungeonGrace=220;dungeonLastPosition=null;}
+  showLocation(to);Object.assign(player,spawn,{direction,moving:false});nearestFree(player);drawPlayer();updateCamera();await wait(75);fade.classList.remove('black');await wait(650);saveRpgGame();
+ }catch(e){console.error(e);notice(e.message);fade.classList.remove('black');}finally{if(epoch===sceneEpoch){fade.style.transition=previous.transition;fade.style.zIndex=previous.zIndex;warehouseBusy=false;resetInput();updateInteractionUI();}}
+}
+const leaveBeforeWarehouseStory=leaveDungeonTest;leaveDungeonTest=async function(){if(storyDungeonMode())return changeWarehouseArea('mart-shop',{x:550,y:390},'down');return leaveBeforeWarehouseStory();};
+const warehouseMarkers=new Map();
+function warehouseMarker(id,at,action,label){let b=warehouseMarkers.get(id);if(!b){b=document.createElement('button');b.className='marker object';b.dataset.warehouseAction=id;const im=document.createElement('img');im.src=UI_ASSETS.exclamation;im.alt='!';b.append(im);b.onclick=e=>{e.preventDefault();e.stopPropagation();if(!locked()&&!dialogue&&!editor.open)action();};$('interactions').append(b);warehouseMarkers.set(id,b);}const p=screenPosition(at);b.style.left=p.x+'px';b.style.top=p.y+'px';b.setAttribute('aria-label',tr(label));b.hidden=p.x<20||p.x>viewWidth-20||p.y<45||p.y>viewHeight-20;return b;}
+const uiBeforeWarehouseStory=updateInteractionUI;updateInteractionUI=function(){uiBeforeWarehouseStory();for(const b of warehouseMarkers.values())b.hidden=true;if(!ready||intro||dialogue||firstBattleActive||editor.open||locked()||menuOpen||chaosBusy)return;
+ if(locationId==='hongdeon'&&chaosEnabled()){
+  if(['rescued','done'].includes(chaosProgress().stage)&&Math.hypot(player.x-CHAOS.victim.x,player.y-CHAOS.victim.y)<110)warehouseMarker('rescued-man',{x:CHAOS.victim.x,y:CHAOS.victim.y-72},talkRescuedMan,'Talk');
+  if(martProgress().heardPassage&&Math.hypot(player.x-MART_SHOP.outside.x,player.y-MART_SHOP.outside.y)<110)warehouseMarker('enter-mart',{x:MART_SHOP.outside.x,y:MART_SHOP.outside.y-70},()=>void changeWarehouseArea('mart-shop',MART_SHOP.spawn,'up'),'Enter MART');
+ }
+ if(locationId==='mart-shop'){
+  $('editorOpen').hidden=false;if(Math.hypot(player.x-MART_SHOP.exit.x,player.y-MART_SHOP.exit.y)<65)warehouseMarker('exit-mart',{x:MART_SHOP.exit.x,y:MART_SHOP.exit.y-55},()=>void changeWarehouseArea('hongdeon',MART_SHOP.returnPoint,'down'),'Exit MART');
+  if(Math.hypot(player.x-MART_SHOP.boxes.x,player.y-MART_SHOP.boxes.y)<76)warehouseMarker('stockroom',{x:550,y:305},openWarehousePrompt,'Examine boxes');
+ }
+ if(locationId==='mart-dungeon'&&storyDungeonMode()){const leave=dungeonMarkers.get('leave');if(leave)leave.setAttribute('aria-label',tr('Return to MART'));}
+};
+const statusBeforeWarehouse=updateStatus;updateStatus=function(){if(locationId==='mart-shop'){$('status').textContent='MART';return;}statusBeforeWarehouse();};
+
+const fireLayer=document.createElement('div');fireLayer.id='streetFires';fireLayer.style='position:absolute;inset:0;pointer-events:none';scene.append(fireLayer);
+for(const fire of [{x:545,y:563,h:142},{x:786,y:1378,h:154},{x:302,y:2988,h:184}]){const im=document.createElement('img');im.src='Equip/Icone/fuoco_strada_loop.gif';im.alt='';im.className='street-fire';const w=fire.h*.75;Object.assign(im.style,{left:(fire.x-w/2)+'px',top:(fire.y-fire.h*.89)+'px',width:w+'px',height:fire.h+'px',zIndex:String(Math.round(fire.y*100+35))});fireLayer.append(im);}
+function syncStreetFires(){fireLayer.hidden=locationId!=='hongdeon'||!chaosEnabled();}
+const showBeforeStreetFire=showLocation;showLocation=function(id){showBeforeStreetFire(id);syncStreetFires();};
+const travelBeforeWarehouse=updateTravel;updateTravel=function(dt){travelBeforeWarehouse(dt);syncStreetFires();if(isWarehouseArea(locationId))for(const b of testShortcuts.children)b.hidden=true;if(locationId==='mart-shop')testShortcuts.hidden=true;};
+[['Remove the boxes and enter?','상자를 치우고 들어갈까요?'],['Enter MART','마트 들어가기'],['Exit MART','마트 나가기'],['Examine boxes','상자 살펴보기'],['Return to MART','마트로 돌아가기'],['Talk','말하기']].forEach(p=>bilingual(...p));
+window.TaraiWarehouse={shop:MART_SHOP,getState:()=>({...martProgress(),location:locationId,busy:warehouseBusy,prompt:!warehousePrompt.hidden})};
+
+/* A local schematic, deliberately without objectives, route guidance or destinations. */
+const miniButton=document.createElement('button');miniButton.id='schematicMinimap';miniButton.type='button';miniButton.setAttribute('aria-label','Map');miniButton.hidden=true;const miniCanvas=document.createElement('canvas');miniCanvas.width=miniCanvas.height=180;miniButton.append(miniCanvas);game.append(miniButton);
+const largeMap=document.createElement('button');largeMap.id='largeMinimap';largeMap.type='button';largeMap.hidden=true;largeMap.setAttribute('aria-label','Close map');const largeCanvas=document.createElement('canvas');largeCanvas.width=600;largeCanvas.height=900;largeMap.append(largeCanvas);game.append(largeMap);
+miniButton.onclick=()=>{if(firstBattleActive||intro||dialogue||editor.open||menuOpen)return;resetInput();largeMap.hidden=false;drawSchematicMaps();};largeMap.onclick=()=>{largeMap.hidden=true;resetInput();};
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!largeMap.hidden){largeMap.hidden=true;resetInput();}});
+const minimapLockBefore=locked;locked=function(){return !largeMap.hidden||minimapLockBefore();};
+const schematic=document.createElement('canvas');let schematicLocation='',schematicWorld=null,minimapTick=0;
+function schematicPath(ctx,points,width,color){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke();}
+function buildSchematic(){schematic.width=CONFIG.width;schematic.height=CONFIG.height;const cx=schematic.getContext('2d');cx.fillStyle='#101e30';cx.fillRect(0,0,schematic.width,schematic.height);
+ if(locationId==='hongdeon'){
+  cx.save();cx.scale(CONFIG.width/1024,CONFIG.height/1536);cx.fillStyle='#475d78';for(const a of [[12,194,127,122],[141,99,161,175],[215,57,156,206],[469,87,220,199],[728,100,213,168],[339,352,168,97],[588,340,146,136],[339,505,142,156],[573,497,193,164],[846,457,155,174],[18,723,161,258],[222,752,209,251],[550,731,266,302],[896,733,126,302],[168,1090,252,227],[547,1102,288,218],[893,1072,131,245]])cx.fillRect(...a);
+  cx.fillStyle='#355941';cx.fillRect(9,400,235,240);cx.fillRect(774,285,240,142);
+  const road='#a9b9c5';schematicPath(cx,[[0,367],[220,367],[255,339],[255,302],[285,283],[417,283],[495,313],[674,313],[721,329],[738,379],[735,423],[704,479],[570,479],[550,509],[550,621],[569,669],[706,677],[804,687],[846,734],[854,976],[842,1039],[811,1063],[566,1063],[522,1090],[510,1150],[510,1320]],35,road);
+  schematicPath(cx,[[0,692],[243,692],[273,665],[281,481],[315,451],[500,451],[544,416],[544,333]],34,road);
+  schematicPath(cx,[[282,692],[455,692],[500,725],[490,789],[451,936],[442,998],[470,1057],[476,1147],[476,1270],[460,1320]],40,road);
+  schematicPath(cx,[[455,692],[803,692]],34,road);schematicPath(cx,[[166,735],[168,1006],[186,1040],[400,1040]],16,'#6e8295');
+  schematicPath(cx,[[0,1350],[1024,1350]],39,road);schematicPath(cx,[[0,1500],[1024,1500]],53,road);schematicPath(cx,[[432,1345],[432,1505]],23,'#8197a6');cx.restore();
+ }else{
+  cx.fillStyle='#8d9dab';cx.fillRect(0,0,CONFIG.width,CONFIG.height);cx.fillStyle='#24394f';for(const p of world.collisions){polygonPath(cx,p);cx.fill();}
+ }
+ schematicLocation=locationId;schematicWorld=world;
+}
+function drawSchematicMaps(){if(schematicLocation!==locationId||schematicWorld!==world)buildSchematic();const cx=miniCanvas.getContext('2d'),extent=locationId==='hongdeon'?720:440,size=miniCanvas.width;cx.clearRect(0,0,size,size);cx.fillStyle='#0a1729';cx.fillRect(0,0,size,size);cx.drawImage(schematic,player.x-extent/2,player.y-extent/2,extent,extent,0,0,size,size);cx.fillStyle='#64e3f1';cx.beginPath();cx.arc(size/2,size/2,4.5,0,Math.PI*2);cx.fill();
+ if(!largeMap.hidden){const g=largeCanvas.getContext('2d'),scale=Math.min(largeCanvas.width/CONFIG.width,largeCanvas.height/CONFIG.height),w=CONFIG.width*scale,h=CONFIG.height*scale,x=(largeCanvas.width-w)/2,y=(largeCanvas.height-h)/2;g.clearRect(0,0,largeCanvas.width,largeCanvas.height);g.drawImage(schematic,x,y,w,h);g.fillStyle='#64e3f1';g.beginPath();g.arc(x+player.x*scale,y+player.y*scale,5,0,Math.PI*2);g.fill();}
+}
+const updateBeforeMini=updateInteractionUI;updateInteractionUI=function(){updateBeforeMini();miniButton.hidden=!ready||intro||firstBattleActive||editor.open||menuOpen||ending||!!dialogue||warehouseBusy;if(miniButton.hidden)largeMap.hidden=true;miniButton.setAttribute('aria-label',language==='ko'?'지도':'Map');largeMap.setAttribute('aria-label',language==='ko'?'지도 닫기':'Close map');};
+const travelBeforeMini=updateTravel;updateTravel=function(dt){travelBeforeMini(dt);minimapTick-=dt;if(minimapTick<=0&&!miniButton.hidden){minimapTick=.12;drawSchematicMaps();}};
+const saveBeforeMiniMap=saveWorld;saveWorld=function(){saveBeforeMiniMap();schematicLocation='';};
+
 </script>
 </body>
 </html>
+
 
 
 
